@@ -73,6 +73,9 @@
                                     <a href="{{ route('itemshipments.costs.show', $shipment->id) }}" class="btn btn-primary btn-sm">
                                     <i class="fa fa-dollar-sign"></i> Costs
                                 </a>
+                                 <a href="{{ route('itemshipments.edit-ctn-numbers', $shipment->id) }}" class="btn btn-primary btn-sm">
+            <i class="fa fa-dollar-sign"></i> Manage Ctn
+        </a>
                                  <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">
             <i class="fa fa-dollar-sign"></i> Manage Prices
         </a>

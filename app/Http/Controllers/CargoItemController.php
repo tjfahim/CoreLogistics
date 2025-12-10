@@ -13,9 +13,38 @@ class CargoItemController extends Controller
 {
        public function index()
     {
-        $items = CargoItem::whereIn('status', ['pending', 'packed'])->get();
-        return view('admin.cargo_items.index', compact('items'));
+       
+        $items = CargoItem::all(); 
+    return view('admin.cargo_items.index', [
+        'items' => $items,
+        'currentPageStatus' => 'all' 
+    ]);
     }
+
+    
+     public function pendingItems() {
+    $items = CargoItem::where('status', 'pending')->get();
+    return view('admin.cargo_items.index', [
+        'items' => $items,
+        'currentPageStatus' => 'pending'
+    ]);
+}
+
+public function packedItems() {
+    $items = CargoItem::where('status', 'packed')->get();
+    return view('admin.cargo_items.index', [
+        'items' => $items,
+        'currentPageStatus' => 'packed'
+    ]);
+}
+
+public function otherStatusPage($status) {
+    $items = CargoItem::where('status', $status)->get();
+    return view('admin.cargo_items.index', [
+        'items' => $items,
+        'currentPageStatus' => $status
+    ]);
+}
     
     public function create()
     {

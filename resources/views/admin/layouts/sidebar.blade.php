@@ -21,33 +21,25 @@
                  
                     
                     <!-- Inventory -->
-                    <li class="menu-title">INVENTORY</li>
+                    <li class="menu-title">WARE HOUSE</li>
                     
-                    <!-- <li class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
-                        <a href="{{ route('products.index') }}">
-                            <i class="menu-icon fa fa-cubes"></i> Products
-                        </a>
-                    </li> -->
+                  
                     <li class="{{ request()->routeIs('cargo-items.*') ? 'active' : '' }}">
                         <a href="{{ route('cargo-items.index') }}">
-                            <i class="menu-icon fa fa-cubes"></i> Items
+                            <i class="menu-icon fa fa-cubes"></i> China Warehouse
+                        </a>
+                    </li>
+                    <li class="{{ request()->routeIs('cargo-items.*') ? 'active' : '' }}">
+                        <a href="{{ route('cargo-items.index') }}">
+                            <i class="menu-icon fa fa-cubes"></i> BD Warehouse
                         </a>
                     </li>
                     
-                    <!-- <li class="{{ request()->routeIs('boxes.*') ? 'active' : '' }}">
-                        <a href="{{ route('boxes.index') }}">
-                            <i class="menu-icon fa fa-archive"></i> Boxes
-                        </a>
-                    </li> -->
+                    
                     
                     <!-- Operations -->
                     <li class="menu-title">OPERATIONS</li>
-<!--                     
-                    <li class="{{ request()->routeIs('shipments.*') ? 'active' : '' }}">
-                        <a href="{{ route('shipments.index') }}">
-                            <i class="menu-icon fa fa-truck"></i> Shipments
-                        </a>
-                    </li> -->
+
                     <li class="{{ request()->routeIs('itemsshipments.*') ? 'active' : '' }}">
                         <a href="{{ route('itemsshipments.index') }}">
                             <i class="menu-icon fa fa-truck"></i> Item shipments
@@ -57,11 +49,7 @@
 
                     <!-- Reports -->
                     <li class="menu-title">REPORTS</li>
-                        <li class="{{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
-                            <a href="{{ route('admin.reports') }}">
-                                <i class="menu-icon fa fa-list-alt"></i> Reports
-                            </a>
-                        </li>
+                        
                     
                        <!-- Master Data -->
                     <li class="menu-title">MASTER DATA</li>

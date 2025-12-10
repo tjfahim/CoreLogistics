@@ -61,27 +61,10 @@ Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
     Route::resource('products', ProductController::class);
     Route::resource('boxes', BoxController::class);
     Route::resource('agents', AgentController::class);
-    Route::resource('shipments', ShipmentController::class);
     Route::resource('cost-types', CostTypeController::class);
 
 
 
-
-    Route::get('shipments/{shipmentId}/costs', [ShipmentCostController::class, 'show'])->name('shipments.costs');
-    Route::post('shipments/{shipmentId}/costs', [ShipmentCostController::class, 'store'])->name('shipments.costs.store');
-    Route::post('shipments/costs/{costId}/payments', [ShipmentCostController::class, 'addPayment'])->name('shipments.costs.payments.store');
-    Route::get('shipments/{shipmentId}/costs/summary', [ShipmentCostController::class, 'summary'])->name('shipments.costs.summary');
-
-   Route::get('/shipments/{id}/generate-bills', [ShipmentCostController::class, 'generateCustomerBills'])
-    ->name('shipments.generateCustomerBills');
-    Route::get('/shipments/{id}/customer-bills', [ShipmentCostController::class, 'customerBills'])
-        ->name('shipments.customerBills');
-    Route::post('/customer-bill/{billId}/pay', [ShipmentCostController::class, 'customerBillPayment'])
-        ->name('customerBill.pay');
-    Route::get('/customer-bill/{billId}/history', [ShipmentCostController::class, 'customerBillHistory'])
-    ->name('customerBill.history');
-
-    Route::get('/reports', [ReportController::class, 'index'])->name('admin.reports');
     Route::resource('cargo-items', CargoItemController::class);
     Route::post('cargo-items/import', [CargoItemController::class, 'import'])->name('cargo-items.import');
 
@@ -104,6 +87,14 @@ Route::get('itemshipments/{itemShipmentId}/financial-summary', [ItemShipmentCost
 
 Route::get('itemshipments/{itemshipment}/edit-prices', [ItemShipmentCostController::class, 'pricepage'])->name('itemshipments.edit-prices');
 Route::post('itemshipments/{itemshipment}/update-prices', [ItemShipmentCostController::class, 'updatePrices'])->name('itemshipments.update-prices');
+
+Route::get('itemshipments/{itemshipment}/edit-ctn', [ItemShipmentCostController::class, 'ctn_update'])->name('itemshipments.edit-ctn-numbers');
+Route::post('/itemshipments/{itemshipment}/update-ctn', 
+    [ItemShipmentCostController::class, 'updateCtnNumbers']
+)->name('itemshipments.update-ctn');
+
+
+
 
  Route::get('itemshipments/{itemshipment}/customer-assignment', [CustomerController::class, 'showProductAssignment'])
         ->name('itemshipments.customer.assignment');

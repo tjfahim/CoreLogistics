@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Shipment Billing: {{ $itemshipment->shipment_name }}</h2>
         <div class="btn-group">
-            <a href="{{ route('shipments.show', $itemshipment->id) }}" 
+            <a href="javascript:history.back()" 
                class="btn btn-secondary">
                 <i class="fa fa-arrow-left"></i> Back to Shipment
             </a>

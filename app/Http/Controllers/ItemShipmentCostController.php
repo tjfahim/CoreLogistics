@@ -201,7 +201,7 @@ public function pricepage(ItemsShipment $itemshipment)
 {
     $request->validate([
         'prices' => 'required|array',
-        'prices.*' => 'nullable|numeric|min:0',
+        'prices.*' => 'nullable|numeric',
     ]);
 
     try {
@@ -225,5 +225,49 @@ public function pricepage(ItemsShipment $itemshipment)
         return redirect()->back()->with('error', 'Error updating prices: ' . $e->getMessage());
     }
 }
+
+public function ctn_update(ItemsShipment $itemshipment)
+    {
+        $itemshipment->load('cargoItems');
+        $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
+
+return view('admin.itemshipments.printed_ctn', compact('itemshipment', 'groupedItems'));
+    }
+public function updateCtnNumbers(Request $request, ItemsShipment $itemshipment)
+{
+    $request->validate([
+        'printed_ctn' => 'required|array',
+        'printed_ctn.*' => 'nullable|string|max:255',
+    ]);
+
+    try {
+        DB::transaction(function () use ($request, $itemshipment) {
+
+            foreach ($request->printed_ctn as $itemId => $ctnNo) {
+
+                $item = $itemshipment->cargoItems()
+                    ->where('cargo_items.id', $itemId)
+                    ->first();
+
+                if ($item) {
+
+                    // Update CTN number
+                    $item->printed_ctn_no = $ctnNo;
+
+                    if (in_array($item->status, ['pending', 'packed'])) {
+                            $item->status = 'ready_to_ship';
+                        }
+
+                    $item->save();
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'CTN numbers updated successfully.');
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Failed to update: ' . $e->getMessage());
+    }
+}
+
 
 }

@@ -46,7 +46,7 @@
     <!-- Filter Form -->
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <form method="GET" action="{{ route('admin.reports') }}" class="row g-3 align-items-center">
+            <form method="GET" action="#" class="row g-3 align-items-center">
                 <div class="col-auto">
                     <input type="date" name="from_date" class="form-control" value="{{ request('from_date') }}">
                 </div>

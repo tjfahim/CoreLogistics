@@ -43,14 +43,15 @@ return new class extends Migration
             $table->enum('status', [
                             'pending',           
                             'packed',            
+                            'ready_to_ship',            
                             'shipping_ongoing',  
                             'arrived_bd',  
                             'ready_for_delivery', 
                             'delivered'    
                         ])->default('pending');
-                                    $table->decimal('price', 12, 2)->nullable();
-                                    $table->decimal('price_per_kg', 10, 2)->nullable();
-$table->foreignId('customer_id')->nullable()->constrained()->onDelete('set null');
+            $table->decimal('price', 12, 2)->nullable();
+            $table->decimal('price_per_kg', 10, 2)->nullable();
+            $table->foreignId('customer_id')->nullable()->constrained()->onDelete('set null');
             $table->timestamp('paid_at')->nullable();
 
             $table->timestamps();

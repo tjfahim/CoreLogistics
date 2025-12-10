@@ -15,6 +15,7 @@ class ItemShipmentController extends Controller
         return view('admin.itemshipments.index', compact('shipments'));
     }
 
+   
     public function create()
     {
         $items = CargoItem::availableForShipment()
@@ -57,6 +58,13 @@ class ItemShipmentController extends Controller
             // For other statuses (draft), set to packed
             CargoItem::whereIn('id', $itemIds)->update(['status' => 'packed']);
         }
+        if ($shipment->status === 'shipped') {
+            CargoItem::whereIn('id', $itemIds)
+                     ->where('status', 'shipping_ongoing')
+                     ->update(['status' => 'ready_for_delivery']);
+        } else {
+            CargoItem::whereIn('id', $itemIds)->update(['status' => 'shipping_ongoing']);
+        }
     });
 
     return redirect()->route('itemsshipments.index')
@@ -66,7 +74,8 @@ class ItemShipmentController extends Controller
     public function show(ItemsShipment $itemshipment)
     {
         $itemshipment->load('cargoItems');
-        return view('admin.itemshipments.show', compact('itemshipment'));
+         $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
+        return view('admin.itemshipments.show', compact('itemshipment', 'groupedItems'));
     }
 
     public function edit(ItemsShipment $itemshipment)

@@ -5,7 +5,7 @@
     <div class="col-sm-4">
         <div class="page-header float-left">
             <div class="page-title">
-                <h1>Items Manage</h1>
+                <h1>Warehouse Manage</h1>
             </div>
         </div>
     </div>
@@ -13,7 +13,7 @@
         <div class="page-header float-right">
             <div class="page-title">
                 <ol class="breadcrumb text-right">
-                    <li class="active">Items</li>
+                    <li class="active">Warehouse</li>
                 </ol>
             </div>
         </div>
@@ -42,10 +42,16 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Item List</strong>
+                <div class="btn-group mr-2" role="group">
+    <button class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
+    <button class="btn btn-info filter-btn" data-status="packed">Packed</button>
+    <button class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
+    <button class="btn btn-dark filter-btn" data-status="ready_for_delivery">Ready for Delivery</button>
+    <button class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
+    <button class="btn btn-light filter-btn" data-status="all">All</button>
+</div>
                 <div>
-                    <!-- <button id="selectAllBtn" class="btn btn-info btn-sm mr-2">
-                        <i class="fa fa-check-square"></i> Select All
-                    </button> -->
+                   
                     <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
                         <i class="fa fa-plus"></i> Add Item
                     </a>
@@ -69,8 +75,7 @@
                             <th>CBM</th>
                             <th>Shipping Mark</th>
                             <th>Remark</th>
-                            <th>Copy or NO</th>
-                            <th>Ware House</th>
+                            <th>Status</th>
                             <th>ActionEdit</th>
                         </tr>
                     </thead>
@@ -93,8 +98,25 @@
                             <td>{{ number_format($item->cbm ?? 0, 6) }}</td>
                             <td>{{ $item->shipping_mark ?? '-' }}</td>
                             <td>{{ $item->remark ?? '-' }}</td>
-                            <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
-                            <td>{{ $item->warehouse ?? '-' }}</td>
+<td>
+    @php
+        // Define badge colors for each status
+        $statusColors = [
+            'pending' => 'secondary',
+            'packed' => 'info',
+            'ready_to_ship' => 'primary',
+            'shipping_ongoing' => 'warning',
+            'arrived_bd' => 'success',
+            'ready_for_delivery' => 'dark',
+            'delivered' => 'success'
+        ];
+        $colorClass = $statusColors[$item->status] ?? 'secondary';
+    @endphp
+
+    <span class="badge badge-{{ $colorClass }}" style="padding: 0.5em 0.75em; font-size: 0.85em;">
+        {{ strtoupper(str_replace('_', ' ', $item->status)) }}
+    </span>
+</td>
                             <td>
                                 <a href="{{ route('cargo-items.edit', $item->id) }}" class="btn btn-warning btn-sm">
                                     <i class="fa fa-edit"></i> 
@@ -121,18 +143,18 @@
 
 <script>
 $(document).ready(function() {
-    let isProcessing = false; // Prevent multiple simultaneous API calls
+    let isProcessing = false;
 
-    // Initialize DataTable
     const table = $('#cargoItemsTable').DataTable({
-        "pageLength": 50, 
-        "lengthMenu": [ 50, 100, 200, 500, 1000, 1500, 2500 ],
+        "pageLength": 50,
+        "lengthMenu": [50, 100, 200, 500, 1000, 1500, 2500],
         "columnDefs": [
-            { "orderable": false, "targets": [0, 15] } // Disable sorting for ID and Action columns
+            { "orderable": false, "targets": [0, 14] }
         ]
     });
 
-    // Show success toast message
+    let allowToggle = ['pending', 'packed'].includes("{{ $currentPageStatus ?? 'pending' }}");
+
     function showSuccessMessage(message) {
         $('#toastMessage').text(message);
         $('#successToast').fadeIn();
@@ -141,34 +163,26 @@ $(document).ready(function() {
         }, 3000);
     }
 
-    // Handle row click for selection (excluding action column)
     $('#cargoItemsTable tbody').on('click', 'tr.selectable-row', function(e) {
-        // Don't trigger selection if clicking on action buttons
-        if ($(e.target).closest('a, button').length) {
-            return;
-        }
+        if (!allowToggle) return;
+        if ($(e.target).closest('a, button').length) return;
 
         const itemId = $(this).data('item-id');
         const row = $(this);
         const status = row.data('status');
 
-        // Prevent multiple API calls while processing
         if (isProcessing) {
             showSuccessMessage('Please wait, processing previous selection...');
             return;
         }
-        
-        // Toggle item - if packed, remove it; if pending, add it
+
         toggleItemInShipment(itemId, row, status);
     });
 
-    // Toggle item in shipment (add if not exists, remove if exists)
     function toggleItemInShipment(itemId, row, currentStatus) {
         isProcessing = true;
-        
-        // First, ensure we have a draft shipment
+
         getOrCreateDraftShipment().then(function(shipment) {
-            // Then toggle the item
             $.ajax({
                 url: '{{ route("itemsshipments.toggle-item") }}',
                 type: 'POST',
@@ -179,7 +193,6 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     if (response.success) {
-                        // Update row based on new status
                         if (response.action === 'added') {
                             row.addClass('table-primary');
                             row.data('status', 'packed');
@@ -193,59 +206,61 @@ $(document).ready(function() {
                     isProcessing = false;
                 },
                 error: function(xhr) {
-                    console.error('Error toggling item in shipment:', xhr.responseText);
+                    console.error('Error toggling item:', xhr.responseText);
                     showSuccessMessage('Error updating shipment');
                     isProcessing = false;
                 }
             });
-        }).catch(function(error) {
+        }).catch(function() {
             showSuccessMessage('Error creating shipment');
             isProcessing = false;
         });
     }
 
-    // Select All functionality (only select pending items)
-    $('#selectAllBtn').click(function() {
-        $('#cargoItemsTable tbody tr.selectable-row').each(function() {
-            const itemId = $(this).data('item-id');
-            const status = $(this).data('status');
-            const row = $(this);
-            
-            if (status !== 'packed' && !isProcessing) {
-                toggleItemInShipment(itemId, row, status);
-            }
-        });
-    });
-
-    // Get or create draft shipment with Promise
     function getOrCreateDraftShipment() {
         return new Promise(function(resolve, reject) {
             $.ajax({
                 url: '{{ route("itemsshipments.get-or-create-draft") }}',
                 type: 'POST',
-                data: {
-                    _token: '{{ csrf_token() }}'
-                },
+                data: { _token: '{{ csrf_token() }}' },
                 success: function(response) {
-                    if (response.success) {
-                        resolve(response.shipment);
-                    } else {
-                        reject('Failed to create draft shipment');
-                    }
+                    if (response.success) resolve(response.shipment);
+                    else reject('Failed to create draft shipment');
                 },
-                error: function(xhr) {
-                    console.error('Error creating draft shipment:', xhr.responseText);
-                    reject('Error creating draft shipment');
-                }
+                error: function(xhr) { reject('Error creating draft shipment'); }
             });
         });
     }
 
-    // Close toast when clicking X
-    $('.close').click(function() {
-        $('#successToast').fadeOut();
+    // Filter buttons functionality
+    $('.filter-btn').click(function() {
+        $('.filter-btn').removeClass('active');
+        $(this).addClass('active');
+
+        const status = $(this).data('status');
+
+        if (status === 'all') {
+            $.fn.dataTable.ext.search = [];
+            table.draw();
+        } else {
+            $.fn.dataTable.ext.search = [];
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                const row = table.row(dataIndex).node();
+                const rowStatus = $(row).data('status');
+                return rowStatus === status;
+            });
+            table.draw();
+        }
     });
+      $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        const row = table.row(dataIndex).node();
+        const rowStatus = $(row).data('status');
+        return ['pending', 'packed'].includes(rowStatus);
+    });
+       table.draw();
+    $('.close').click(function() { $('#successToast').fadeOut(); });
 });
+
 </script>
 
 <style>
@@ -255,7 +270,9 @@ $(document).ready(function() {
         text-align: center !important;
         cursor: pointer;
     }
-    
+    .filter-btn.active {
+    box-shadow: 0 0 0 2px #007bff inset;
+}
     /* Blue for packed items (persistent) */
     .table-primary {
         background-color: #007bff !important;

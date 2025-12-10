@@ -86,49 +86,64 @@
                 </div>
 
                 <h5>Items in this Shipment</h5>
+                @php
+                    $colors = [
+                        '#ff6b6b', '#1dd1a1', '#54a0ff', '#feca57', '#5f27cd',
+                        '#10ac84', '#ff9f43', '#2e86de', '#ee5253', '#222f3e',
+                        '#0abde3', '#576574', '#8395a7', '#ff6348', '#1e3799',
+                    ];
+                    $colorIndex = 0;
+
+                    // Group cargo items by printed_ctn_no
+                    $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
+                @endphp
+
                 @if($itemshipment->cargoItems->count() > 0)
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered">
                             <thead class="thead-dark">
                                 <tr>
                                     <th>ID</th>
-                                  <th>Printed CTN NO.</th>
-                                            <th>Written CTN NO.</th>
-                                            <th>Tracking NO.</th>
-                                            <th>Goods Name</th>
-                                            <th>Pack No.</th>
-                                            <th>Unit Pcs</th>
-                                            <th>Weight (kg)</th>
-                                            <th>CBM</th>
-                                            <th>Shipping Mark</th>
-                                            <th>Remark</th>
-                                            <th>Copy</th>
-                                            <th>Warehouse</th>
-                                            <th>Price</th>
+                                    <th>Printed CTN NO.</th>
+                                    <th>Written CTN NO.</th>
+                                    <th>Tracking NO.</th>
+                                    <th>Goods Name</th>
+                                    <th>Pack No.</th>
+                                    <th>Unit Pcs</th>
+                                    <th>Weight (kg)</th>
+                                    <th>CBM</th>
+                                    <th>Shipping Mark</th>
+                                    <th>Remark</th>
+                                    <th>Copy</th>
+                                    <th>Warehouse</th>
+                                    <th>Price</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($itemshipment->cargoItems as $item)
-                                <tr>
-                                    <td>{{ $item->id }}</td>
-                                    <td>{{ $item->printed_ctn_no }}</td>
-                                    <td>{{ $item->written_ctn_no }}</td>
-                                    <td>{{ $item->tracking_no }}</td>
-                                    <td>{{ $item->goods_name_en }}</td>
-                                    <td>{{ $item->pack_no }}</td>
-                                    <td>{{ $item->unit_pcs }}</td>
-                                    <td>{{ $item->weight_kg ?? '0.000' }}</td>
-                                    <td>
-                                        {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}
-                                    </td>
-                                                                                <td>{{ $item->shipping_mark }}</td>
-                                            <td>{{ $item->remark }}</td>
-                                            <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
-
-                                    <td>{{ $item->warehouse ?? '-' }}</td>
-                                    <td>{{ $item->price ?? '-' }}</td>
-
-                                </tr>
+                                @foreach($groupedItems as $ctn => $items)
+                                    @php
+                                        // Only color groups with 2 or more items
+                                        $bg = ($items->count() > 1) ? $colors[$colorIndex % count($colors)] : '';
+                                        if($items->count() > 1) $colorIndex++;
+                                    @endphp
+                                    @foreach($items as $item)
+                                    <tr style="background: {{ $bg }}">
+                                        <td>{{ $item->id }}</td>
+                                        <td>{{ $item->printed_ctn_no }}</td>
+                                        <td>{{ $item->written_ctn_no }}</td>
+                                        <td>{{ $item->tracking_no }}</td>
+                                        <td>{{ $item->goods_name_en }}</td>
+                                        <td>{{ $item->pack_no }}</td>
+                                        <td>{{ $item->unit_pcs }}</td>
+                                        <td>{{ $item->weight_kg ?? '0.000' }}</td>
+                                        <td>{{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}</td>
+                                        <td>{{ $item->shipping_mark }}</td>
+                                        <td>{{ $item->remark }}</td>
+                                        <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
+                                        <td>{{ $item->warehouse ?? '-' }}</td>
+                                        <td>{{ $item->price ?? '-' }}</td>
+                                    </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>
@@ -148,6 +163,9 @@
         padding: 0.5rem !important;
         vertical-align: middle !important;
         text-align: center !important;
+    }
+      .table {
+        --bs-table-bg: transparent;
     }
 </style>
 @endsection

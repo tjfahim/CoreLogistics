@@ -110,7 +110,7 @@
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>#</th>
-                                        <th>Printed CTN NO.</th>
+                                        <th>CTN NO.</th>
                                         <th>Goods Name</th>
                                         <th>Shipping Mark</th>
                                             <th>CBM</th>
