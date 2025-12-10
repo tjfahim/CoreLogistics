@@ -1,0 +1,168 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Customer;
+use App\Models\CargoItem;
+use App\Models\ItemsShipment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class CustomerBillController extends Controller
+{
+    // Show customer billing page for a shipment
+    public function showShipmentBilling(ItemsShipment $itemshipment)
+    {
+        // Get all items in this shipment with their customer and price info
+        $items = $itemshipment->cargoItems()
+            ->with(['customer'])
+            ->get()
+            ->groupBy('customer_id');
+        
+        // Calculate totals
+        $billingSummary = [];
+        $totalItems = 0;
+        $totalPricedItems = 0;
+        $totalUnpricedItems = 0;
+        $totalAssignedItems = 0;
+        $totalUnassignedItems = 0;
+        
+        foreach ($items as $customerId => $customerItems) {
+            $customer = $customerId ? Customer::find($customerId) : null;
+            $totalPrice = 0;
+            $totalWeight = 0;
+            $itemsWithPrice = 0;
+            $itemsWithoutPrice = 0;
+            
+            foreach ($customerItems as $item) {
+                $totalWeight += $item->weight_kg;
+                if ($item->hasPrice()) {
+                    $totalPrice += $item->total_price;
+                    $itemsWithPrice++;
+                } else {
+                    $itemsWithoutPrice++;
+                }
+            }
+            
+            $billingSummary[] = [
+                'customer_id' => $customerId,
+                'customer_name' => $customer ? $customer->name : 'Unassigned',
+                'customer_code' => $customer ? $customer->customer_code : 'N/A',
+                'total_items' => count($customerItems),
+                'items_with_price' => $itemsWithPrice,
+                'items_without_price' => $itemsWithoutPrice,
+                'total_weight' => $totalWeight,
+                'total_price' => $totalPrice,
+                'items' => $customerItems
+            ];
+            
+            $totalItems += count($customerItems);
+            $totalPricedItems += $itemsWithPrice;
+            $totalUnpricedItems += $itemsWithoutPrice;
+            if ($customerId) {
+                $totalAssignedItems += count($customerItems);
+            } else {
+                $totalUnassignedItems += count($customerItems);
+            }
+        }
+        
+        return view('admin.itemshipments.billing', compact(
+            'itemshipment',
+            'billingSummary',
+            'totalItems',
+            'totalPricedItems',
+            'totalUnpricedItems',
+            'totalAssignedItems',
+            'totalUnassignedItems'
+        ));
+    }
+    
+    // Show individual customer bill
+    public function showCustomerBill(Customer $customer, ItemsShipment $itemshipment = null)
+    {
+        $query = $customer->cargoItems()->with(['itemshipments']);
+        
+        if ($itemshipment) {
+            $query->whereHas('itemshipments', function ($q) use ($itemshipment) {
+                $q->where('items_shipments.id', $itemshipment->id);
+            });
+        }
+        
+        $items = $query->get();
+        
+        // Calculate totals
+        $totalItems = $items->count();
+        $totalWeight = $items->sum('weight_kg');
+        $totalPrice = 0;
+        $itemsWithPrice = 0;
+        $itemsWithoutPrice = 0;
+        
+        $itemDetails = [];
+        foreach ($items as $item) {
+            $hasPrice = $item->hasPrice();
+            $itemPrice = $item->total_price;
+            
+            if ($hasPrice) {
+                $totalPrice += $itemPrice;
+                $itemsWithPrice++;
+            } else {
+                $itemsWithoutPrice++;
+            }
+            
+            $itemDetails[] = [
+                'id' => $item->id,
+                'goods_name_en' => $item->goods_name_en,
+                'goods_name_local' => $item->goods_name_local,
+                'weight_kg' => $item->weight_kg,
+                'cbm' => $item->cbm,
+                'tracking_no' => $item->tracking_no,
+                'has_price' => $hasPrice,
+                'price' => $item->price,
+                'price_per_kg' => $item->price_per_kg,
+                'total_price' => $itemPrice,
+                'shipments' => $item->itemshipments->pluck('shipment_name')->implode(', ')
+            ];
+        }
+        
+        return view('admin.itemshipments.bill', compact(
+            'customer',
+            'itemshipment',
+            'itemDetails',
+            'totalItems',
+            'totalWeight',
+            'totalPrice',
+            'itemsWithPrice',
+            'itemsWithoutPrice'
+        ));
+    }
+    
+    // Update item prices
+    public function updateItemPrices(Request $request, ItemsShipment $itemshipment)
+    {
+        $request->validate([
+            'prices' => 'required|array',
+            'prices.*.price' => 'nullable|numeric|min:0',
+            'prices.*.price_per_kg' => 'nullable|numeric|min:0',
+        ]);
+        
+        try {
+            DB::transaction(function () use ($request, $itemshipment) {
+                foreach ($request->prices as $productId => $priceData) {
+                    $itemshipment->cargoItems()
+                        ->where('cargo_items.id', $productId)
+                        ->update([
+                            'price' => $priceData['price'] ?? null,
+                            'price_per_kg' => $priceData['price_per_kg'] ?? null
+                        ]);
+                }
+            });
+            
+            return redirect()->back()
+                ->with('success', 'Prices updated successfully!');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error updating prices: ' . $e->getMessage());
+        }
+    }
+}
