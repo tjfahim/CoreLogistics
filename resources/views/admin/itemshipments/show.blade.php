@@ -39,8 +39,12 @@
                     <a href="{{ route('itemsshipments.index') }}" class="btn btn-secondary btn-sm">
                         <i class="fa fa-arrow-left"></i> Back
                     </a>
+                    <button class="btn btn-primary btn-sm" onclick="printShipment()">
+                        <i class="fa fa-print"></i> Print
+                    </button>
                 </div>
             </div>
+
             <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-6">
@@ -57,8 +61,16 @@
                             <tr>
                                 <th>Status:</th>
                                 <td>
-                                    <span class="badge badge-{{ $itemshipment->status == 'draft' ? 'secondary' : ($itemshipment->status == 'pending' ? 'warning' : 'success') }}">
-                                        {{ ucfirst($itemshipment->status) }}
+                                    <span id="statusBadge" class="badge badge-{{ 
+                                        $itemshipment->status == 'draft' ? 'secondary' : 
+                                        ($itemshipment->status == 'pending' ? 'warning' : 
+                                        ($itemshipment->status == 'waiting_for_customs' ? 'info' : 'success')) 
+                                    }}">
+                                        @if($itemshipment->status == 'pending')
+                                            Shipment Ongoing
+                                        @else
+                                            {{ ucfirst(str_replace('_', ' ', $itemshipment->status)) }}
+                                        @endif
                                     </span>
                                 </td>
                             </tr>
@@ -93,8 +105,6 @@
                         '#0abde3', '#576574', '#8395a7', '#ff6348', '#1e3799',
                     ];
                     $colorIndex = 0;
-
-                    // Group cargo items by printed_ctn_no
                     $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
                 @endphp
 
@@ -122,7 +132,6 @@
                             <tbody>
                                 @foreach($groupedItems as $ctn => $items)
                                     @php
-                                        // Only color groups with 2 or more items
                                         $bg = ($items->count() > 1) ? $colors[$colorIndex % count($colors)] : '';
                                         if($items->count() > 1) $colorIndex++;
                                     @endphp
@@ -158,14 +167,32 @@
     </div>
 </div>
 
+<!-- Print Script -->
+<script>
+function printShipment() {
+    var printContents = document.querySelector('.card').innerHTML;
+    var originalContents = document.body.innerHTML;
+
+    document.body.innerHTML = printContents;
+    window.print();
+    document.body.innerHTML = originalContents;
+    location.reload();
+}
+</script>
+
 <style>
-    .table td, .table th {
-        padding: 0.5rem !important;
-        vertical-align: middle !important;
-        text-align: center !important;
-    }
-      .table {
-        --bs-table-bg: transparent;
-    }
+.table td, .table th {
+    padding: 0.5rem !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+}
+.table { --bs-table-bg: transparent; }
+
+@media print {
+    body * { visibility: hidden; }
+    .card, .card * { visibility: visible; }
+    .card { width: 100%; margin: 0; padding: 0; border: none; }
+    .btn, .btn-group, nav, .breadcrumbs { display: none !important; }
+}
 </style>
 @endsection

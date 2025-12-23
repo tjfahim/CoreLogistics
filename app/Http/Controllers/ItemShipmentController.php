@@ -48,9 +48,7 @@ class ItemShipmentController extends Controller
         // Attach items to shipment
         $shipment->cargoItems()->attach($itemIds);
         
-        // Update cargo items status based on shipment status
         if ($shipment->status === 'pending') {
-            // If shipment status is pending, change packed items to shipping_ongoing
             CargoItem::whereIn('id', $itemIds)
                      ->where('status', 'packed')
                      ->update(['status' => 'shipping_ongoing']);
@@ -58,12 +56,19 @@ class ItemShipmentController extends Controller
             // For other statuses (draft), set to packed
             CargoItem::whereIn('id', $itemIds)->update(['status' => 'packed']);
         }
-        if ($shipment->status === 'shipped') {
+        if ($shipment->status === 'waiting_for_customs') {
             CargoItem::whereIn('id', $itemIds)
                      ->where('status', 'shipping_ongoing')
-                     ->update(['status' => 'ready_for_delivery']);
+                     ->update(['status' => 'waiting_for_customs']);
         } else {
             CargoItem::whereIn('id', $itemIds)->update(['status' => 'shipping_ongoing']);
+        }
+        if ($shipment->status === 'delivered') {
+            CargoItem::whereIn('id', $itemIds)
+                     ->where('status', 'waiting_for_customs')
+                     ->update(['status' => 'delivered']);
+        } else {
+            CargoItem::whereIn('id', $itemIds)->update(['status' => 'waiting_for_customs']);
         }
     });
 
@@ -111,51 +116,74 @@ class ItemShipmentController extends Controller
             'status' => $newStatus,
         ]);
 
+        // Handle added/removed items
         if ($request->has('selected_items')) {
             $newItemIds = explode(',', $request->selected_items);
             $currentItemIds = $itemshipment->cargoItems->pluck('id')->toArray();
-            
-            // Items to be removed
+
             $itemsToRemove = array_diff($currentItemIds, $newItemIds);
-            // Items to be added
             $itemsToAdd = array_diff($newItemIds, $currentItemIds);
 
-            // Sync the relationship
+            // Sync items
             $itemshipment->cargoItems()->sync($newItemIds);
 
-            // Update status for removed items (set back to pending)
             if (!empty($itemsToRemove)) {
+                // Removed items go back to pending
                 CargoItem::whereIn('id', $itemsToRemove)->update(['status' => 'pending']);
             }
 
-            // Update status for added items based on shipment status
             if (!empty($itemsToAdd)) {
-                if ($newStatus === 'pending') {
-                    CargoItem::whereIn('id', $itemsToAdd)
-                             ->where('status', 'packed')
-                             ->update(['status' => 'shipping_ongoing']);
-                } else {
-                    CargoItem::whereIn('id', $itemsToAdd)->update(['status' => 'packed']);
+                // Added items follow the shipment status
+                switch ($newStatus) {
+                    case 'pending':
+                        CargoItem::whereIn('id', $itemsToAdd)
+                                 ->where('status', 'packed')
+                                 ->update(['status' => 'shipping_ongoing']);
+                        break;
+                    case 'waiting_for_customs':
+                        CargoItem::whereIn('id', $itemsToAdd)
+                                 ->where('status', 'shipping_ongoing')
+                                 ->update(['status' => 'waiting_for_customs']);
+                        break;
+                    case 'delivered':
+                        CargoItem::whereIn('id', $itemsToAdd)
+                                 ->where('status', 'waiting_for_customs')
+                                 ->update(['status' => 'ready_to_deliver']);
+                        break;
+                    default:
+                        CargoItem::whereIn('id', $itemsToAdd)->update(['status' => 'packed']);
                 }
             }
         }
 
-        // Handle status change for existing items when shipment status changes to pending
-        if ($oldStatus !== 'pending' && $newStatus === 'pending') {
-            // When shipment becomes pending, update all packed items to shipping_ongoing
-            $itemshipment->cargoItems()
+        // Update existing items based on status change
+        switch ($newStatus) {
+            case 'pending':
+                CargoItem::whereIn('id', $itemshipment->cargoItems->pluck('id')->toArray())
                          ->where('status', 'packed')
                          ->update(['status' => 'shipping_ongoing']);
-        } elseif ($oldStatus === 'pending' && $newStatus !== 'pending') {
-            // When shipment is no longer pending, revert shipping_ongoing items back to packed
-            $itemshipment->cargoItems()
+                break;
+
+            case 'waiting_for_customs':
+                CargoItem::whereIn('id', $itemshipment->cargoItems->pluck('id')->toArray())
                          ->where('status', 'shipping_ongoing')
+                         ->update(['status' => 'waiting_for_customs']);
+                break;
+
+            case 'delivered':
+                CargoItem::whereIn('id', $itemshipment->cargoItems->pluck('id')->toArray())
+                         ->where('status', 'waiting_for_customs')
+                         ->update(['status' => 'ready_to_deliver']);
+                break;
+
+            default:
+                CargoItem::whereIn('id', $itemshipment->cargoItems->pluck('id')->toArray())
                          ->update(['status' => 'packed']);
         }
     });
 
     return redirect()->route('itemsshipments.show', $itemshipment->id)
-        ->with('success', 'Shipment updated successfully.');
+                     ->with('success', 'Shipment updated successfully.');
 }
 
     public function destroy(ItemsShipment $itemshipment)

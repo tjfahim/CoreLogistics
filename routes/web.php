@@ -36,6 +36,13 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegisterFrom'])->name('register');
 Route::post('/register-submit', [AuthController::class, 'registerSubmit'])->name('register.submit');
+// PUBLIC + AUTH SEARCH FORM (same controller method)
+Route::get('/tracking', [CargoItemController::class, 'trackingSearchForm'])
+    ->name('cargo-items.tracking-search');
+
+// Tracking search view for POST (public + auth handled inside controller)
+Route::post('/tracking', [CargoItemController::class, 'trackingView'])
+    ->name('cargo-items.tracking-view');
 Route::get('/migrate-fresh-seed', function () {
     try {
         Artisan::call('migrate:fresh', [

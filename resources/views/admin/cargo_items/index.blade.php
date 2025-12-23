@@ -46,9 +46,10 @@
     <button class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
     <button class="btn btn-info filter-btn" data-status="packed">Packed</button>
     <button class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
-    <button class="btn btn-dark filter-btn" data-status="ready_for_delivery">Ready for Delivery</button>
+    <button class="btn btn-danger  filter-btn" data-status="waiting_for_customs">Waiting for Customs</button>
+    <button class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
     <button class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
-    <button class="btn btn-light filter-btn" data-status="all">All</button>
+    <button class="btn btn-warning filter-btn" data-status="all">All</button>
 </div>
                 <div>
                    
@@ -105,9 +106,10 @@
             'pending' => 'secondary',
             'packed' => 'info',
             'ready_to_ship' => 'primary',
-            'shipping_ongoing' => 'warning',
+            'shipping_ongoing' => 'primary',
+            'waiting_for_customs' => 'danger',
             'arrived_bd' => 'success',
-            'ready_for_delivery' => 'dark',
+            'ready_to_deliver' => 'dark',
             'delivered' => 'success'
         ];
         $colorClass = $statusColors[$item->status] ?? 'secondary';
@@ -164,20 +166,24 @@ $(document).ready(function() {
     }
 
     $('#cargoItemsTable tbody').on('click', 'tr.selectable-row', function(e) {
-        if (!allowToggle) return;
-        if ($(e.target).closest('a, button').length) return;
+    // Don't trigger if clicking on action buttons
+    if ($(e.target).closest('a, button').length) return;
 
-        const itemId = $(this).data('item-id');
-        const row = $(this);
-        const status = row.data('status');
+    const row = $(this);
+    const status = row.data('status');
 
-        if (isProcessing) {
-            showSuccessMessage('Please wait, processing previous selection...');
-            return;
-        }
+    // Only allow toggle if row is pending or packed
+    if (!['pending', 'packed'].includes(status)) return;
 
-        toggleItemInShipment(itemId, row, status);
-    });
+    const itemId = row.data('item-id');
+
+    if (isProcessing) {
+        showSuccessMessage('Please wait, processing previous selection...');
+        return;
+    }
+
+    toggleItemInShipment(itemId, row, status);
+});
 
     function toggleItemInShipment(itemId, row, currentStatus) {
         isProcessing = true;

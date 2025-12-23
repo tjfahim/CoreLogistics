@@ -58,9 +58,12 @@
                             <label for="status" class="form-label">Status</label>
                             <select class="form-control" id="status" name="status">
                                 <option value="draft" {{ old('status', $itemshipment->status) == 'draft' ? 'selected' : '' }}>Draft</option>
-                                <option value="pending" {{ old('status', $itemshipment->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="shipped" {{ old('status', $itemshipment->status) == 'shipped' ? 'selected' : '' }}>Shipped</option>
+                                <option value="pending" {{ old('status', $itemshipment->status) == 'pending' ? 'selected' : '' }}>Shipment Ongoing</option>
+                             
+                                <option value="waiting_for_customs" {{ old('status', $itemshipment->status) == 'waiting_for_customs' ? 'selected' : '' }}>Waiting for Customs</option>
                                 <option value="delivered" {{ old('status', $itemshipment->status) == 'delivered' ? 'selected' : '' }}>Delivered</option>
+                             
+                         
                             </select>
                             @error('status')
                                 <small class="text-danger">{{ $message }}</small>

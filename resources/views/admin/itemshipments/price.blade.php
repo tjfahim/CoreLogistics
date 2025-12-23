@@ -50,9 +50,10 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Manage Prices - {{ $itemshipment->shipment_name }}</strong>
                 <div>
-                    <a href="{{ route('itemsshipments.show', $itemshipment->id) }}" class="btn btn-secondary btn-sm">
-                        <i class="fa fa-arrow-left"></i> Back to Shipment
-                    </a>
+                    <a href="javascript:history.back()" 
+               class="btn btn-secondary">
+                <i class="fa fa-arrow-left"></i> Back
+            </a>
                 </div>
             </div>
             <div class="card-body">

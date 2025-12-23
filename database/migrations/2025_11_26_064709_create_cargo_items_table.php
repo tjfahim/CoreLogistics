@@ -46,7 +46,8 @@ return new class extends Migration
                             'ready_to_ship',            
                             'shipping_ongoing',  
                             'arrived_bd',  
-                            'ready_for_delivery', 
+                            'waiting_for_customs', 
+                            'ready_to_deliver', 
                             'delivered'    
                         ])->default('pending');
             $table->decimal('price', 12, 2)->nullable();

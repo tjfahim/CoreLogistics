@@ -241,4 +241,39 @@ private function storeTransformedItems($items)
         ->route('cargo-items.index')
         ->with('success', count($items) . ' cargo items imported successfully.');
 }
+public function trackingSearchForm()
+{
+    if (auth()->check()) {
+        return view('admin.cargo_items.tracking_search');
+    } else {
+        return view('admin.cargo_items.tracking_search_public');
+    }
+}
+
+public function trackingView(Request $request)
+{
+    $request->validate([
+        'tracking_no' => 'required|string',
+    ]);
+
+    $item = CargoItem::where('tracking_no', $request->tracking_no)->first();
+
+    if (!$item) {
+        if (auth()->check()) {
+            return redirect()->route('cargo-items.tracking-search')
+                ->with('error', 'No item found with Tracking No: ' . $request->tracking_no);
+        } else {
+            return redirect()->route('cargo-items.tracking-search')
+                ->with('error', 'No item found with Tracking No: ' . $request->tracking_no);
+        }
+    }
+
+    // If found show correct view
+    if (auth()->check()) {
+        return view('admin.cargo_items.tracking_view', compact('item'));
+    } else {
+        return view('admin.cargo_items.tracking_view_public', compact('item'));
+    }
+}
+
 }

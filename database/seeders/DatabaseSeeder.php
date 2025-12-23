@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CustomerSeeder::class,
             AgentSeeder::class,
-            ProductSeeder::class,
             CostTypeSeeder::class,
         ]);
     }

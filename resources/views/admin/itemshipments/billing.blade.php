@@ -7,7 +7,7 @@
         <div class="btn-group">
             <a href="javascript:history.back()" 
                class="btn btn-secondary">
-                <i class="fa fa-arrow-left"></i> Back to Shipment
+                <i class="fa fa-arrow-left"></i> Back
             </a>
             <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updatePricesModal">
                 <i class="fa fa-edit"></i> Update Prices
@@ -19,7 +19,7 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="card bg-secondary text-white">
                 <div class="card-body">
                     <h5>Total Items</h5>
                     <h3>{{ $totalItems }}</h3>
@@ -105,7 +105,7 @@
                                 @if($bill['customer_id'])
                                 <div class="">
                                     <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}" 
-                                       class="btn btn-info" title="View Bill">
+                                       class="btn btn-sm btn-info" title="View Bill">
                                         View Bill
                                     </a>
                                    <a href="{{ route('payments.create', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}" 

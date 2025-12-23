@@ -9,9 +9,9 @@
         <small class="text-muted">Shipment: {{ $itemshipment->shipment_name }}</small>
     </h2>
     <div class="btn-group">
-        <a href="{{ route('customers.shipment.bill', ['customer' => $customer, 'itemshipment' => $itemshipment]) }}" 
+        <a href="javascript:history.back()" 
            class="btn btn-secondary">
-            Back to Bill
+            Back
         </a>
         <a href="{{ route('payments.history', ['customer' => $customer, 'itemshipment' => $itemshipment]) }}" 
            class="btn btn-info">
@@ -47,7 +47,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="card bg-secondary text-white">
                 <div class="card-body">
                     <h5>Unpaid Items</h5>
                     <h3>{{ $items->count() }}</h3>

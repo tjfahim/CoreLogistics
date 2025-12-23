@@ -46,10 +46,15 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between">
             <strong>Printed CTN Numbers - {{ $itemshipment->shipment_name }}</strong>
-            <a href="{{ route('itemsshipments.show', $itemshipment->id) }}"
-               class="btn btn-secondary btn-sm">
-                <i class="fa fa-arrow-left"></i> Back
-            </a>
+            <div>
+                <a href="javascript:history.back()" class="btn btn-secondary">
+                    <i class="fa fa-arrow-left"></i> Back
+                </a>
+                <!-- Print Button -->
+                <button type="button" class="btn btn-info" onclick="printCTNTable()">
+                    <i class="fa fa-print"></i> Print
+                </button>
+            </div>
         </div>
 
         <div class="card-body">
@@ -75,8 +80,7 @@
                 @endphp
 
                 @if($groupedItems->count() > 0)
-
-                <div class="table-responsive">
+                <div class="table-responsive" id="ctnTableToPrint">
                     <table class="table table-bordered table-striped">
                         <thead class="thead-dark">
                             <tr>
@@ -91,27 +95,20 @@
                         </thead>
 
                         <tbody>
-
                             @foreach($groupedItems as $ctn => $items)
-
-                                {{-- Only color groups with 2 or more items --}}
                                 @if($items->count() > 1)
                                     @php
                                         $bg = $colors[$colorIndex % count($colors)];
                                         $colorIndex++;
                                     @endphp
                                 @else
-                                    @php
-                                        $bg = '';
-                                    @endphp
+                                    @php $bg = ''; @endphp
                                 @endif
 
                                 @foreach($items as $item)
                                 <tr style="background: {{ $bg }}">
                                     <td>{{ $loop->parent->iteration }}.{{ $loop->iteration }}</td>
-
                                     <td><strong>{{ $item->printed_ctn_no ?? '-' }}</strong></td>
-
                                     <td>
                                         <input type="text"
                                                name="printed_ctn[{{ $item->id }}]"
@@ -119,13 +116,9 @@
                                                class="form-control form-control-sm"
                                                placeholder="Enter new CTN (nullable)">
                                     </td>
-
                                     <td>{{ $item->written_ctn_no ?? '-' }}</td>
-
                                     <td>{{ $item->goods_name_en }}</td>
-
                                     <td>{{ number_format($item->weight_kg, 2) }} kg</td>
-
                                     <td>
                                         <span class="badge badge-{{ $item->status == 'packed' ? 'info' : 'secondary' }}">
                                             {{ ucfirst($item->status) }}
@@ -133,11 +126,8 @@
                                     </td>
                                 </tr>
                                 @endforeach
-
                             @endforeach
-
                         </tbody>
-
                     </table>
                 </div>
 
@@ -160,13 +150,25 @@
 
 </div>
 
+<script>
+function printCTNTable() {
+    var printContents = document.getElementById('ctnTableToPrint').innerHTML;
+    var originalContents = document.body.innerHTML;
+
+    document.body.innerHTML = printContents;
+    window.print();
+    document.body.innerHTML = originalContents;
+    location.reload();
+}
+</script>
+
 <style>
-    .table td, .table th {
-        vertical-align: middle !important;
-    }
-    .table {
-        --bs-table-bg: transparent;
-    }
+.table td, .table th {
+    vertical-align: middle !important;
+}
+.table {
+    --bs-table-bg: transparent;
+}
 </style>
 
 @endsection
