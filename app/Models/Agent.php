@@ -17,9 +17,6 @@ class Agent extends Model
         'address',
         'notes',
     ];
-      public function boxes()
-    {
-        return $this->hasMany(Box::class);
-    }
+     
 
 }

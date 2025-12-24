@@ -182,7 +182,7 @@
         .track-btn:hover {
             background: linear-gradient(to right, var(--primary-dark), #6511a6);
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.25);
+            box-shadow: 0 8px 20px rgba(33, 49, 118, 0.25);
         }
         
         .example-section {
@@ -291,9 +291,11 @@
                     <input type="text"
                            name="tracking_no"
                            class="form-control tracking-input"
-                           placeholder="ZT78934768097756"
+                           placeholder=""
                            required
-                           autofocus>
+                           style="border:1px solid #203850ff;"
+                           >
+                         
                     <span class="input-icon">
                         <i class="fas fa-search"></i>
                     </span>

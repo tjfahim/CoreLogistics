@@ -18,7 +18,7 @@
         }
 
         .track-header {
-            background: linear-gradient(135deg, #1565c0, #004ba0);
+            background: linear-gradient(135deg, #1a314cff, #001a38ff);
             color: #fff;
             padding: 35px;
             border-radius: 14px;

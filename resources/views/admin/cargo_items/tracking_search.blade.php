@@ -15,7 +15,7 @@
 
         <div class="form-group">
             <label>Tracking Number:</label>
-            <input type="text" name="tracking_no" class="form-control" placeholder="Enter Tracking No">
+            <input type="text" name="tracking_no" class="form-control col-5" style="border:1px solid black" placeholder="Enter Tracking No">
         </div>
 
         <button type="submit" class="btn btn-primary mt-2">

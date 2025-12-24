@@ -19,8 +19,5 @@ class CostType extends Model
 protected $casts = [
     'cost_date' => 'date',
 ];
-    public function shipmentCosts()
-    {
-        return $this->hasMany(ShipmentCost::class);
-}
+   
 }

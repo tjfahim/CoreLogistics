@@ -4,7 +4,7 @@
 
 <style>
     .tracking-header {
-        background: linear-gradient(135deg, #004aad, #007bff);
+        background: linear-gradient(135deg, #23354cff, #001b38ff);
         color: white;
         padding: 25px;
         border-radius: 10px;

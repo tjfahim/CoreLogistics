@@ -3,7 +3,6 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BoxController;
 use App\Http\Controllers\CargoItemController;
 use App\Http\Controllers\CostTypeController;
 use App\Http\Controllers\CustomerBillController;
@@ -16,6 +15,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\ShipmentCostController;
 use App\Http\Controllers\ShipmentPaymentController;
+use App\Http\Controllers\ShipmentReportController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -66,7 +66,6 @@ Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
     Route::resource('customers', CustomerController::class);
     Route::resource('products', ProductController::class);
-    Route::resource('boxes', BoxController::class);
     Route::resource('agents', AgentController::class);
     Route::resource('cost-types', CostTypeController::class);
 
@@ -148,5 +147,16 @@ Route::get('itemshipments/{itemshipment}/customer-assignment/auto-assign', [Cust
 
 
         
+
+
+
+Route::prefix('reports')->group(function () {
+    Route::get('/dashboard', [ShipmentReportController::class, 'dashboard'])->name('reports.dashboard');
+    Route::get('/shipment/{id}', [ShipmentReportController::class, 'singleShipmentReport'])->name('reports.single');
+    Route::get('/shipments', [ShipmentReportController::class, 'multipleShipmentsReport'])->name('reports.multiple');
+    Route::post('/shipments/filter', [ShipmentReportController::class, 'multipleShipmentsReport'])->name('reports.multiple.filter');
+    Route::get('/download/{type}/{id?}', [ShipmentReportController::class, 'downloadPdf'])->name('reports.download.pdf');
+    Route::get('/export/{type}/{id?}', [ShipmentReportController::class, 'exportExcel'])->name('reports.export.excel');
+});
 
 });

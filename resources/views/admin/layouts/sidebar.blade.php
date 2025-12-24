@@ -42,14 +42,18 @@
 
                     <li class="{{ request()->routeIs('itemsshipments.*') ? 'active' : '' }}">
                         <a href="{{ route('itemsshipments.index') }}">
-                            <i class="menu-icon fa fa-truck"></i> Item shipments
+                            <i class="menu-icon fa fa-truck"></i> Shipments
                         </a>
                     </li>
           
 
                     <!-- Reports -->
                     <li class="menu-title">REPORTS</li>
-                        
+                    <li class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                        <a href="{{ route('reports.dashboard') }}">
+                            <i class="menu-icon fa fa-truck"></i> Dashboard Reports
+                        </a>
+                    </li>
                     
                        <!-- Master Data -->
                     <li class="menu-title">MASTER DATA</li>

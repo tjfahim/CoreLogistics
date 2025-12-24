@@ -24,11 +24,5 @@ class Product extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    // Many-to-many with boxes
-    public function boxes()
-    {
-        return $this->belongsToMany(Box::class)
-                    ->withPivot('weight_in_box')
-                    ->withTimestamps();
-    }
+    
 }
