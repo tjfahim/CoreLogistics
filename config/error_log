@@ -1,0 +1,32 @@
+[19-Apr-2026 15:03:59 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php on line 16
+[10-Jul-2026 06:41:07 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/database.php on line 18
+[10-Jul-2026 06:41:07 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php on line 16
+[10-Jul-2026 06:41:07 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/app.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/app.php on line 19
+[10-Jul-2026 06:41:07 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/services.php on line 18
+[10-Jul-2026 06:41:39 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/cache.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/cache.php on line 18
+[17-Sep-2026 18:23:27 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php on line 16
+[17-Sep-2026 22:27:35 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/tech3/public_html/shipment-demo2.techlab33.com/config/mail.php on line 16
