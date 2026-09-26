@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CargoItem;
+use App\Models\ItemReturnHistory;
 use App\Models\ItemsShipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,65 @@ class ItemShipmentController extends Controller
 
     return view('admin.itemshipments.edit', compact('itemshipment', 'availableItems'));
 }
+public function manageReturns(ItemsShipment $itemshipment)
+{
+    $itemshipment->load('cargoItems.latestReturn');
+    return view('admin.itemshipments.returns', compact('itemshipment'));
+}
 
+/**
+ * Return selected items from a shipment (AJAX).
+ */
+public function returnItems(Request $request, ItemsShipment $itemshipment)
+{
+    $data = $request->validate([
+        'item_ids'    => 'required|string',
+        'return_date' => 'required|date',
+        'note'        => 'nullable|string|max:1000',
+    ]);
+
+    $ids = array_filter(array_map('intval', explode(',', $data['item_ids'])));
+
+    if (empty($ids)) {
+        return response()->json(['success' => false, 'message' => 'No items selected.'], 422);
+    }
+
+    // Only items currently attached to THIS shipment
+    $validIds = $itemshipment->cargoItems()
+        ->whereIn('cargo_items.id', $ids)
+        ->pluck('cargo_items.id')
+        ->toArray();
+
+    if (empty($validIds)) {
+        return response()->json(['success' => false, 'message' => 'No matching items in this shipment.'], 422);
+    }
+
+    DB::transaction(function () use ($validIds, $data, $itemshipment) {
+        $items = CargoItem::whereIn('id', $validIds)->get();
+
+        foreach ($items as $item) {
+            ItemReturnHistory::create([
+                'cargo_item_id'     => $item->id,
+                'items_shipment_id' => $itemshipment->id,
+                'note'              => $data['note'] ?? null,
+                'return_date'       => $data['return_date'],
+                'previous_status'   => $item->status,
+                'returned_by'       => auth()->id(),
+            ]);
+
+            // Detach from this shipment
+            $itemshipment->cargoItems()->detach($item->id);
+
+            // Reset to pending
+            $item->update(['status' => 'pending']);
+        }
+    });
+
+    return response()->json([
+        'success' => true,
+        'message' => count($validIds) . ' item(s) returned to pending.',
+    ]);
+}
 public function update(Request $request, ItemsShipment $itemshipment)
 {
     $request->validate([

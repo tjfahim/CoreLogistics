@@ -35,9 +35,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AuthController::class, 'showLoginFrom'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
-Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegisterFrom'])->name('register');
 Route::post('/register-submit', [AuthController::class, 'registerSubmit'])->name('register.submit');
+
+
+Route::fallback(function () {
+    abort(404);
+});
+
+
 // PUBLIC + AUTH SEARCH FORM (same controller method)
 Route::get('/tracking', [CargoItemController::class, 'trackingSearchForm'])
     ->name('cargo-items.tracking-search');
@@ -65,6 +71,8 @@ Route::get('/migrate-fresh-seed', function () {
     }
 });
 Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
+    Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
     Route::resource('customers', CustomerController::class);
     Route::resource('products', ProductController::class);
@@ -76,7 +84,13 @@ Route::resource('users', UserController::class);
 // Existing (keep as is)
 Route::get('cargo-items/pending', [CargoItemController::class, 'pendingItems'])->name('cargo-items.pending');
 Route::get('cargo-items/packed', [CargoItemController::class, 'packedItems'])->name('cargo-items.packed');
+Route::get('itemsshipments/{itemshipment}/manage-returns',
+    [ItemShipmentController::class, 'manageReturns']
+)->name('itemsshipments.manage-returns');
 
+Route::post('itemsshipments/{itemshipment}/return-items',
+    [ItemShipmentController::class, 'returnItems']
+)->name('itemsshipments.return-items');
 // NEW: Bangladesh-side routes
 Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
 Route::get('cargo-items/bangladesh-warehouse', [CargoItemController::class, 'bangladeshWarehouseItems'])->name('cargo-items.bangladesh-warehouse');
@@ -106,7 +120,6 @@ Route::resource('cargo-items', CargoItemController::class);
     Route::get('shipment-items', [ItemShipmentController::class, 'getShipmentItems'])->name('shipment.items');
     Route::post('/itemsshipments/get-or-create-draft', [ItemShipmentController::class, 'getOrCreateDraft'])->name('itemsshipments.get-or-create-draft');
 
-    Route::post('/itemsshipments/get-or-create-draft', [ItemShipmentController::class, 'getOrCreateDraft'])->name('itemsshipments.get-or-create-draft');
 Route::post('/itemsshipments/toggle-item', [ItemShipmentController::class, 'toggleItem'])->name('itemsshipments.toggle-item');
 
 // Routes for item shipment costs

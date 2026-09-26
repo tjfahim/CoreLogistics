@@ -218,59 +218,69 @@ $(document).ready(function () {
     // ============================================
     // Render table rows
     // ============================================
-    function renderRows(items) {
-        if (!items || items.length === 0) {
-            $('#tableBody').html('<tr><td colspan="15" class="text-center text-muted">No items found.</td></tr>');
-            return;
+ function renderRows(items) {
+    if (!items || items.length === 0) {
+        $('#tableBody').html('<tr><td colspan="15" class="text-center text-muted">No items found.</td></tr>');
+        return;
+    }
+
+    const statusColors = {
+        'pending': 'secondary',
+        'packed': 'info',
+        'ready_to_ship': 'primary',
+        'shipping_ongoing': 'primary',
+        'arrived_bd': 'success',
+        'waiting_for_customs': 'danger',
+        'ready_to_deliver': 'dark',
+        'delivered': 'success'
+    };
+
+    let html = '';
+
+    items.forEach(function (item) {
+        const color = statusColors[item.status] || 'secondary';
+        const rowClass = item.status === 'packed' ? 'table-primary' : '';
+        const returnedClass = item.is_returned ? 'returned-row' : '';
+        const dateStr = item.date ? item.date.substring(5, 10) : '-';
+        const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
+
+        let titleAttr = '';
+        if (item.is_returned) {
+            const note = (item.return_note || 'No note').replace(/"/g, '&quot;');
+            const rdate = item.return_date || '';
+            titleAttr = 'title="Returned ' + rdate + ' — ' + note + '"';
         }
 
-        const statusColors = {
-            'pending': 'secondary',
-            'packed': 'info',
-            'ready_to_ship': 'primary',
-            'shipping_ongoing': 'primary',
-            'arrived_bd': 'success',
-            'waiting_for_customs': 'danger',
-            'ready_to_deliver': 'dark',
-            'delivered': 'success'
-        };
+        html += '<tr data-item-id="' + item.id + '" ' +
+                'class="selectable-row ' + rowClass + ' ' + returnedClass + '" ' +
+                'data-status="' + item.status + '" ' + titleAttr + '>' +
+                '<td>' + item.id + '</td>' +
+                '<td>' + dateStr + '</td>' +
+                '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
+                '<td>' + (item.written_ctn_no ?? '') + '</td>' +
+                '<td>' + (item.tracking_no ?? '') + '</td>' +
+                '<td>' + (item.goods_name_en ?? '') + goodsLocal + '</td>' +
+                '<td>' + (item.pack_no ?? '') + '</td>' +
+                '<td>' + (item.unit_pcs ?? '') + '</td>' +
+                '<td>' + (item.weight_kg ?? '0.000') + '</td>' +
+                '<td>' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
+                '<td>' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
+                '<td>' + (item.shipping_mark ?? '-') + '</td>' +
+                '<td>' + (item.remark ?? '-') + '</td>' +
+                '<td><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
+                    item.status.replace(/_/g, ' ').toUpperCase() +
+                '</span>' +
+                (item.is_returned ? ' <span class="badge badge-warning">RETURNED</span>' : '') +
+                '</td>' +
+                '<td>' +
+                    '<a href="/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ' +
+                    '<button class="btn btn-danger btn-sm delete-btn" data-id="' + item.id + '" title="Delete"><i class="fa fa-trash"></i></button>' +
+                '</td>' +
+                '</tr>';
+    });
 
-        let html = '';
-
-        items.forEach(function (item) {
-            const color = statusColors[item.status] || 'secondary';
-            const rowClass = item.status === 'packed' ? 'table-primary' : '';
-            const dateStr = item.date ? item.date.substring(5, 10) : '-';
-            const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
-
-            html += '<tr data-item-id="' + item.id + '" ' +
-                    'class="selectable-row ' + rowClass + '" ' +
-                    'data-status="' + item.status + '">' +
-                    '<td>' + item.id + '</td>' +
-                    '<td>' + dateStr + '</td>' +
-                    '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
-                    '<td>' + (item.written_ctn_no ?? '') + '</td>' +
-                    '<td>' + (item.tracking_no ?? '') + '</td>' +
-                    '<td>' + (item.goods_name_en ?? '') + goodsLocal + '</td>' +
-                    '<td>' + (item.pack_no ?? '') + '</td>' +
-                    '<td>' + (item.unit_pcs ?? '') + '</td>' +
-                    '<td>' + (item.weight_kg ?? '0.000') + '</td>' +
-                    '<td>' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
-                    '<td>' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
-                    '<td>' + (item.shipping_mark ?? '-') + '</td>' +
-                    '<td>' + (item.remark ?? '-') + '</td>' +
-                    '<td><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
-                        item.status.replace(/_/g, ' ').toUpperCase() +
-                    '</span></td>' +
-                    '<td>' +
-                        '<a href="/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ' +
-                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + item.id + '" title="Delete"><i class="fa fa-trash"></i></button>' +
-                    '</td>' +
-                    '</tr>';
-        });
-
-        $('#tableBody').html(html);
-    }
+    $('#tableBody').html(html);
+}
 
     // ============================================
     // Render pagination
@@ -443,6 +453,13 @@ $(document).ready(function () {
         vertical-align: middle !important;
         text-align: center !important;
     }
+    #cargoItemsTable tbody tr.returned-row {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+}
+#cargoItemsTable tbody tr.returned-row:hover {
+    background-color: #ffe8a1 !important;
+}
     .selectable-row { cursor: pointer; }
     .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
     .table-primary { background-color: #007bff !important; color: white; }

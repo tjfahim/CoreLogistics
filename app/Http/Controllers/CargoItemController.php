@@ -44,7 +44,6 @@ public function otherStatusPage($status)
     return view('admin.cargo_items.index', ['currentPageStatus' => $status]);
 }
 
-
 public function ajaxItems(Request $request)
 {
     $status = $request->input('status', 'all');
@@ -52,7 +51,6 @@ public function ajaxItems(Request $request)
     $perPage = (int) $request->input('per_page', 50);
     $page = (int) $request->input('page', 1);
 
-    // Which DB statuses map to which UI "page"
     $statusGroups = [
         'pending'              => ['pending'],
         'packed'               => ['packed'],
@@ -64,7 +62,7 @@ public function ajaxItems(Request $request)
         'bangladesh_warehouse' => ['ready_to_deliver', 'delivered'],
     ];
 
-    $query = CargoItem::query();
+    $query = CargoItem::query()->with('latestReturn');
 
     if ($status !== 'all' && isset($statusGroups[$status])) {
         $query->whereIn('status', $statusGroups[$status]);
@@ -83,8 +81,16 @@ public function ajaxItems(Request $request)
 
     $items = $query->orderBy('id', 'desc')->paginate($perPage, ['*'], 'page', $page);
 
+    $data = collect($items->items())->map(function ($item) {
+        $arr = $item->toArray();
+        $arr['is_returned'] = (bool) $item->latestReturn;
+        $arr['return_note'] = $item->latestReturn->note ?? null;
+        $arr['return_date'] = $item->latestReturn?->return_date?->format('Y-m-d');
+        return $arr;
+    });
+
     return response()->json([
-        'data' => $items->items(),
+        'data' => $data,
         'meta' => [
             'current_page' => $items->currentPage(),
             'last_page'    => $items->lastPage(),

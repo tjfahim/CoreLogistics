@@ -55,9 +55,7 @@
                         @foreach($shipments as $shipment)
                         <tr>
                             <td>{{ $shipment->id }}</td>
-                            <td>
-                                <strong>{{ $shipment->shipment_name }}</strong>
-                            </td>
+                            <td><strong>{{ $shipment->shipment_name }}</strong></td>
                             <td>{{ $shipment->shipment_date ? $shipment->shipment_date->format('Y-m-d') : '-' }}</td>
                             <td>
                                 <span class="badge badge-info">{{ $shipment->cargoItems->count() }} items</span>
@@ -70,31 +68,35 @@
                             <td>{{ $shipment->note ? Str::limit($shipment->note, 50) : '-' }}</td>
                             <td>{{ $shipment->created_at->format('Y-m-d') }}</td>
                             <td>
-                                    <a href="{{ route('itemshipments.costs.show', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                <a href="{{ route('itemshipments.costs.show', $shipment->id) }}" class="btn btn-primary btn-sm">
                                     <i class="fa fa-dollar-sign"></i> Costs
                                 </a>
-                                 <a href="{{ route('itemshipments.edit-ctn-numbers', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fa fa-dollar-sign"></i> Manage Ctn
+                                <a href="{{ route('itemshipments.edit-ctn-numbers', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fa fa-list-ol"></i> Manage Ctn
                                 </a>
-                                                        <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fa fa-dollar-sign"></i> Manage Prices
+                                <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fa fa-tags"></i> Manage Prices
                                 </a>
-                            <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                Assign Customers
+                                <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                    Assign Customers
                                 </a>
+
+                                {{-- ⭐ NEW: Manage Returns --}}
+                                <a href="{{ route('itemsshipments.manage-returns', $shipment->id) }}" class="btn btn-warning btn-sm">
+                                    <i class="fa fa-undo"></i> Manage Returns
+                                </a>
+
                                 <a href="{{ route('itemsshipments.show', $shipment->id) }}" class="btn btn-info btn-sm">
                                     <i class="fa fa-eye"></i>
                                 </a>
                                 <a href="{{ route('itemsshipments.edit', $shipment->id) }}" class="btn btn-warning btn-sm">
                                     <i class="fa fa-edit"></i>
                                 </a>
-                              
-                                    
-                                    <!-- Billing Button -->
-                                    <a href="{{ route('shipments.billing', $shipment->id) }}" 
-                                    class="btn btn-sm btn-success">
-                                        <i class="fa fa-file-invoice-dollar"></i> Billing
-                                    </a>
+
+                                <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-sm btn-success">
+                                    <i class="fa fa-file-invoice-dollar"></i> Billing
+                                </a>
+
                                 <form action="{{ route('itemsshipments.destroy', $shipment->id) }}"
                                       method="POST"
                                       class="d-inline">
@@ -118,7 +120,7 @@
 <script>
 $(document).ready(function() {
     $('#shipmentsTable').DataTable({
-        "pageLength": 50, 
+        "pageLength": 50,
         "lengthMenu": [ 50, 100, 200, 500, 1000 ],
         "order": [[0, 'desc']]
     });

@@ -54,7 +54,15 @@ class CargoItem extends Model
     {
         return $query->where('status', 'packed');
     }
+public function returnHistories()
+{
+    return $this->hasMany(ItemReturnHistory::class)->latest('return_date');
+}
 
+public function latestReturn()
+{
+    return $this->hasOne(ItemReturnHistory::class)->latestOfMany('return_date');
+}
   
       public function customer()
     {
