@@ -1,296 +1,496 @@
 @extends('admin.layouts.master')
 
 @section('main_content')
-<div class="container-fluid invoice-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2></h2>
-        <div class="btn-group">
+<div class="invoice-container">
+
+    <div class="no-print">
+        <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">Back</a>
+        <button class="btn btn-dark btn-sm" onclick="window.print()">
+            <i class="fa fa-print"></i> Print Bill
+        </button>
+    </div>
+
+    <div class="invoice">
+
+        {{-- Header --}}
+        <div class="inv-header">
+            <div class="inv-header-left">
+                <h1>INVOICE</h1>
+                <p class="inv-meta">
+                    Invoice #: <strong>{{ $itemshipment ? $itemshipment->id : 'N/A' }}</strong><br>
+                    Date: <strong>{{ now()->format('d M Y') }}</strong>
+                </p>
+            </div>
+            <div class="inv-header-right">
+                <div class="inv-company">TechLab33</div>
+                <p class="inv-company-details">
+                    123 Street Name, Dhaka, Bangladesh<br>
+                    Phone: +880 1234 56789<br>
+                    Email: info@techlab33.com
+                </p>
+            </div>
+        </div>
+
+        {{-- Bill To / Shipment --}}
+        <div class="inv-parties">
+            <div class="inv-party">
+                <div class="inv-party-label">Billed To</div>
+                <div class="inv-party-name">{{ $customer->name }}</div>
+                <div class="inv-party-details">
+                    Code: {{ $customer->customer_code }}<br>
+                    Email: {{ $customer->email }}<br>
+                    Phone: {{ $customer->phone }}<br>
+                    Address: {{ $customer->address }}
+                </div>
+            </div>
             @if($itemshipment)
-                <a href="javascript:history.back()"  
-                   class="btn btn-secondary">
-                     Back
-                </a>
-            @else
-                <a href="{{ route('customers.index') }}" 
-                   class="btn btn-secondary">
-                     Back to Customers
-                </a>
+                <div class="inv-party">
+                    <div class="inv-party-label">Shipment</div>
+                    <div class="inv-party-name">{{ $itemshipment->shipment_name }}</div>
+                    <div class="inv-party-details">
+                        Date: {{ $itemshipment->shipment_date }}
+                    </div>
+                </div>
             @endif
-            <button class="btn btn-warning" onclick="window.print()">
-                Print Bill
-            </button>
         </div>
-    </div>
-    <!-- Header -->
-    <div class="invoice-header d-flex justify-content-between align-items-center mb-4">
-        <h2>Invoice</h2>
-        <div class="company-info text-end">
-            <strong>TechLab33</strong><br>
-            123 Street Name, Dhaka, Bangladesh<br>
-            Phone: +880 1234 56789<br>
-            Email: info@techlab33.com
-        </div>
-    </div>
 
-    <!-- Customer & Shipment Info -->
-    <div class="invoice-info d-flex justify-content-between mb-4">
-        <div class="info-box p-2 border">
-            <strong>Customer Info</strong><br>
-            Name: {{ $customer->name }}<br>
-            Code: {{ $customer->customer_code }}<br>
-            Email: {{ $customer->email }}<br>
-            Phone: {{ $customer->phone }}<br>
-            Address: {{ $customer->address }}
-        </div>
-        @if($itemshipment)
-        <div class="info-box p-2 border">
-            <strong>Shipment Info</strong><br>
-            Shipment Name: {{ $itemshipment->shipment_name }}<br>
-            Date: {{ $itemshipment->shipment_date }}
-        </div>
-        @endif
-    </div>
+        {{-- Summary strip --}}
+        <table class="inv-summary">
+            <tr>
+                <td>
+                    <div class="inv-summary-label">Total Items</div>
+                    <div class="inv-summary-value">{{ $totalItems }}</div>
+                </td>
+                <td>
+                    <div class="inv-summary-label">Priced Items</div>
+                    <div class="inv-summary-value">{{ $itemsWithPrice }}</div>
+                </td>
+                <td>
+                    <div class="inv-summary-label">Unpriced Items</div>
+                    <div class="inv-summary-value">{{ $itemsWithoutPrice }}</div>
+                </td>
+                <td>
+                    <div class="inv-summary-label">Total Bill</div>
+                    <div class="inv-summary-value">{{ number_format($totalPrice, 0) }} TK</div>
+                </td>
+            </tr>
+        </table>
 
-
-     <!-- Summary Cards -->
-    <div class="row mb-4 summary-cards">
-        <div class="col-md-3 summary-card border">
-            <div class="card bg-secondary text-white">
-                <div class="card-body">
-                    <h5>Total Items</h5>
-                    <h3>{{ $totalItems }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 summary-card border">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5>Items with Price</h5>
-                    <h3>{{ $itemsWithPrice }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 summary-card   border">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5>Items without Price</h5>
-                    <h3>{{ $itemsWithoutPrice }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 summary-card border">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5>Total Bill</h5>
-                    <h3>{{ number_format($totalPrice, 0) }} tk</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Items Table -->
-    <div class="table-responsive mb-4">
-        <table class="table table-bordered table-hover">
+        {{-- Items Table --}}
+        <table class="inv-table">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Product Name</th>
-                    <th>Tracking No</th>
-                    <th>Weight (kg)</th>
-                    <th>CBM</th>
-                    <th>Fixed Price (tk)</th>
-                    <th>Price per kg (tk)</th>
-                    <th>Total (tk)</th>
-                    <th>Status</th>
+                    <th class="col-num">#</th>
+                    <th>Product</th>
+                    <th>Tracking</th>
+                    <th class="col-num">Weight (kg)</th>
+                    <th class="col-num">CBM</th>
+                    <th class="col-num">Fixed Price</th>
+                    <th class="col-num">Price / kg</th>
+                    <th class="col-num">Total</th>
+                    <th class="col-status">Status</th>
                     <th>Shipment</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($itemDetails as $index => $item)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>
-                        <strong>{{ $item['goods_name_en'] }}</strong>
-                        @if($item['goods_name_local'])
-                        <br><small>{{ $item['goods_name_local'] }}</small>
-                        @endif
-                    </td>
-                    <td>{{ $item['tracking_no'] }}</td>
-                    <td>{{ number_format($item['weight_kg'], 0) }}</td>
-                    <td>{{ number_format($item['cbm'], 3) }}</td>
-                    <td>{{ $item['price'] ? number_format($item['price'],2) : '-' }}</td>
-                    <td>{{ $item['price_per_kg'] ? number_format($item['price_per_kg'],2) : '-' }}</td>
-                    <td>{{ $item['has_price'] ? number_format($item['total_price'],2) : 'Not set' }}</td>
-                    <td>
-                        <span class="badge {{ $item['has_price'] ? 'bg-success' : 'bg-secondary' }}">
-                            {{ $item['has_price'] ? 'Priced' : 'No Price' }}
-                        </span>
-                    </td>
-                    <td>{{ $item['shipments'] }}</td>
-                </tr>
+                    <tr>
+                        <td class="col-num">{{ $index + 1 }}</td>
+                        <td>
+                            <strong>{{ $item['goods_name_en'] }}</strong>
+                            @if($item['goods_name_local'])
+                                <div class="inv-sub">{{ $item['goods_name_local'] }}</div>
+                            @endif
+                        </td>
+                        <td>{{ $item['tracking_no'] }}</td>
+                        <td class="col-num">{{ number_format($item['weight_kg'], 0) }}</td>
+                        <td class="col-num">{{ number_format($item['cbm'], 3) }}</td>
+                        <td class="col-num">{{ $item['price'] ? number_format($item['price'], 2) : '—' }}</td>
+                        <td class="col-num">{{ $item['price_per_kg'] ? number_format($item['price_per_kg'], 2) : '—' }}</td>
+                        <td class="col-num">
+                            @if($item['has_price'])
+                                <strong>{{ number_format($item['total_price'], 2) }}</strong>
+                            @else
+                                <span class="inv-muted">—</span>
+                            @endif
+                        </td>
+                        <td class="col-status">
+                            <span class="inv-tag {{ $item['has_price'] ? 'inv-tag-priced' : 'inv-tag-unpriced' }}">
+                                {{ $item['has_price'] ? 'Priced' : 'No Price' }}
+                            </span>
+                        </td>
+                        <td>{{ $item['shipments'] }}</td>
+                    </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3">TOTALS</td>
-                    <td>{{ number_format($totalWeight, 0) }} kg</td>
-                    <td></td>
-                    <td colspan="2"></td>
-                    <td>{{ number_format($totalPrice,2) }}</td>
+                    <td colspan="3" class="inv-total-label">TOTAL</td>
+                    <td class="col-num">{{ number_format($totalWeight, 0) }} kg</td>
+                    <td class="col-num"></td>
+                    <td class="col-num"></td>
+                    <td class="col-num"></td>
+                    <td class="col-num"><strong>{{ number_format($totalPrice, 2) }}</strong></td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>
         </table>
+
+        {{-- Footer --}}
+        <div class="inv-footer">
+            <div class="inv-footer-note">
+                This is a computer-generated invoice and does not require a signature.
+            </div>
+            <div class="inv-footer-sign">
+                <div class="inv-sign-line"></div>
+                <div class="inv-sign-label">Authorized Signature</div>
+            </div>
+        </div>
+
     </div>
-
-   
-
-    
 </div>
-
 @endsection
 
-
 <style>
- 
-    
-    @media print {
-
-          body * { visibility: hidden; }
-    .invoice-container, .invoice-container * { visibility: visible; }
-
-    /* Layout */
-    .invoice-container { width: 100%;  padding: 0; font-family: "Times New Roman", serif; }
-    .invoice-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; margin-top: 100px;}
-    .invoice-header h2 { font-size: 28px; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-    .company-info { text-align: right; font-size: 14px; }
-    .invoice-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; }
-    .info-box { border: 1px solid #000; padding: 10px; flex: 1 1 48%; }
-
-    .summary-cards { display: flex; justify-content: space-between; margin-bottom: 20px; }
-    .summary-card { flex: 1 1 23%; border: 1px solid #000; padding: 10px; text-align: center; font-size: 14px; margin-right: 1%; }
-    .summary-card:last-child { margin-right: 0; }
-    .summary-card h5 { margin: 0; font-size: 12px; text-transform: uppercase; }
-    .summary-card h3 { margin: 5px 0 0; font-size: 18px; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    table th, table td { border: 1px solid #000; padding: 6px; }
-    thead th { background-color: #000; color: #fff; font-weight: bold; }
-    tbody tr:nth-child(even) { background-color: #f2f2f2; }
-    tfoot td { font-weight: bold; background-color: #eaeaea; }
-
-    .badge { border: 1px solid #000000ed; color: black !important; background: white !important; padding: 2px 4px; font-size: 12px; }
-
-    .invoice-footer { margin-top: 40px; display: flex; justify-content: space-between; }
-    
-    /* Hide sidebar */
-    #left-panel,
-    .left-panel,
-    .navbar,
-    aside,
-    .sidebar,
-    #menuToggle {
-        display: none !important;
+    /* ---------- Screen base ---------- */
+    .invoice-container {
+        background: #f7f7f8;
+        padding: 24px 16px 40px;
+        min-height: 100vh;
     }
 
-    /* Expand printed content */
-    #right-panel {
-        margin-left: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
+    .no-print {
+        max-width: 900px;
+        margin: 0 auto 16px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
     }
 
-    header.header,
-    .header,
-    .header-menu {
-        display: none !important;
-    }
-
-
-    /* Hide non-print elements */
-    .btn, .btn-group, nav, .breadcrumbs, .d-flex, .page-title {
-        display: none !important;
-    }
-
-    body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        font-family: "Times New Roman", serif;
-        background: white !important;
-    }
-
-    /* Invoice container */
-    .container-fluid {
-       
+    .invoice {
+        background: #fff;
+        max-width: 900px;
         margin: 0 auto;
-        width: 95%;
-    }
-
-    /* Header styling */
-    h2 {
-        text-align: center;
-        font-size: 26px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 20px;
-        border-bottom: 2px solid black;
-        padding-bottom: 10px;
-    }
-
-   
-    .row.mb-4 {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        justify-content: space-between !important;
-    }
-
-    .row.mb-4 > .col-md-3 {
-        flex: 1 1 24% !important; /* make 4 cards fit in a row */
-        max-width: 24% !important;
-        margin: 0 !important;
-    }
-
-    /* Optional: make cards smaller for print */
-    .row.mb-4 .card {
-        margin-bottom: 0 !important;
-    }
-
-    .row strong {
-        font-size: 14px;
-    }
-
-    /* Invoice table styling */
-    table {
-        width: 100%;
-        border-collapse: collapse !important;
-    }
-
-    table th, table td {
-        border: 1px solid black !important;
-        padding: 6px !important;
+        padding: 40px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        color: #111;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: 13px;
+        line-height: 1.5;
     }
 
-    thead {
-        background: #000 !important;
-        color: #fff !important;
+    /* ---------- Header ---------- */
+    .inv-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #111;
+        margin-bottom: 24px;
     }
 
-    tfoot {
-        background: #eaeaea !important;
-        font-weight: bold;
+    .inv-header-left h1 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin: 0 0 8px 0;
+        text-transform: uppercase;
     }
 
-    /* Make badges simple on print */
-    .badge {
-        border: 1px solid black !important;
-        color: black !important;
-        background: white !important;
+    .inv-meta {
+        margin: 0;
+        font-size: 12px;
+        color: #374151;
     }
 
-    /* For better scaling */
-    @page {
-        margin: 20mm;
+    .inv-header-right {
+        text-align: right;
     }
-}
+
+    .inv-company {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .inv-company-details {
+        margin: 0;
+        font-size: 12px;
+        color: #374151;
+        line-height: 1.6;
+    }
+
+    /* ---------- Parties ---------- */
+    .inv-parties {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .inv-party {
+        flex: 1;
+        border: 1px solid #d1d5db;
+        padding: 12px 14px;
+    }
+
+    .inv-party-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #6b7280;
+        margin-bottom: 6px;
+    }
+
+    .inv-party-name {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .inv-party-details {
+        font-size: 12px;
+        color: #374151;
+        line-height: 1.6;
+    }
+
+    /* ---------- Summary ---------- */
+    .inv-summary {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+    }
+
+    .inv-summary td {
+        border: 1px solid #d1d5db;
+        padding: 10px 14px;
+        text-align: center;
+        width: 25%;
+    }
+
+    .inv-summary-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #6b7280;
+        margin-bottom: 4px;
+    }
+
+    .inv-summary-value {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    /* ---------- Items table ---------- */
+    .inv-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+    }
+
+    .inv-table th,
+    .inv-table td {
+        border: 1px solid #d1d5db;
+        padding: 8px 10px;
+        vertical-align: middle;
+    }
+
+    .inv-table thead th {
+        background: #f3f4f6;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #374151;
+        text-align: left;
+    }
+
+    .inv-table tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .inv-table tfoot td {
+        background: #f3f4f6;
+        font-size: 12px;
+        border-top: 2px solid #111;
+    }
+
+    .col-num {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .col-status {
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .inv-sub {
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .inv-muted {
+        color: #9ca3af;
+    }
+
+    .inv-total-label {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+
+    /* ---------- Tags ---------- */
+    .inv-tag {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        padding: 2px 8px;
+        border: 1px solid #111;
+        border-radius: 2px;
+    }
+
+    .inv-tag-priced {
+        background: #111;
+        color: #fff;
+    }
+
+    .inv-tag-unpriced {
+        background: #fff;
+        color: #111;
+    }
+
+    /* ---------- Footer ---------- */
+    .inv-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-top: 40px;
+        padding-top: 16px;
+        border-top: 1px solid #d1d5db;
+    }
+
+    .inv-footer-note {
+        font-size: 11px;
+        color: #6b7280;
+        max-width: 60%;
+    }
+
+    .inv-footer-sign {
+        text-align: center;
+        min-width: 200px;
+    }
+
+    .inv-sign-line {
+        border-top: 1px solid #111;
+        margin-bottom: 6px;
+        height: 1px;
+        width: 100%;
+    }
+
+    .inv-sign-label {
+        font-size: 11px;
+        color: #374151;
+    }
+
+    /* ---------- Print ---------- */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        .invoice-container,
+        .invoice-container * {
+            visibility: visible;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .invoice-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #fff !important;
+            padding: 0 !important;
+        }
+
+        .invoice {
+            max-width: 100%;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            margin: 0;
+            box-shadow: none;
+        }
+
+        #left-panel,
+        .left-panel,
+        .navbar,
+        aside,
+        .sidebar,
+        #menuToggle,
+        header.header,
+        .header,
+        .header-menu,
+        nav,
+        .breadcrumbs {
+            display: none !important;
+        }
+
+        #right-panel {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .inv-header {
+            border-bottom: 2px solid #000;
+        }
+
+        .inv-party,
+        .inv-summary td,
+        .inv-table th,
+        .inv-table td {
+            border: 1px solid #000 !important;
+        }
+
+        .inv-table thead th {
+            background: #f0f0f0 !important;
+            color: #000 !important;
+        }
+
+        .inv-table tfoot td {
+            background: #f0f0f0 !important;
+        }
+
+        .inv-tag {
+            border: 1px solid #000 !important;
+        }
+
+        .inv-tag-priced {
+            background: #000 !important;
+            color: #fff !important;
+        }
+
+        .inv-tag-unpriced {
+            background: #fff !important;
+            color: #000 !important;
+        }
+
+        body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: #fff !important;
+            font-family: "Times New Roman", serif;
+        }
+
+        @page {
+            margin: 15mm;
+        }
+    }
 </style>

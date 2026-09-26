@@ -5,17 +5,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Shipment Billing: {{ $itemshipment->shipment_name }}</h2>
         <div class="btn-group">
-            <a href="javascript:history.back()" 
-               class="btn btn-secondary">
+            <a href="javascript:history.back()" class="btn btn-secondary">
                 <i class="fa fa-arrow-left"></i> Back
             </a>
             <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updatePricesModal">
                 <i class="fa fa-edit"></i> Update Prices
             </button>
-            
         </div>
     </div>
-    
+
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
@@ -51,7 +49,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Customer Bills Table -->
     <div class="card">
         <div class="card-header">
@@ -70,59 +68,95 @@
                             <th>Without Price</th>
                             <th>Total Weight (kg)</th>
                             <th>Total Price (TK)</th>
+                            <th>Paid (TK)</th>
+                            <th>Due (TK)</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @php
+                            $grandWeight = 0;
+                            $grandPrice  = 0;
+                            $grandPaid   = 0;
+                            $grandDue    = 0;
+                        @endphp
+
                         @foreach($billingSummary as $bill)
-                        <tr>
-                            <td>{{ $bill['customer_code'] }}</td>
-                            <td>{{ $bill['customer_name'] }}</td>
-                            <td>{{ $bill['total_items'] }}</td>
-                            <td>
-                                @if($bill['items_with_price'] > 0)
-                                <span class="badge bg-success">{{ $bill['items_with_price'] }}</span>
-                                @else
-                                <span class="badge bg-secondary">{{ $bill['items_with_price'] }}</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($bill['items_without_price'] > 0)
-                                <span class="badge bg-warning">{{ $bill['items_without_price'] }}</span>
-                                @else
-                                <span class="badge bg-secondary">{{ $bill['items_without_price'] }}</span>
-                                @endif
-                            </td>
-                            <td>{{ number_format($bill['total_weight'], 0) }}</td>
-                            <td>
-                                @if($bill['total_price'] > 0)
-                                <strong>{{ number_format($bill['total_price'], 0) }}</strong>
-                                @else
-                                <span class="text-muted">Not set</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($bill['customer_id'])
-                                <div class="">
-                                    <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}" 
-                                       class="btn btn-sm btn-info" title="View Bill">
-                                        View Bill
-                                    </a>
-                                   <a href="{{ route('payments.create', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}" 
-           class="btn btn-sm btn-success">
-            <i class="fa fa-money-bill-wave"></i> Receive Payment
-        </a>
-        
-        <a href="{{ route('payments.history', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}" 
-           class="btn btn-sm btn-info">
-            <i class="fa fa-history"></i> Payment History
-        </a>
-                                </div>
-                                @else
-                                <span class="text-muted">No customer assigned</span>
-                                @endif
-                            </td>
-                        </tr>
+                            @php
+                                $totalPrice = $bill['total_price'];
+                                $paid       = $bill['paid_amount'] ?? 0;
+                                $due        = max($totalPrice - $paid, 0);
+
+                                $grandWeight += $bill['total_weight'];
+                                $grandPrice  += $totalPrice;
+                                $grandPaid   += $paid;
+                                $grandDue    += $due;
+                            @endphp
+                            <tr>
+                                <td>{{ $bill['customer_code'] }}</td>
+                                <td>{{ $bill['customer_name'] }}</td>
+                                <td>{{ $bill['total_items'] }}</td>
+                                <td>
+                                    @if($bill['items_with_price'] > 0)
+                                        <span class="badge bg-success">{{ $bill['items_with_price'] }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">{{ $bill['items_with_price'] }}</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($bill['items_without_price'] > 0)
+                                        <span class="badge bg-warning">{{ $bill['items_without_price'] }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">{{ $bill['items_without_price'] }}</span>
+                                    @endif
+                                </td>
+                                <td>{{ number_format($bill['total_weight'], 0) }}</td>
+                                <td>
+                                    @if($totalPrice > 0)
+                                        <strong>{{ number_format($totalPrice, 0) }}</strong>
+                                    @else
+                                        <span class="text-muted">Not set</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($paid > 0)
+                                        <strong class="text-success">{{ number_format($paid, 0) }}</strong>
+                                    @else
+                                        <span class="text-muted">0</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($totalPrice > 0)
+                                        @if($due <= 0)
+                                            <span class="badge bg-success">PAID</span>
+                                        @else
+                                            <strong class="text-danger">{{ number_format($due, 0) }}</strong>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($bill['customer_id'])
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
+                                               class="btn btn-sm btn-info">
+                                                View Bill
+                                            </a>
+                                            <a href="{{ route('payments.create', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fa fa-money-bill-wave"></i> Receive Payment
+                                            </a>
+                                            <a href="{{ route('payments.history', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
+                                               class="btn btn-sm btn-info">
+                                                <i class="fa fa-history"></i> Payment History
+                                            </a>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">No customer assigned</span>
+                                    @endif
+                                </td>
+                            </tr>
                         @endforeach
                     </tbody>
                     <tfoot class="table-dark">
@@ -131,16 +165,10 @@
                             <td><strong>{{ $totalItems }}</strong></td>
                             <td><strong>{{ $totalPricedItems }}</strong></td>
                             <td><strong>{{ $totalUnpricedItems }}</strong></td>
-                            <td>
-                                <strong>
-                                    {{ number_format(array_sum(array_column($billingSummary, 'total_weight')), 0) }} kg
-                                </strong>
-                            </td>
-                            <td>
-                                <strong>
-                                    {{ number_format(array_sum(array_column($billingSummary, 'total_price')), 0) }}
-                                </strong>
-                            </td>
+                            <td><strong>{{ number_format($grandWeight, 0) }} kg</strong></td>
+                            <td><strong>{{ number_format($grandPrice, 0) }}</strong></td>
+                            <td><strong>{{ number_format($grandPaid, 0) }}</strong></td>
+                            <td><strong>{{ number_format($grandDue, 0) }}</strong></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -169,7 +197,7 @@
                     <div class="alert alert-info">
                         <i class="fa fa-info-circle"></i> Update prices for items in this shipment. Leave empty to clear price.
                     </div>
-                    
+
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
@@ -191,23 +219,21 @@
                                         {{ $item->goods_name_en }}<br>
                                         <small class="text-muted">Tracking: {{ $item->tracking_no }}</small>
                                     </td>
-                                    <td>
-                                        {{ $item->customer ? $item->customer->name : 'Unassigned' }}
-                                    </td>
+                                    <td>{{ $item->customer ? $item->customer->name : 'Unassigned' }}</td>
                                     <td>{{ number_format($item->weight_kg, 0) }}</td>
                                     <td>
-                                        <input type="number" 
-                                               name="prices[{{ $item->id }}][price]" 
-                                               class="form-control form-control-sm" 
-                                               step="0.01" 
+                                        <input type="number"
+                                               name="prices[{{ $item->id }}][price]"
+                                               class="form-control form-control-sm"
+                                               step="0.01"
                                                min="0"
                                                value="{{ $item->price }}">
                                     </td>
                                     <td>
-                                        <input type="number" 
-                                               name="prices[{{ $item->id }}][price_per_kg]" 
-                                               class="form-control form-control-sm" 
-                                               step="0.01" 
+                                        <input type="number"
+                                               name="prices[{{ $item->id }}][price_per_kg]"
+                                               class="form-control form-control-sm"
+                                               step="0.01"
                                                min="0"
                                                value="{{ $item->price_per_kg }}">
                                     </td>
@@ -230,17 +256,15 @@
 
 @push('scripts')
 <script>
-    // Auto-calculate total price when either field changes
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const priceInputs = document.querySelectorAll('input[name*="[price]"], input[name*="[price_per_kg]"]');
-        
+
         priceInputs.forEach(input => {
-            input.addEventListener('change', function() {
+            input.addEventListener('change', function () {
                 const row = this.closest('tr');
                 const price = row.querySelector('input[name*="[price]"]').value;
                 const pricePerKg = row.querySelector('input[name*="[price_per_kg]"]').value;
-                const weight = parseFloat(row.querySelector('td:nth-child(3)').textContent);
-                
+
                 if (price && pricePerKg) {
                     alert('Please enter either Fixed Price OR Price per kg, not both.');
                     this.value = '';

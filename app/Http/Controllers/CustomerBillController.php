@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CargoItem;
+use App\Models\CustomerPayment;
 use App\Models\ItemsShipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,31 +12,32 @@ use Illuminate\Support\Facades\DB;
 class CustomerBillController extends Controller
 {
     // Show customer billing page for a shipment
+  
     public function showShipmentBilling(ItemsShipment $itemshipment)
     {
-        // Get all items in this shipment with their customer and price info
         $items = $itemshipment->cargoItems()
             ->with(['customer'])
             ->get()
             ->groupBy('customer_id');
-        
-        // Calculate totals
+
         $billingSummary = [];
         $totalItems = 0;
         $totalPricedItems = 0;
         $totalUnpricedItems = 0;
         $totalAssignedItems = 0;
         $totalUnassignedItems = 0;
-        
+
         foreach ($items as $customerId => $customerItems) {
             $customer = $customerId ? Customer::find($customerId) : null;
+
             $totalPrice = 0;
             $totalWeight = 0;
             $itemsWithPrice = 0;
             $itemsWithoutPrice = 0;
-            
+
             foreach ($customerItems as $item) {
                 $totalWeight += $item->weight_kg;
+
                 if ($item->hasPrice()) {
                     $totalPrice += $item->total_price;
                     $itemsWithPrice++;
@@ -43,29 +45,46 @@ class CustomerBillController extends Controller
                     $itemsWithoutPrice++;
                 }
             }
-            
+
+            // ------------------------------------------------
+            // Calculate paid amount for this customer + shipment
+            // Using the SAME logic as PaymentController::create()
+            // ------------------------------------------------
+            $paidAmount = 0;
+
+            if ($customerId) {
+                $paidAmount = CustomerPayment::where('customer_id', $customerId)
+                    ->whereHas('paymentItems.cargoItem.itemshipments', function ($q) use ($itemshipment) {
+                        $q->where('items_shipments.id', $itemshipment->id);
+                    })
+                    ->sum('amount');
+            }
+
             $billingSummary[] = [
-                'customer_id' => $customerId,
-                'customer_name' => $customer ? $customer->name : 'Unassigned',
-                'customer_code' => $customer ? $customer->customer_code : 'N/A',
-                'total_items' => count($customerItems),
-                'items_with_price' => $itemsWithPrice,
+                'customer_id'         => $customerId,
+                'customer_name'       => $customer ? $customer->name : 'Unassigned',
+                'customer_code'       => $customer ? $customer->customer_code : 'N/A',
+                'total_items'         => count($customerItems),
+                'items_with_price'    => $itemsWithPrice,
                 'items_without_price' => $itemsWithoutPrice,
-                'total_weight' => $totalWeight,
-                'total_price' => $totalPrice,
-                'items' => $customerItems
+                'total_weight'        => $totalWeight,
+                'total_price'         => $totalPrice,
+                'paid_amount'         => $paidAmount,
+                'due_amount'          => max($totalPrice - $paidAmount, 0),
+                'items'               => $customerItems,
             ];
-            
+
             $totalItems += count($customerItems);
             $totalPricedItems += $itemsWithPrice;
             $totalUnpricedItems += $itemsWithoutPrice;
+
             if ($customerId) {
                 $totalAssignedItems += count($customerItems);
             } else {
                 $totalUnassignedItems += count($customerItems);
             }
         }
-        
+
         return view('admin.itemshipments.billing', compact(
             'itemshipment',
             'billingSummary',
@@ -76,7 +95,6 @@ class CustomerBillController extends Controller
             'totalUnassignedItems'
         ));
     }
-    
     // Show individual customer bill
     public function showCustomerBill(Customer $customer, ItemsShipment $itemshipment = null)
     {
