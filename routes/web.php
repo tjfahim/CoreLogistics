@@ -7,6 +7,7 @@ use App\Http\Controllers\CargoItemController;
 use App\Http\Controllers\CostTypeController;
 use App\Http\Controllers\CustomerBillController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerExtraShippingMarkController;
 use App\Http\Controllers\ItemShipmentController;
 use App\Http\Controllers\ItemShipmentCostController;
 use App\Http\Controllers\PaymentController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\ShipmentCostController;
 use App\Http\Controllers\ShipmentPaymentController;
 use App\Http\Controllers\ShipmentReportController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -69,10 +71,34 @@ Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
     Route::resource('agents', AgentController::class);
     Route::resource('cost-types', CostTypeController::class);
 
+Route::resource('users', UserController::class);
+    Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+// Existing (keep as is)
+Route::get('cargo-items/pending', [CargoItemController::class, 'pendingItems'])->name('cargo-items.pending');
+Route::get('cargo-items/packed', [CargoItemController::class, 'packedItems'])->name('cargo-items.packed');
 
+// NEW: Bangladesh-side routes
+Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
+Route::get('cargo-items/bangladesh-warehouse', [CargoItemController::class, 'bangladeshWarehouseItems'])->name('cargo-items.bangladesh-warehouse');
+Route::get('cargo-items/ajax/items', [CargoItemController::class, 'ajaxItems'])->name('cargo-items.ajax-items');
 
-    Route::resource('cargo-items', CargoItemController::class);
-    Route::post('cargo-items/import', [CargoItemController::class, 'import'])->name('cargo-items.import');
+// Status-specific (existing)
+Route::get('cargo-items/status/{status}', [CargoItemController::class, 'otherStatusPage'])->name('cargo-items.status');
+
+// Excel import routes (existing)
+Route::post('cargo-items/import', [CargoItemController::class, 'import'])->name('cargo-items.import');
+Route::get('cargo-items/import/{fileId}/preview', [CargoItemController::class, 'importPreview'])->name('cargo-items.import.preview');
+Route::post('cargo-items/import/{fileId}/confirm', [CargoItemController::class, 'importConfirm'])->name('cargo-items.import.confirm');
+Route::post('cargo-items/import/{fileId}/cancel', [CargoItemController::class, 'importCancel'])->name('cargo-items.import.cancel');
+
+// Imported files (existing)
+Route::get('cargo-items/files', [CargoItemController::class, 'filesIndex'])->name('cargo-items.files.index');
+Route::get('cargo-items/files/{file}', [CargoItemController::class, 'filesView'])->name('cargo-items.files.view');
+Route::get('cargo-items/files/{file}/download', [CargoItemController::class, 'filesDownload'])->name('cargo-items.files.download');
+Route::delete('cargo-items/files/{file}', [CargoItemController::class, 'filesDestroy'])->name('cargo-items.files.destroy');
+
+// Resource (last)
+Route::resource('cargo-items', CargoItemController::class);
 
     Route::resource('itemsshipments', ItemShipmentController::class)->parameters([
     'itemsshipments' => 'itemshipment'
@@ -112,7 +138,26 @@ Route::get('itemshipments/{itemshipment}/customer-assignment/auto-assign', [Cust
     ->name('itemshipments.customer.autoassign');
 
 
+Route::get('customer-extra-shipping-marks', [CustomerExtraShippingMarkController::class, 'index'])
+    ->name('customer-extra-shipping-marks.index');
+Route::get('customer-extra-shipping-marks/create', [CustomerExtraShippingMarkController::class, 'create'])
+    ->name('customer-extra-shipping-marks.create');
+Route::post('customer-extra-shipping-marks', [CustomerExtraShippingMarkController::class, 'store'])
+    ->name('customer-extra-shipping-marks.store');
+Route::get('customer-extra-shipping-marks/{id}', [CustomerExtraShippingMarkController::class, 'show'])
+    ->name('customer-extra-shipping-marks.show');
+Route::get('customer-extra-shipping-marks/{id}/edit', [CustomerExtraShippingMarkController::class, 'edit'])
+    ->name('customer-extra-shipping-marks.edit');
+Route::put('customer-extra-shipping-marks/{id}', [CustomerExtraShippingMarkController::class, 'update'])
+    ->name('customer-extra-shipping-marks.update');
+Route::delete('customer-extra-shipping-marks/{id}', [CustomerExtraShippingMarkController::class, 'destroy'])
+    ->name('customer-extra-shipping-marks.destroy');
 
+// AJAX inline actions
+Route::post('customer-extra-shipping-marks/inline-store', [CustomerExtraShippingMarkController::class, 'inlineStore'])
+    ->name('customer-extra-shipping-marks.inline-store');
+Route::delete('customer-extra-shipping-marks/inline-destroy/{id}', [CustomerExtraShippingMarkController::class, 'inlineDestroy'])
+    ->name('customer-extra-shipping-marks.inline-destroy');
 
 
          Route::get('/shipments/{itemshipment}/billing', 
@@ -153,8 +198,8 @@ Route::get('itemshipments/{itemshipment}/customer-assignment/auto-assign', [Cust
 Route::prefix('reports')->group(function () {
     Route::get('/dashboard', [ShipmentReportController::class, 'dashboard'])->name('reports.dashboard');
     Route::get('/shipment/{id}', [ShipmentReportController::class, 'singleShipmentReport'])->name('reports.single');
-    Route::get('/shipments', [ShipmentReportController::class, 'multipleShipmentsReport'])->name('reports.multiple');
-    Route::post('/shipments/filter', [ShipmentReportController::class, 'multipleShipmentsReport'])->name('reports.multiple.filter');
+  
+
     Route::get('/download/{type}/{id?}', [ShipmentReportController::class, 'downloadPdf'])->name('reports.download.pdf');
     Route::get('/export/{type}/{id?}', [ShipmentReportController::class, 'exportExcel'])->name('reports.export.excel');
 });

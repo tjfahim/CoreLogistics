@@ -28,12 +28,12 @@
 
         <div class="card">
 
-            
-                 <div class="card-header d-flex justify-content-between ">
+            <div class="card-header d-flex justify-content-between">
                 <strong>Edit Customer</strong>
-                        <a href="{{ route('customers.index') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back</a>
-                    
-                    </div>
+                <a href="{{ route('customers.index') }}" class="btn btn-secondary btn-sm">
+                    <i class="fa fa-arrow-left"></i> Back
+                </a>
+            </div>
 
             <div class="card-body">
 
@@ -88,49 +88,105 @@
                             <small class="text-danger">{{ $message }}</small> 
                         @enderror
                     </div>
-                    <div class="form-group">
-                        <label class="font-weight-bold">Shipping Mark 1</label>
-                        <input type="text" 
-                               name="shipping_mark1" 
-                               value="{{ old('shipping_mark1', $customer->shipping_mark1) }}" 
-                               class="form-control @error('shipping_mark1') is-invalid @enderror"
-                               placeholder="CUS-1001">
-                        @error('shipping_mark1') 
-                            <small class="text-danger">{{ $message }}</small> 
-                        @enderror
+
+                    <hr>
+                    <h5 class="mb-3"><strong>Fixed Shipping Marks (1-4)</strong></h5>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Shipping Mark 1</label>
+                                <input type="text" 
+                                       name="shipping_mark1" 
+                                       value="{{ old('shipping_mark1', $customer->shipping_mark1) }}" 
+                                       class="form-control @error('shipping_mark1') is-invalid @enderror">
+                                @error('shipping_mark1') 
+                                    <small class="text-danger">{{ $message }}</small> 
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Shipping Mark 2</label>
+                                <input type="text" 
+                                       name="shipping_mark2" 
+                                       value="{{ old('shipping_mark2', $customer->shipping_mark2) }}" 
+                                       class="form-control @error('shipping_mark2') is-invalid @enderror">
+                                @error('shipping_mark2') 
+                                    <small class="text-danger">{{ $message }}</small> 
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Shipping Mark 3</label>
+                                <input type="text" 
+                                       name="shipping_mark3" 
+                                       value="{{ old('shipping_mark3', $customer->shipping_mark3) }}" 
+                                       class="form-control @error('shipping_mark3') is-invalid @enderror">
+                                @error('shipping_mark3') 
+                                    <small class="text-danger">{{ $message }}</small> 
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Shipping Mark 4</label>
+                                <input type="text" 
+                                       name="shipping_mark4" 
+                                       value="{{ old('shipping_mark4', $customer->shipping_mark4) }}" 
+                                       class="form-control @error('shipping_mark4') is-invalid @enderror">
+                                @error('shipping_mark4') 
+                                    <small class="text-danger">{{ $message }}</small> 
+                                @enderror
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="font-weight-bold">Shipping Mark 2</label>
-                        <input type="text" 
-                               name="shipping_mark2" 
-                               value="{{ old('shipping_mark2', $customer->shipping_mark2) }}" 
-                               class="form-control @error('shipping_mark2') is-invalid @enderror"
-                               placeholder="CUS-2002">
-                        @error('shipping_mark2') 
-                            <small class="text-danger">{{ $message }}</small> 
-                        @enderror
+
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><strong>Extra Shipping Marks</strong></h5>
+                        <button type="button" class="btn btn-success btn-sm" id="addExtraMark">
+                            <i class="fa fa-plus"></i> Add Extra Shipping Mark
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label class="font-weight-bold">Shipping Mark 3</label>
-                        <input type="text" 
-                               name="shipping_mark3" 
-                               value="{{ old('shipping_mark3', $customer->shipping_mark3) }}" 
-                               class="form-control @error('shipping_mark3') is-invalid @enderror"
-                               placeholder="CUS-3003">
-                        @error('shipping_mark3') 
-                            <small class="text-danger">{{ $message }}</small> 
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label class="font-weight-bold">Shipping Mark 4</label>
-                        <input type="text" 
-                               name="shipping_mark4" 
-                               value="{{ old('shipping_mark4', $customer->shipping_mark4) }}" 
-                               class="form-control @error('shipping_mark4') is-invalid @enderror"
-                               placeholder="CUS-4004">
-                        @error('shipping_mark4') 
-                            <small class="text-danger">{{ $message }}</small> 
-                        @enderror
+
+                    <div id="extraMarksContainer">
+                        @if(old('extra_shipping_marks'))
+                            @foreach(old('extra_shipping_marks') as $mark)
+                                <div class="form-group extra-mark-row">
+                                    <div class="input-group">
+                                        <input type="text" 
+                                               name="extra_shipping_marks[]" 
+                                               value="{{ $mark }}" 
+                                               class="form-control"
+                                               placeholder="Enter extra shipping mark">
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-danger remove-mark">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @elseif($customer->extraShippingMarks->count() > 0)
+                            @foreach($customer->extraShippingMarks as $extraMark)
+                                <div class="form-group extra-mark-row">
+                                    <div class="input-group">
+                                        <input type="text" 
+                                               name="extra_shipping_marks[]" 
+                                               value="{{ $extraMark->shipping_mark }}" 
+                                               class="form-control"
+                                               placeholder="Enter extra shipping mark">
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-danger remove-mark">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @endif
                     </div>
 
                     <div class="form-group">
@@ -144,13 +200,9 @@
                     </div>
 
                     <div class="d-flex justify-content-between mt-3">
-
-                    
-
                         <button class="btn btn-primary btn-sm px-3">
                             <i class="fa fa-save"></i> Update Customer
                         </button>
-
                     </div>
 
                 </form>
@@ -163,4 +215,32 @@
 
 </div>
 
+<script>
+$(document).ready(function() {
+    // Add extra shipping mark row
+    $('#addExtraMark').click(function() {
+        var row = `
+            <div class="form-group extra-mark-row">
+                <div class="input-group">
+                    <input type="text" 
+                           name="extra_shipping_marks[]" 
+                           class="form-control"
+                           placeholder="Enter extra shipping mark">
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-danger remove-mark">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#extraMarksContainer').append(row);
+    });
+
+    // Remove extra shipping mark row
+    $(document).on('click', '.remove-mark', function() {
+        $(this).closest('.extra-mark-row').remove();
+    });
+});
+</script>
 @endsection

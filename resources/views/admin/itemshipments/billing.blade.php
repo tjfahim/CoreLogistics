@@ -93,10 +93,10 @@
                                 <span class="badge bg-secondary">{{ $bill['items_without_price'] }}</span>
                                 @endif
                             </td>
-                            <td>{{ number_format($bill['total_weight'], 2) }}</td>
+                            <td>{{ number_format($bill['total_weight'], 0) }}</td>
                             <td>
                                 @if($bill['total_price'] > 0)
-                                <strong>{{ number_format($bill['total_price'], 2) }}</strong>
+                                <strong>{{ number_format($bill['total_price'], 0) }}</strong>
                                 @else
                                 <span class="text-muted">Not set</span>
                                 @endif
@@ -133,12 +133,12 @@
                             <td><strong>{{ $totalUnpricedItems }}</strong></td>
                             <td>
                                 <strong>
-                                    {{ number_format(array_sum(array_column($billingSummary, 'total_weight')), 2) }} kg
+                                    {{ number_format(array_sum(array_column($billingSummary, 'total_weight')), 0) }} kg
                                 </strong>
                             </td>
                             <td>
                                 <strong>
-                                    {{ number_format(array_sum(array_column($billingSummary, 'total_price')), 2) }}
+                                    {{ number_format(array_sum(array_column($billingSummary, 'total_price')), 0) }}
                                 </strong>
                             </td>
                             <td></td>
@@ -194,7 +194,7 @@
                                     <td>
                                         {{ $item->customer ? $item->customer->name : 'Unassigned' }}
                                     </td>
-                                    <td>{{ number_format($item->weight_kg, 2) }}</td>
+                                    <td>{{ number_format($item->weight_kg, 0) }}</td>
                                     <td>
                                         <input type="number" 
                                                name="prices[{{ $item->id }}][price]" 

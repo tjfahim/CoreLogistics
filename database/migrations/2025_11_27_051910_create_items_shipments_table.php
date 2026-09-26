@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('shipment_name');
             $table->date('shipment_date')->nullable();
             $table->text('note')->nullable();
-            $table->enum('status', ['draft', 'pending', 'shipped','waiting_for_customs', 'delivered', 'cancelled'])->default('draft');
+            $table->enum('status', ['draft', 'pending', 'shipped','arrived_bd', 'waiting_for_customs', 'delivered', 'cancelled'])->default('draft');
             $table->timestamps();
         });
 

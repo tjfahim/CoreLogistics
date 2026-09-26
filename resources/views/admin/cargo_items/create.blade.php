@@ -25,23 +25,52 @@
     <div class="col-lg-12">
 
         {{-- Excel import (optional) --}}
-        <div class="card mb-3">
-            <div class="card-header">
-                <strong>Import from Excel (.xlsx)</strong>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('cargo-items.import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
+       <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Import from Excel (.xlsx)</strong>
+        <a href="{{ route('cargo-items.files.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa fa-folder"></i> Imported Files
+        </a>
+    </div>
+    <div id="duplicateCheckResult" class="alert d-none mt-3"></div>
+
+    <div class="card-body">
+        <form action="{{ route('cargo-items.import') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="row">
+                <div class="col-md-4">
                     <div class="form-group mb-2">
-                        <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" accept=".xlsx,.xls">
+                        <label class="font-weight-bold">Title (optional)</label>
+                        <input type="text" name="title" value="{{ old('title') }}" 
+                               class="form-control form-control-sm" 
+                               placeholder="e.g. Shipment Jan 2025">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold">Note (optional)</label>
+                        <input type="text" name="note" value="{{ old('note') }}" 
+                               class="form-control form-control-sm" 
+                               placeholder="e.g. From supplier ABC">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold">Excel File</label>
+                        <input type="file" name="file" 
+                               class="form-control form-control-sm @error('file') is-invalid @enderror" 
+                               accept=".xlsx,.xls">
                         @error('file') <small class="text-danger">{{ $message }}</small> @enderror
                     </div>
-                    <button class="btn btn-info btn-sm">
-                        <i class="fa fa-upload"></i> Import Excel
-                    </button>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <button class="btn btn-info btn-sm mt-2">
+                <i class="fa fa-upload"></i> Upload & Preview
+            </button>
+        </form>
+    </div>
+</div>
 
         {{-- Manual bulk entry --}}
         <div class="card">
@@ -187,5 +216,79 @@
             }
         });
     })();
+</script>
+
+<script>
+(function () {
+    let rowIndex = 1;
+
+    document.getElementById('addRow').addEventListener('click', function () {
+        // ... your existing addRow code ...
+    });
+
+    document.getElementById('items-body').addEventListener('click', function (e) {
+        if (e.target.closest('.remove-row')) {
+            const row = e.target.closest('tr');
+            if (document.querySelectorAll('#items-body tr').length > 1) {
+                row.remove();
+            }
+        }
+    });
+
+    // ---- Duplicate checker for manual entry ----
+    function checkDuplicates() {
+        const rows = document.querySelectorAll('#items-body tr');
+        const seen = {};
+        const duplicates = [];
+
+        rows.forEach((row, i) => {
+            const tracking = row.querySelector('input[name*="[tracking_no]"]')?.value?.trim() || '';
+            const goods = row.querySelector('input[name*="[goods_name_en]"]')?.value?.trim() || '';
+
+            if (!tracking) return;
+
+            const key = (tracking + '|' + goods).toLowerCase();
+
+            if (seen[key]) {
+                duplicates.push({
+                    row: i + 1,
+                    tracking_no: tracking,
+                    goods_name: goods,
+                    reason: 'Duplicate within form'
+                });
+            }
+            seen[key] = true;
+        });
+
+        const box = document.getElementById('duplicateCheckResult');
+
+        if (duplicates.length > 0) {
+            box.className = 'alert alert-warning mt-3';
+            let html = `<strong><i class="fa fa-exclamation-triangle"></i> ${duplicates.length} duplicate row(s) in form:</strong><ul class="mb-0 mt-2">`;
+            duplicates.forEach(d => {
+                html += `<li>Row ${d.row}: <code>${d.tracking_no}</code> — ${d.goods_name}</li>`;
+            });
+            html += '</ul>';
+            box.innerHTML = html;
+            box.classList.remove('d-none');
+        } else {
+            box.className = 'alert alert-success mt-3';
+            box.innerHTML = '<i class="fa fa-check-circle"></i> No duplicates detected in form.';
+            box.classList.remove('d-none');
+        }
+    }
+
+    // Attach listeners
+    document.getElementById('items-body').addEventListener('input', function (e) {
+        if (e.target.name && (e.target.name.includes('[tracking_no]') || e.target.name.includes('[goods_name_en]'))) {
+            clearTimeout(window.__dupTimer);
+            window.__dupTimer = setTimeout(checkDuplicates, 300);
+        }
+    });
+
+    document.getElementById('addRow').addEventListener('click', function () {
+        setTimeout(checkDuplicates, 100);
+    });
+})();
 </script>
 @endsection

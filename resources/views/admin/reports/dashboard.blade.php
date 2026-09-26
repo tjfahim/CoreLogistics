@@ -33,7 +33,7 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                 Total Cost</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalCost, 2) }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalCost, 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -50,7 +50,7 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                 Total Paid</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalPaid, 2) }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalPaid, 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
@@ -67,7 +67,7 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                                 Total Due</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalDue, 2) }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalDue, 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -82,9 +82,7 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">All Shipments</h6>
-            <a href="{{ route('reports.multiple') }}" class="btn btn-primary">
-                <i class="fas fa-chart-bar"></i> Generate Multiple Shipments Report
-            </a>
+       
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -112,17 +110,17 @@
                                     {{ ucfirst($shipment->status) }}
                                 </span>
                             </td>
-                            <td>{{ number_format($shipment->total_cost, 2) }}</td>
-                            <td>{{ number_format($shipment->total_paid, 2) }}</td>
+                            <td>{{ number_format($shipment->total_cost, 0) }}</td>
+                            <td>{{ number_format($shipment->total_paid, 0) }}</td>
                             <td>
                                 @if($shipment->total_due > 0)
-                                    <span class="text-danger">{{ number_format($shipment->total_due, 2) }}</span>
+                                    <span class="text-danger">{{ number_format($shipment->total_due, 0) }}</span>
                                 @else
                                     <span class="text-success">0.00</span>
                                 @endif
                             </td>
                             <td>{{ $shipment->total_items }}</td>
-                            <td>{{ number_format($shipment->total_weight, 2) }} kg</td>
+                            <td>{{ number_format($shipment->total_weight, 0) }} kg</td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="{{ route('reports.single', $shipment->id) }}" 

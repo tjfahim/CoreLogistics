@@ -29,12 +29,22 @@
                             <i class="menu-icon fa fa-cubes"></i> China Warehouse
                         </a>
                     </li>
-                    <li class="{{ request()->routeIs('cargo-items.*') ? 'active' : '' }}">
-                        <a href="{{ route('cargo-items.index') }}">
-                            <i class="menu-icon fa fa-cubes"></i> BD Warehouse
-                        </a>
-                    </li>
-                    
+                    <li>
+    <a href="{{ route('cargo-items.pending') }}">
+        <i class="fa fa-clock-o"></i> Pending
+    </a>
+</li>
+<li>
+    <a href="{{ route('cargo-items.packed') }}">
+        <i class="fa fa-cube"></i> Packed
+    </a>
+</li>
+<li>
+    <a href="{{ route('cargo-items.arrived-bd') }}">
+        <i class="fa fa-plane"></i> Arrived BD
+    </a>
+</li>
+       
                     
                     
                     <!-- Operations -->
@@ -49,21 +59,29 @@
 
                     <!-- Reports -->
                     <li class="menu-title">REPORTS</li>
-                    <li class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    {{-- <li class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
                         <a href="{{ route('reports.dashboard') }}">
                             <i class="menu-icon fa fa-truck"></i> Dashboard Reports
                         </a>
-                    </li>
+                    </li> --}}
                     
                        <!-- Master Data -->
                     <li class="menu-title">MASTER DATA</li>
-                    
+                    <li class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
+    <a href="{{ route('users.index') }}">
+        <i class="menu-icon fa fa-user-circle"></i> Users
+    </a>
+</li>
                     <li class="{{ request()->routeIs('customers.*') ? 'active' : '' }}">
                         <a href="{{ route('customers.index') }}">
                             <i class="menu-icon fa fa-users"></i> Customers
                         </a>
                     </li>
-                  
+                  <li class="{{ request()->routeIs('customer-extra-shipping-marks.*') ? 'active' : '' }}">
+    <a href="{{ route('customer-extra-shipping-marks.index') }}">
+        <i class="menu-icon fa fa-tags"></i> Extra Shipping Marks
+    </a>
+</li>
                     
                     <li class="{{ request()->routeIs('agents.*') ? 'active' : '' }}">
                         <a href="{{ route('agents.index') }}">

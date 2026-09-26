@@ -82,7 +82,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5>Total Bill</h5>
-                    <h3>{{ number_format($totalPrice, 2) }} tk</h3>
+                    <h3>{{ number_format($totalPrice, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -116,7 +116,7 @@
                         @endif
                     </td>
                     <td>{{ $item['tracking_no'] }}</td>
-                    <td>{{ number_format($item['weight_kg'], 2) }}</td>
+                    <td>{{ number_format($item['weight_kg'], 0) }}</td>
                     <td>{{ number_format($item['cbm'], 3) }}</td>
                     <td>{{ $item['price'] ? number_format($item['price'],2) : '-' }}</td>
                     <td>{{ $item['price_per_kg'] ? number_format($item['price_per_kg'],2) : '-' }}</td>
@@ -133,7 +133,7 @@
             <tfoot>
                 <tr>
                     <td colspan="3">TOTALS</td>
-                    <td>{{ number_format($totalWeight, 2) }} kg</td>
+                    <td>{{ number_format($totalWeight, 0) }} kg</td>
                     <td></td>
                     <td colspan="2"></td>
                     <td>{{ number_format($totalPrice,2) }}</td>

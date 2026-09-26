@@ -118,7 +118,7 @@
                                     </td>
                                     <td>{{ $item->written_ctn_no ?? '-' }}</td>
                                     <td>{{ $item->goods_name_en }}</td>
-                                    <td>{{ number_format($item->weight_kg, 2) }} kg</td>
+                                    <td>{{ number_format($item->weight_kg, 0) }} kg</td>
                                     <td>
                                         <span class="badge badge-{{ $item->status == 'packed' ? 'info' : 'secondary' }}">
                                             {{ ucfirst($item->status) }}

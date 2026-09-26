@@ -35,19 +35,19 @@
                         <div class="col-md-3 text-center mb-3">
                             <div class="border rounded p-3">
                                 <h6 class="text-muted">Total Cost</h6>
-                                <h3 class="font-weight-bold">{{ number_format($report['summary']['total_cost'], 2) }}</h3>
+                                <h3 class="font-weight-bold">{{ number_format($report['summary']['total_cost'], 0) }}</h3>
                             </div>
                         </div>
                         <div class="col-md-3 text-center mb-3">
                             <div class="border rounded p-3 bg-success text-white">
                                 <h6>Total Paid</h6>
-                                <h3 class="font-weight-bold">{{ number_format($report['summary']['total_paid'], 2) }}</h3>
+                                <h3 class="font-weight-bold">{{ number_format($report['summary']['total_paid'], 0) }}</h3>
                             </div>
                         </div>
                         <div class="col-md-3 text-center mb-3">
                             <div class="border rounded p-3 bg-warning text-white">
                                 <h6>Total Due</h6>
-                                <h3 class="font-weight-bold">{{ number_format($report['summary']['total_due'], 2) }}</h3>
+                                <h3 class="font-weight-bold">{{ number_format($report['summary']['total_due'], 0) }}</h3>
                             </div>
                         </div>
                         <div class="col-md-3 text-center mb-3">
@@ -79,8 +79,8 @@
                         </span>
                     </p>
                     <p><strong>Total Items:</strong> {{ $report['summary']['total_items'] }}</p>
-                    <p><strong>Total Weight:</strong> {{ number_format($report['summary']['total_weight'], 2) }} kg</p>
-                    <p><strong>Total CBM:</strong> {{ number_format($report['summary']['total_cbm'], 2) }}</p>
+                    <p><strong>Total Weight:</strong> {{ number_format($report['summary']['total_weight'], 0) }} kg</p>
+                    <p><strong>Total CBM:</strong> {{ number_format($report['summary']['total_cbm'], 0) }}</p>
                     @if($report['shipment']->note)
                     <p><strong>Notes:</strong> {{ $report['shipment']->note }}</p>
                     @endif
@@ -100,21 +100,21 @@
                         <div class="col-md-4 text-center">
                             <div class="p-3 border rounded">
                                 <h6 class="text-muted">Pending</h6>
-                                <h3 class="text-danger">{{ number_format($report['summary']['pending_costs'], 2) }}</h3>
+                                <h3 class="text-danger">{{ number_format($report['summary']['pending_costs'], 0) }}</h3>
                                 <small>{{ $report['shipment']->costs->where('status', 'pending')->count() }} costs</small>
                             </div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="p-3 border rounded">
                                 <h6 class="text-muted">Partial</h6>
-                                <h3 class="text-warning">{{ number_format($report['summary']['partial_costs'], 2) }}</h3>
+                                <h3 class="text-warning">{{ number_format($report['summary']['partial_costs'], 0) }}</h3>
                                 <small>{{ $report['shipment']->costs->where('status', 'partial')->count() }} costs</small>
                             </div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="p-3 border rounded">
                                 <h6 class="text-muted">Paid</h6>
-                                <h3 class="text-success">{{ number_format($report['summary']['paid_costs'], 2) }}</h3>
+                                <h3 class="text-success">{{ number_format($report['summary']['paid_costs'], 0) }}</h3>
                                 <small>{{ $report['shipment']->costs->where('status', 'paid')->count() }} costs</small>
                             </div>
                         </div>
@@ -147,9 +147,9 @@
                                 @foreach($report['cost_type_wise_summary'] as $costType => $data)
                                 <tr>
                                     <td>{{ $costType }}</td>
-                                    <td class="text-right">{{ number_format($data['total_amount'], 2) }}</td>
-                                    <td class="text-right">{{ number_format($data['total_paid'], 2) }}</td>
-                                    <td class="text-right">{{ number_format($data['total_due'], 2) }}</td>
+                                    <td class="text-right">{{ number_format($data['total_amount'], 0) }}</td>
+                                    <td class="text-right">{{ number_format($data['total_paid'], 0) }}</td>
+                                    <td class="text-right">{{ number_format($data['total_due'], 0) }}</td>
                                     <td class="text-right">{{ $data['count'] }}</td>
                                 </tr>
                                 @endforeach
@@ -181,9 +181,9 @@
                                 @foreach($report['agent_wise_summary'] as $agentName => $data)
                                 <tr>
                                     <td>{{ $agentName }}</td>
-                                    <td class="text-right">{{ number_format($data['total_amount'], 2) }}</td>
-                                    <td class="text-right">{{ number_format($data['total_paid'], 2) }}</td>
-                                    <td class="text-right">{{ number_format($data['total_due'], 2) }}</td>
+                                    <td class="text-right">{{ number_format($data['total_amount'], 0) }}</td>
+                                    <td class="text-right">{{ number_format($data['total_paid'], 0) }}</td>
+                                    <td class="text-right">{{ number_format($data['total_due'], 0) }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -213,7 +213,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-info font-weight-bold">Total Cost</h6>
-                                        <h3 class="mb-0">${{ number_format($report['summary']['total_cost'], 2) }}</h3>
+                                        <h3 class="mb-0">{{ number_format($report['summary']['total_cost'], 0) }}</h3>
                                     </div>
                                     
                                 </div>
@@ -226,7 +226,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-success font-weight-bold">Total Paid</h6>
-                                        <h3 class="mb-0">${{ number_format($report['summary']['total_paid'], 2) }}</h3>
+                                        <h3 class="mb-0">{{ number_format($report['summary']['total_paid'], 0) }}</h3>
                                     </div>
                                     
                                 </div>
@@ -239,7 +239,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-warning font-weight-bold">Total Due</h6>
-                                        <h3 class="mb-0">${{ number_format($report['summary']['total_due'], 2) }}</h3>
+                                        <h3 class="mb-0">{{ number_format($report['summary']['total_due'], 0) }}</h3>
                                     </div>
                                     
                                 </div>
@@ -295,7 +295,7 @@
                                 <div class="text-right">
                                     <div class="d-flex align-items-center">
                                         <div class="mr-4">
-                                            <h5 class="mb-0 font-weight-bold">${{ number_format($cost->amount, 2) }}</h5>
+                                            <h5 class="mb-0 font-weight-bold">{{ number_format($cost->amount, 0) }}</h5>
                                             <small class="text-muted">Amount</small>
                                         </div>
                                         <div>
@@ -341,7 +341,7 @@
                                                         <small class="text-muted d-block">Rate/Kg</small>
                                                         <span class="font-weight-medium">
                                                             @if($cost->rate_per_kg)
-                                                                ${{ number_format($cost->rate_per_kg, 2) }}
+                                                                {{ number_format($cost->rate_per_kg, 0) }}
                                                             @else
                                                                 <span class="text-muted">N/A</span>
                                                             @endif
@@ -351,7 +351,7 @@
                                                         <small class="text-muted d-block">Total Weight</small>
                                                         <span class="font-weight-medium">
                                                             @if($cost->total_weight)
-                                                                {{ number_format($cost->total_weight, 2) }} kg
+                                                                {{ number_format($cost->total_weight, 0) }} kg
                                                             @else
                                                                 <span class="text-muted">N/A</span>
                                                             @endif
@@ -371,19 +371,19 @@
                                                     <div class="col-6 mb-3">
                                                         <div class="text-center p-2 border rounded">
                                                             <small class="text-muted d-block">Amount</small>
-                                                            <h5 class="mb-0 font-weight-bold">${{ number_format($cost->amount, 2) }}</h5>
+                                                            <h5 class="mb-0 font-weight-bold">{{ number_format($cost->amount, 0) }}</h5>
                                                         </div>
                                                     </div>
                                                     <div class="col-6 mb-3">
                                                         <div class="text-center p-2 border rounded bg-success text-white">
                                                             <small class="d-block">Paid</small>
-                                                            <h5 class="mb-0 font-weight-bold">${{ number_format($cost->paid_amount, 2) }}</h5>
+                                                            <h5 class="mb-0 font-weight-bold">{{ number_format($cost->paid_amount, 0) }}</h5>
                                                         </div>
                                                     </div>
                                                     <div class="col-6">
                                                         <div class="text-center p-2 border rounded bg-warning text-white">
                                                             <small class="d-block">Due</small>
-                                                            <h5 class="mb-0 font-weight-bold">${{ number_format($cost->due_amount, 2) }}</h5>
+                                                            <h5 class="mb-0 font-weight-bold">{{ number_format($cost->due_amount, 0) }}</h5>
                                                         </div>
                                                     </div>
                                                     <div class="col-6">
@@ -461,7 +461,7 @@
                                                         </div>
                                                     </td>
                                                     <td class="align-middle">
-                                                        <span class="font-weight-bold text-success">${{ number_format($payment->amount, 2) }}</span>
+                                                        <span class="font-weight-bold text-success">{{ number_format($payment->amount, 0) }}</span>
                                                     </td>
                                                     <td class="align-middle">
                                                         <span class="badge badge-light border px-3 py-1">
@@ -524,15 +524,15 @@
                             <div class="bg-light p-3 rounded">
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="font-weight-medium">Total Cost:</span>
-                                    <span class="font-weight-bold">${{ number_format($report['summary']['total_cost'], 2) }}</span>
+                                    <span class="font-weight-bold">{{ number_format($report['summary']['total_cost'], 0) }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="font-weight-medium">Total Paid:</span>
-                                    <span class="font-weight-bold text-success">${{ number_format($report['summary']['total_paid'], 2) }}</span>
+                                    <span class="font-weight-bold text-success">{{ number_format($report['summary']['total_paid'], 0) }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <span class="font-weight-medium">Total Due:</span>
-                                    <span class="font-weight-bold text-warning">${{ number_format($report['summary']['total_due'], 2) }}</span>
+                                    <span class="font-weight-bold text-warning">{{ number_format($report['summary']['total_due'], 0) }}</span>
                                 </div>
                             </div>
                         </div>

@@ -83,16 +83,10 @@
                     <div class="row mb-4">
                         
                         <div class="col-md-4">
-                            <div class="card bg-secondary text-white">
-                                <div class="card-body text-center">
-                                    <h6>Quick Actions</h6>
-                                    <a href="{{ route('customers.create') }}" class="btn btn-light btn-sm mb-2">
-                                        <i class="fa fa-plus"></i> Add New Customer
+                          
+                                     <a href="{{ route('customers.create') }}" class="btn btn-primary btn-lg btn-block">
+                                        <i class="fa fa-plus"></i>  Add New Customer
                                     </a>
-                                    <br>
-                                    <small>Need more customers? Create them first.</small>
-                                </div>
-                            </div>
                         </div>
                         <div class="col-md-4">
                              <a href="{{ route('itemshipments.customer.autoassign', $itemshipment->id) }}" class="btn btn-warning btn-lg btn-block">

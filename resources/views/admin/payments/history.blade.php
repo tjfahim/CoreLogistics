@@ -26,7 +26,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5>Total Bill Amount</h5>
-                    <h3>{{ number_format($totalAmount, 2) }} tk</h3>
+                    <h3>{{ number_format($totalAmount, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5>Total Paid</h5>
-                    <h3>{{ number_format($totalPaid, 2) }} tk</h3>
+                    <h3>{{ number_format($totalPaid, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5>Total Due</h5>
-                    <h3>{{ number_format($totalDue, 2) }} tk</h3>
+                    <h3>{{ number_format($totalDue, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -85,7 +85,7 @@
                                 {{ $payment->payment_date->format('d M, Y') }}
                             </td>
                             <td class="text-success fw-bold">
-                                {{ number_format($payment->amount, 2) }}
+                                {{ number_format($payment->amount, 0) }}
                             </td>
                             <td>
                                 @php
@@ -112,7 +112,7 @@
                                 @endif
                             </td>
                             <td class="text-danger">
-                                {{ number_format($payment->remaining_due, 2) }}
+                                {{ number_format($payment->remaining_due, 0) }}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
@@ -146,7 +146,7 @@
                                                             </tr>
                                                             <tr>
                                                                 <th>Amount:</th>
-                                                                <td class="text-success fw-bold">{{ number_format($payment->amount, 2) }} tk</td>
+                                                                <td class="text-success fw-bold">{{ number_format($payment->amount, 0) }} tk</td>
                                                             </tr>
                                                             <tr>
                                                                 <th>Payment Method:</th>
@@ -162,7 +162,7 @@
                                                             </tr>
                                                             <tr>
                                                                 <th>Remaining Due:</th>
-                                                                <td class="text-danger">{{ number_format($payment->remaining_due, 2) }} tk</td>
+                                                                <td class="text-danger">{{ number_format($payment->remaining_due, 0) }} tk</td>
                                                             </tr>
                                                             <tr>
                                                                 <th>Notes:</th>
@@ -193,14 +193,14 @@
                                                                             @endif
                                                                         </td>
                                                                         <td>{{ $paymentItem->cargoItem->tracking_no }}</td>
-                                                                        <td>{{ number_format($paymentItem->amount, 2) }} tk</td>
+                                                                        <td>{{ number_format($paymentItem->amount, 0) }} tk</td>
                                                                     </tr>
                                                                     @endforeach
                                                                 </tbody>
                                                                 <tfoot>
                                                                     <tr>
                                                                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                                                                        <td><strong>{{ number_format($payment->amount, 2) }} tk</strong></td>
+                                                                        <td><strong>{{ number_format($payment->amount, 0) }} tk</strong></td>
                                                                     </tr>
                                                                 </tfoot>
                                                             </table>
@@ -221,7 +221,7 @@
                     <tfoot class="table-dark">
                         <tr>
                             <td colspan="2"><strong>TOTALS</strong></td>
-                            <td><strong>{{ number_format($payments->sum('amount'), 2) }} tk</strong></td>
+                            <td><strong>{{ number_format($payments->sum('amount'), 0) }} tk</strong></td>
                             <td colspan="5"></td>
                         </tr>
                     </tfoot>
@@ -254,7 +254,7 @@
                         @foreach($methodTotals as $method => $total)
                         <tr>
                             <td>{{ ucfirst(str_replace('_', ' ', $method)) }}</td>
-                            <td class="text-end">{{ number_format($total, 2) }} tk</td>
+                            <td class="text-end">{{ number_format($total, 0) }} tk</td>
                             <td class="text-end">
                                 {{ number_format(($total / $totalPaid) * 100, 1) }}%
                             </td>
@@ -292,7 +292,7 @@
                     <div class="mb-2">
                         <div class="d-flex justify-content-between">
                             <span>{{ $month }}</span>
-                            <span>{{ number_format($amount, 2) }} tk</span>
+                            <span>{{ number_format($amount, 0) }} tk</span>
                         </div>
                         <div class="progress" style="height: 8px;">
                             @if($totalPaid > 0)

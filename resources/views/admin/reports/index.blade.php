@@ -11,7 +11,7 @@
             <div class="card shadow-sm border-info">
                 <div class="card-body">
                     <h6 class="card-title text-info">Total Earnings</h6>
-                    <h4>{{ number_format($totalEarnings, 2) }} TK</h4>
+                    <h4>{{ number_format($totalEarnings, 0) }} TK</h4>
                 </div>
             </div>
         </div>
@@ -19,7 +19,7 @@
             <div class="card shadow-sm border-primary">
                 <div class="card-body">
                     <h6 class="card-title text-primary">Total Shipment Cost</h6>
-                    <h4>{{ number_format($totalShipmentCost, 2) }} TK</h4>
+                    <h4>{{ number_format($totalShipmentCost, 0) }} TK</h4>
                 </div>
             </div>
         </div>
@@ -27,7 +27,7 @@
             <div class="card shadow-sm border-success">
                 <div class="card-body">
                     <h6 class="card-title text-success">Profit / Loss</h6>
-                    <h4>{{ number_format($profit, 2) }} TK</h4>
+                    <h4>{{ number_format($profit, 0) }} TK</h4>
                 </div>
             </div>
         </div>
@@ -36,7 +36,7 @@
                 <div class="card-body">
                     <h6 class="card-title text-warning">Cash on Hand</h6>
                     <h4 class="{{ $cashOnHand < 0 ? 'text-danger' : 'text-success' }}">
-                        {{ number_format($cashOnHand, 2) }} TK
+                        {{ number_format($cashOnHand, 0) }} TK
                     </h4>
                 </div>
             </div>
@@ -95,11 +95,11 @@
     @endphp
     <tr>
         <td>{{ $shipment->shipment_code }}</td>
-        <td>{{ number_format($shipmentTotalEarning, 2) }} TK</td>
-        <td>{{ number_format($shipmentTotalCost, 2) }} TK</td>
-        <td>{{ number_format($shipmentProfit, 2) }} TK</td>
+        <td>{{ number_format($shipmentTotalEarning, 0) }} TK</td>
+        <td>{{ number_format($shipmentTotalCost, 0) }} TK</td>
+        <td>{{ number_format($shipmentProfit, 0) }} TK</td>
         <td class="{{ $shipmentCashOnHand < 0 ? 'text-danger' : 'text-success' }}">
-            {{ number_format($shipmentCashOnHand, 2) }} TK
+            {{ number_format($shipmentCashOnHand, 0) }} TK
         </td>
         <td>
             <a href="{{ route('shipments.costs.summary', $shipment->id) }}" class="btn btn-sm btn-info">

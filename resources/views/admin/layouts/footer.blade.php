@@ -2,18 +2,13 @@
 </div><!-- /#right-panel -->
 
 <!-- Right Panel -->
-
+<!-- Select2 JS -->
 <script src="{{ asset('admin/vendors/jquery/dist/jquery.min.js') }}"></script>
 <script src="{{ asset('admin/vendors/popper.js/dist/umd/popper.min.js') }}"></script>
 <script src="{{ asset('admin/vendors/bootstrap/dist/js/bootstrap.min.js') }}"></script>
 <script src="{{ asset('admin/assets/js/main.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<script src="{{ asset('admin/vendors/chart.js/dist/Chart.bundle.min.js') }}"></script>
-<script src="{{ asset('admin/assets/js/dashboard.js') }}"></script>
-<script src="{{ asset('admin/assets/js/widgets.js') }}"></script>
-<script src="{{ asset('admin/vendors/jqvmap/dist/jquery.vmap.min.js') }}"></script>
-<script src="{{ asset('admin/vendors/jqvmap/examples/js/jquery.vmap.sampledata.js') }}"></script>
-<script src="{{ asset('admin/vendors/jqvmap/dist/maps/jquery.vmap.world.js') }}"></script>
 
 <script>
     (function($) {
@@ -32,6 +27,10 @@
             normalizeFunction: 'polynomial'
         });
     })(jQuery);
+
+
+
+    @stack('scripts')
 </script>
 
 </body>

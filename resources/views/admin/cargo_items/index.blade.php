@@ -23,12 +23,22 @@
 <div class="content mt-3">
     @if(session('success'))
         <div class="col-sm-12">
-            <div class="alert alert-success">{{ session('success') }}</div>
+            <div class="alert alert-success alert-dismissible fade show">
+                {{ session('success') }}
+                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+            </div>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="col-sm-12">
+            <div class="alert alert-danger alert-dismissible fade show">
+                {{ session('error') }}
+                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+            </div>
         </div>
     @endif
 
-    <!-- Success Message Toast -->
-    <div id="successToast" class="toast" style="position: fixed; top: 20px; right: 20px; min-width: 250px; z-index: 9999; display: none;">
+    <div id="toast" class="toast" style="position: fixed; top: 20px; right: 20px; min-width: 250px; z-index: 9999; display: none;">
         <div class="toast-header bg-success text-white">
             <strong class="mr-auto"><i class="fa fa-check-circle"></i> Success</strong>
             <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast">&times;</button>
@@ -40,155 +50,304 @@
 
     <div class="col-lg-12">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <strong class="card-title">Item List</strong>
-                <div class="btn-group mr-2" role="group">
-    <button class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
-    <button class="btn btn-info filter-btn" data-status="packed">Packed</button>
-    <button class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
-    <button class="btn btn-danger  filter-btn" data-status="waiting_for_customs">Waiting for Customs</button>
-    <button class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
-    <button class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
-    <button class="btn btn-warning filter-btn" data-status="all">All</button>
-</div>
-                <div>
-                   
-                    <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
-                        <i class="fa fa-plus"></i> Add Item
-                    </a>
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="card-title">
+                        Item List
+                        <span class="badge badge-info ml-2" id="statusBadge">
+                            {{ strtoupper(str_replace('_', ' ', $currentPageStatus ?? 'all')) }}
+                        </span>
+                    </strong>
+                    <div>
+                        <a href="{{ route('cargo-items.files.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fa fa-folder"></i> Imported Files
+                        </a>
+                        <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
+                            <i class="fa fa-plus"></i> Add Item
+                        </a>
+                    </div>
+                </div>
+
+                <div class="btn-group btn-group-sm flex-wrap" role="group" id="filterButtons">
+                    <button type="button" class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
+                    <button type="button" class="btn btn-info filter-btn" data-status="packed">Packed</button>
+                    <button type="button" class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
+                    <button type="button" class="btn btn-success filter-btn" data-status="arrived_bd">Arrived BD</button>
+                    <button type="button" class="btn btn-danger filter-btn" data-status="waiting_for_customs">Waiting for Customs</button>
+                    <button type="button" class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
+                    <button type="button" class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
+                    <button type="button" class="btn btn-warning filter-btn active" data-status="all">All</button>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search tracking, goods, CTN...">
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <select id="perPageSelect" class="form-control form-control-sm d-inline-block" style="width: auto;">
+                            <option value="25">25 per page</option>
+                            <option value="50" selected>50 per page</option>
+                            <option value="100">100 per page</option>
+                            <option value="250">250 per page</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fa fa-info-circle"></i>
+                        <strong>Tip:</strong> Click any <em>Pending</em> or <em>Packed</em> row to toggle its status.
+                    </small>
                 </div>
             </div>
 
             <div class="card-body">
-                <table id="cargoItemsTable" class="table table-striped table-bordered table-hover">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Date 2025</th>
-                            <th>Printed CTN NO.</th>
-                            <th>Written CTN NO.</th>
-                            <th>Trackings</th>
-                            <th>Goods Name</th>
-                            <th>Pack NO.</th>
-                            <th>Unit Pcs</th>
-                            <th>Weight (kg)</th>
-                            <th>Length, Width, Height</th>
-                            <th>CBM</th>
-                            <th>Shipping Mark</th>
-                            <th>Remark</th>
-                            <th>Status</th>
-                            <th>ActionEdit</th>
-                        </tr>
-                    </thead>
+                <div class="table-responsive">
+                    <table id="cargoItemsTable" class="table table-striped table-bordered table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Printed CTN NO.</th>
+                                <th>Written CTN NO.</th>
+                                <th>Trackings</th>
+                                <th>Goods Name</th>
+                                <th>Pack NO.</th>
+                                <th>Unit Pcs</th>
+                                <th>Weight (kg)</th>
+                                <th>L, W, H</th>
+                                <th>CBM</th>
+                                <th>Shipping Mark</th>
+                                <th>Remark</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr><td colspan="15" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                    <tbody>
-                        @foreach($items as $item)
-                        <tr data-item-id="{{ $item->id }}" 
-                            class="selectable-row {{ $item->status == 'packed' ? 'table-primary' : '' }}"
-                            data-status="{{ $item->status }}">
-                            <td>{{ $item->id }}</td>
-                            <td>{{ $item->date ? $item->date->format('m-d') : '-' }}</td>
-                            <td>{{ $item->printed_ctn_no }}</td>
-                            <td>{{ $item->written_ctn_no }}</td>
-                            <td>{{ $item->tracking_no }}</td>
-                            <td>{{ $item->goods_name_en }} {{ $item->goods_name_local ? '(' . $item->goods_name_local . ')' : '' }}</td>
-                            <td>{{ $item->pack_no }}</td>
-                            <td>{{ $item->unit_pcs }}</td>
-                            <td>{{ $item->weight_kg ?? '0.000' }}</td>
-                            <td>{{ number_format($item->length_cm, 0) }}, {{ number_format($item->width_cm, 0) }}, {{ number_format($item->height_cm, 0) }}</td>
-                            <td>{{ number_format($item->cbm ?? 0, 6) }}</td>
-                            <td>{{ $item->shipping_mark ?? '-' }}</td>
-                            <td>{{ $item->remark ?? '-' }}</td>
-<td>
-    @php
-        // Define badge colors for each status
-        $statusColors = [
-            'pending' => 'secondary',
-            'packed' => 'info',
-            'ready_to_ship' => 'primary',
-            'shipping_ongoing' => 'primary',
-            'waiting_for_customs' => 'danger',
-            'arrived_bd' => 'success',
-            'ready_to_deliver' => 'dark',
-            'delivered' => 'success'
-        ];
-        $colorClass = $statusColors[$item->status] ?? 'secondary';
-    @endphp
-
-    <span class="badge badge-{{ $colorClass }}" style="padding: 0.5em 0.75em; font-size: 0.85em;">
-        {{ strtoupper(str_replace('_', ' ', $item->status)) }}
-    </span>
-</td>
-                            <td>
-                                <a href="{{ route('cargo-items.edit', $item->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-edit"></i> 
-                                </a>
-                                <form action="{{ route('cargo-items.destroy', $item->id) }}"
-                                      method="POST"
-                                      class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm"
-                                            onclick="return confirm('Are you sure you want to delete this cargo item?')">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div id="paginationInfo" class="text-muted small"></div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                    </nav>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-$(document).ready(function() {
+$(document).ready(function () {
+    let currentStatus = "{{ $currentPageStatus ?? 'all' }}";
+    let currentPage = 1;
+    let currentSearch = '';
     let isProcessing = false;
 
-    const table = $('#cargoItemsTable').DataTable({
-        "pageLength": 50,
-        "lengthMenu": [50, 100, 200, 500, 1000, 1500, 2500],
-        "columnDefs": [
-            { "orderable": false, "targets": [0, 14] }
-        ]
+    // Highlight current filter button
+    $('#filterButtons .filter-btn').removeClass('active');
+    $('#filterButtons .filter-btn[data-status="' + currentStatus + '"]').addClass('active');
+
+    loadItems();
+
+    // ============================================
+    // Filter button click
+    // ============================================
+    $(document).on('click', '.filter-btn', function () {
+        $('.filter-btn').removeClass('active');
+        $(this).addClass('active');
+
+        currentStatus = $(this).data('status');
+        currentPage = 1;
+        $('#statusBadge').text(currentStatus.replace(/_/g, ' ').toUpperCase());
+        loadItems();
     });
 
-    let allowToggle = ['pending', 'packed'].includes("{{ $currentPageStatus ?? 'pending' }}");
+    // ============================================
+    // Search (debounced)
+    // ============================================
+    let searchTimer;
+    $('#searchInput').on('input', function () {
+        clearTimeout(searchTimer);
+        const val = $(this).val();
+        searchTimer = setTimeout(function () {
+            currentSearch = val;
+            currentPage = 1;
+            loadItems();
+        }, 350);
+    });
 
-    function showSuccessMessage(message) {
-        $('#toastMessage').text(message);
-        $('#successToast').fadeIn();
-        setTimeout(function() {
-            $('#successToast').fadeOut();
-        }, 3000);
+    // ============================================
+    // Per page
+    // ============================================
+    $('#perPageSelect').on('change', function () {
+        currentPage = 1;
+        loadItems();
+    });
+
+    // ============================================
+    // Load items via AJAX
+    // ============================================
+    function loadItems() {
+        const perPage = $('#perPageSelect').val();
+
+        $('#tableBody').html('<tr><td colspan="15" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
+
+        $.ajax({
+            url: '{{ route("cargo-items.ajax-items") }}',
+            type: 'GET',
+            data: {
+                status: currentStatus,
+                page: currentPage,
+                per_page: perPage,
+                search: currentSearch
+            },
+            success: function (res) {
+                renderRows(res.data);
+                renderPagination(res.meta);
+            },
+            error: function () {
+                $('#tableBody').html('<tr><td colspan="15" class="text-center text-danger">Failed to load items.</td></tr>');
+            }
+        });
     }
 
-    $('#cargoItemsTable tbody').on('click', 'tr.selectable-row', function(e) {
-    // Don't trigger if clicking on action buttons
-    if ($(e.target).closest('a, button').length) return;
+    // ============================================
+    // Render table rows
+    // ============================================
+    function renderRows(items) {
+        if (!items || items.length === 0) {
+            $('#tableBody').html('<tr><td colspan="15" class="text-center text-muted">No items found.</td></tr>');
+            return;
+        }
 
-    const row = $(this);
-    const status = row.data('status');
+        const statusColors = {
+            'pending': 'secondary',
+            'packed': 'info',
+            'ready_to_ship': 'primary',
+            'shipping_ongoing': 'primary',
+            'arrived_bd': 'success',
+            'waiting_for_customs': 'danger',
+            'ready_to_deliver': 'dark',
+            'delivered': 'success'
+        };
 
-    // Only allow toggle if row is pending or packed
-    if (!['pending', 'packed'].includes(status)) return;
+        let html = '';
 
-    const itemId = row.data('item-id');
+        items.forEach(function (item) {
+            const color = statusColors[item.status] || 'secondary';
+            const rowClass = item.status === 'packed' ? 'table-primary' : '';
+            const dateStr = item.date ? item.date.substring(5, 10) : '-';
+            const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
 
-    if (isProcessing) {
-        showSuccessMessage('Please wait, processing previous selection...');
-        return;
+            html += '<tr data-item-id="' + item.id + '" ' +
+                    'class="selectable-row ' + rowClass + '" ' +
+                    'data-status="' + item.status + '">' +
+                    '<td>' + item.id + '</td>' +
+                    '<td>' + dateStr + '</td>' +
+                    '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
+                    '<td>' + (item.written_ctn_no ?? '') + '</td>' +
+                    '<td>' + (item.tracking_no ?? '') + '</td>' +
+                    '<td>' + (item.goods_name_en ?? '') + goodsLocal + '</td>' +
+                    '<td>' + (item.pack_no ?? '') + '</td>' +
+                    '<td>' + (item.unit_pcs ?? '') + '</td>' +
+                    '<td>' + (item.weight_kg ?? '0.000') + '</td>' +
+                    '<td>' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
+                    '<td>' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
+                    '<td>' + (item.shipping_mark ?? '-') + '</td>' +
+                    '<td>' + (item.remark ?? '-') + '</td>' +
+                    '<td><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
+                        item.status.replace(/_/g, ' ').toUpperCase() +
+                    '</span></td>' +
+                    '<td>' +
+                        '<a href="/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ' +
+                        '<button class="btn btn-danger btn-sm delete-btn" data-id="' + item.id + '" title="Delete"><i class="fa fa-trash"></i></button>' +
+                    '</td>' +
+                    '</tr>';
+        });
+
+        $('#tableBody').html(html);
     }
 
-    toggleItemInShipment(itemId, row, status);
-});
+    // ============================================
+    // Render pagination
+    // ============================================
+    function renderPagination(meta) {
+        if (!meta || meta.total === 0) {
+            $('#paginationInfo').text('');
+            $('#pagination').html('');
+            return;
+        }
 
-    function toggleItemInShipment(itemId, row, currentStatus) {
+        $('#paginationInfo').text('Showing ' + meta.from + ' to ' + meta.to + ' of ' + meta.total + ' items');
+
+        let html = '';
+        const cur = meta.current_page;
+        const last = meta.last_page;
+
+        // Prev
+        html += '<li class="page-item ' + (cur <= 1 ? 'disabled' : '') + '">' +
+                '<a class="page-link" href="#" data-page="' + (cur - 1) + '">Prev</a></li>';
+
+        // Page numbers (window of 5)
+        let start = Math.max(1, cur - 2);
+        let end = Math.min(last, cur + 2);
+
+        if (start > 1) {
+            html += '<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>';
+            if (start > 2) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+
+        for (let i = start; i <= end; i++) {
+            html += '<li class="page-item ' + (i === cur ? 'active' : '') + '">' +
+                    '<a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
+        }
+
+        if (end < last) {
+            if (end < last - 1) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            html += '<li class="page-item"><a class="page-link" href="#" data-page="' + last + '">' + last + '</a></li>';
+        }
+
+        // Next
+        html += '<li class="page-item ' + (cur >= last ? 'disabled' : '') + '">' +
+                '<a class="page-link" href="#" data-page="' + (cur + 1) + '">Next</a></li>';
+
+        $('#pagination').html(html);
+    }
+
+    $(document).on('click', '#pagination .page-link', function (e) {
+        e.preventDefault();
+        const page = parseInt($(this).data('page'));
+        if (page && page !== currentPage) {
+            currentPage = page;
+            loadItems();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    // ============================================
+    // Row click → toggle Pending ↔ Packed
+    // ============================================
+    $(document).on('click', '#cargoItemsTable tbody tr.selectable-row', function (e) {
+        if ($(e.target).closest('a, button, form, input, select').length) return;
+
+        const row = $(this);
+        const status = row.data('status');
+
+        if (!['pending', 'packed'].includes(status)) return;
+        if (isProcessing) return;
+
+        const itemId = row.data('item-id');
+        toggleItem(itemId, row, status);
+    });
+
+    function toggleItem(itemId, row, currentStatus) {
         isProcessing = true;
 
-        getOrCreateDraftShipment().then(function(shipment) {
+        getOrCreateDraftShipment().then(function (shipment) {
             $.ajax({
                 url: '{{ route("itemsshipments.toggle-item") }}',
                 type: 'POST',
@@ -197,76 +356,85 @@ $(document).ready(function() {
                     shipment_id: shipment.id,
                     item_id: itemId
                 },
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         if (response.action === 'added') {
-                            row.addClass('table-primary');
-                            row.data('status', 'packed');
-                            showSuccessMessage('Item added to shipment');
+                            row.addClass('table-primary').data('status', 'packed');
+                            row.find('.status-badge').removeClass().addClass('badge badge-info status-badge').text('PACKED');
+                            showToast('Item added to shipment (Packed)');
                         } else {
-                            row.removeClass('table-primary');
-                            row.data('status', 'pending');
-                            showSuccessMessage('Item removed from shipment');
+                            row.removeClass('table-primary').data('status', 'pending');
+                            row.find('.status-badge').removeClass().addClass('badge badge-secondary status-badge').text('PENDING');
+                            showToast('Item removed from shipment (Pending)');
                         }
                     }
                     isProcessing = false;
                 },
-                error: function(xhr) {
-                    console.error('Error toggling item:', xhr.responseText);
-                    showSuccessMessage('Error updating shipment');
+                error: function () {
+                    showToast('Error updating shipment');
                     isProcessing = false;
                 }
             });
-        }).catch(function() {
-            showSuccessMessage('Error creating shipment');
+        }).catch(function () {
+            showToast('Error creating shipment');
             isProcessing = false;
         });
     }
 
     function getOrCreateDraftShipment() {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             $.ajax({
                 url: '{{ route("itemsshipments.get-or-create-draft") }}',
                 type: 'POST',
                 data: { _token: '{{ csrf_token() }}' },
-                success: function(response) {
-                    if (response.success) resolve(response.shipment);
-                    else reject('Failed to create draft shipment');
+                success: function (res) {
+                    if (res.success) resolve(res.shipment);
+                    else reject();
                 },
-                error: function(xhr) { reject('Error creating draft shipment'); }
+                error: reject
             });
         });
     }
 
-    // Filter buttons functionality
-    $('.filter-btn').click(function() {
-        $('.filter-btn').removeClass('active');
-        $(this).addClass('active');
+    // ============================================
+    // Delete
+    // ============================================
+    $(document).on('click', '.delete-btn', function () {
+        if (!confirm('Are you sure you want to delete this cargo item?')) return;
 
-        const status = $(this).data('status');
+        const id = $(this).data('id');
+        const $btn = $(this);
 
-        if (status === 'all') {
-            $.fn.dataTable.ext.search = [];
-            table.draw();
-        } else {
-            $.fn.dataTable.ext.search = [];
-            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                const row = table.row(dataIndex).node();
-                const rowStatus = $(row).data('status');
-                return rowStatus === status;
-            });
-            table.draw();
-        }
+        $.ajax({
+            url: '/cargo-items/' + id,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                _method: 'DELETE'
+            },
+            success: function () {
+                showToast('Item deleted');
+                loadItems();
+            },
+            error: function () {
+                showToast('Failed to delete item');
+            }
+        });
     });
-      $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-        const row = table.row(dataIndex).node();
-        const rowStatus = $(row).data('status');
-        return ['pending', 'packed'].includes(rowStatus);
+
+    // ============================================
+    // Toast
+    // ============================================
+    function showToast(message) {
+        $('#toastMessage').text(message);
+        $('#toast').fadeIn();
+        setTimeout(function () { $('#toast').fadeOut(); }, 3000);
+    }
+
+    $(document).on('click', '#toast .close', function () {
+        $('#toast').fadeOut();
     });
-       table.draw();
-    $('.close').click(function() { $('#successToast').fadeOut(); });
 });
-
 </script>
 
 <style>
@@ -274,34 +442,14 @@ $(document).ready(function() {
         padding: 0.5rem !important;
         vertical-align: middle !important;
         text-align: center !important;
-        cursor: pointer;
     }
-    .filter-btn.active {
-    box-shadow: 0 0 0 2px #007bff inset;
-}
-    /* Blue for packed items (persistent) */
-    .table-primary {
-        background-color: #007bff !important;
-        color: white;
-    }
-    
-    .selectable-row:hover {
-        background-color: #f8f9fa !important;
-    }
-    
-    .table-primary:hover {
-        background-color: #0069d9 !important;
-    }
-    
-    /* Make action column not selectable */
-    .table td:last-child {
-        cursor: default;
-    }
-
-    /* Toast styling */
-    .toast {
-        border-radius: 5px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+    .selectable-row { cursor: pointer; }
+    .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
+    .table-primary { background-color: #007bff !important; color: white; }
+    .selectable-row:hover { background-color: #f8f9fa !important; }
+    .table-primary:hover { background-color: #0069d9 !important; }
+    .table td:last-child { cursor: default; }
+    .toast { border-radius: 5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+    .table-primary .status-badge { color: #000; }
 </style>
 @endsection

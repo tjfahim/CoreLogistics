@@ -24,7 +24,31 @@
 
 <div class="content mt-3">
 
-    <!-- Success/Error Messages -->
+    {{-- ====================================================== --}}
+    {{-- GLOBAL VALIDATION ERRORS --}}
+    {{-- ====================================================== --}}
+    @if($errors->any())
+        <div class="col-sm-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <h5 class="mb-2">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <strong>Please fix the following errors:</strong>
+                </h5>
+                <ul class="mb-0">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+
+    {{-- ====================================================== --}}
+    {{-- SUCCESS / ERROR / INFO FLASH MESSAGES --}}
+    {{-- ====================================================== --}}
     @if(session('success'))
         <div class="col-sm-12">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -40,6 +64,17 @@
         <div class="col-sm-12">
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <span class="badge badge-pill badge-danger">Error</span> {{ session('error') }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="col-sm-12">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <span class="badge badge-pill badge-info">Info</span> {{ session('info') }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -63,13 +98,13 @@
                             <strong>Total Items:</strong> {{ $itemShipment->total_items }}
                         </div>
                         <div class="col-md-2">
-                            <strong>Total Weight:</strong> {{ number_format($itemShipment->total_weight, 2) }} kg
+                            <strong>Total Weight:</strong> {{ number_format($itemShipment->total_weight, 0) }} kg
                         </div>
                         <div class="col-md-2">
                             <strong>Total CBM:</strong> {{ number_format($itemShipment->total_cbm, 4) }}
                         </div>
                         <div class="col-md-3">
-                            <strong>Status:</strong> 
+                            <strong>Status:</strong>
                             <span class="badge badge-{{ $itemShipment->status === 'completed' ? 'success' : ($itemShipment->status === 'cost_calculated' ? 'warning' : 'secondary') }}">
                                 {{ ucfirst($itemShipment->status) }}
                             </span>
@@ -77,20 +112,22 @@
                     </div>
                     <div class="row mt-2">
                         <div class="col-md-4">
-                            <strong>Total Cost:</strong> ৳{{ number_format($itemShipment->total_cost, 2) }}
+                            <strong>Total Cost:</strong> {{ number_format($itemShipment->total_cost, 0) }}
                         </div>
                         <div class="col-md-4">
-                            <strong>Total Paid:</strong> ৳{{ number_format($itemShipment->total_paid, 2) }}
+                            <strong>Total Paid:</strong> {{ number_format($itemShipment->total_paid, 0) }}
                         </div>
                         <div class="col-md-4">
-                            <strong>Total Due:</strong> ৳{{ number_format($itemShipment->total_due, 2) }}
+                            <strong>Total Due:</strong> {{ number_format($itemShipment->total_due, 0) }}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Add Cost Form -->
+        <!-- ====================================================== -->
+        <!-- Add Cost Form                                          -->
+        <!-- ====================================================== -->
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">
@@ -99,65 +136,108 @@
                 <div class="card-body">
                     <form action="{{ route('itemshipments.costs.store', $itemShipment->id) }}" method="POST">
                         @csrf
+
                         <div class="form-group">
-                            <label for="cost_type_id">Cost Type *</label>
-                            <select name="cost_type_id" id="cost_type_id" class="form-control" required>
+                            <label for="cost_type_id">Cost Type <span class="text-danger">*</span></label>
+                            <select name="cost_type_id" id="cost_type_id"
+                                    class="form-control @error('cost_type_id') is-invalid @enderror" required>
                                 <option value="">Select Cost Type</option>
                                 @foreach($costTypes as $costType)
-                                    <option value="{{ $costType->id }}">{{ $costType->name }}</option>
+                                    <option value="{{ $costType->id }}"
+                                        {{ old('cost_type_id') == $costType->id ? 'selected' : '' }}>
+                                        {{ $costType->name }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('cost_type_id')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         <div class="form-group" id="agent_field" style="display:none;">
                             <label for="agent_id">Agent</label>
-                            <select name="agent_id" id="agent_id" class="form-control">
+                            <select name="agent_id" id="agent_id"
+                                    class="form-control @error('agent_id') is-invalid @enderror">
                                 <option value="">Select Agent</option>
                                 @foreach($agents as $agent)
-                                    <option value="{{ $agent->id }}">{{ $agent->name }} - {{ $agent->company_name }}</option>
+                                    <option value="{{ $agent->id }}"
+                                        {{ old('agent_id') == $agent->id ? 'selected' : '' }}>
+                                        {{ $agent->name }} - {{ $agent->company_name }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('agent_id')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         <div class="row" id="rate_row" style="display:none;">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Rate per KG</label>
-                                    <input type="number" step="0.01" name="rate_per_kg" id="rate_per_kg" class="form-control">
+                                    <input type="number" step="0.01" name="rate_per_kg" id="rate_per_kg"
+                                           value="{{ old('rate_per_kg') }}"
+                                           class="form-control @error('rate_per_kg') is-invalid @enderror">
+                                    @error('rate_per_kg')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
                                 </div>
                             </div>
 
-                           
                             <div class="col-md-6">
-    <div class="form-group">
-        <label>Total Weight (KG)</label>
-        <input type="number" step="0.01" name="total_weight" id="total_weight" class="form-control" value="{{ $itemShipment->total_weight }}" >
-    </div>
-</div>
+                                <div class="form-group">
+                                    <label>Total Weight (KG)</label>
+                                    <input type="number" step="0.01" name="total_weight" id="total_weight"
+                                           value="{{ old('total_weight', $itemShipment->total_weight) }}"
+                                           class="form-control @error('total_weight') is-invalid @enderror">
+                                    @error('total_weight')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-group" id="amount_row">
-                            <label>Amount *</label>
-                            <input type="number" step="0.01" name="amount" id="amount" class="form-control" required>
+                            <label>Amount <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="amount" id="amount"
+                                   value="{{ old('amount') }}"
+                                   class="form-control @error('amount') is-invalid @enderror" required>
+                            @error('amount')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         <div class="form-group">
                             <label for="description">Description</label>
-                            <textarea name="description" id="description" class="form-control" rows="2" placeholder="Cost description"></textarea>
+                            <textarea name="description" id="description" rows="2"
+                                      class="form-control @error('description') is-invalid @enderror"
+                                      placeholder="Cost description">{{ old('description') }}</textarea>
+                            @error('description')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         <div class="form-group">
-                            <label for="cost_date">Cost Date *</label>
-                            <input type="date" name="cost_date" id="cost_date" class="form-control" required value="{{ date('Y-m-d') }}">
+                            <label for="cost_date">Cost Date <span class="text-danger">*</span></label>
+                            <input type="date" name="cost_date" id="cost_date"
+                                   value="{{ old('cost_date', date('Y-m-d')) }}"
+                                   class="form-control @error('cost_date') is-invalid @enderror" required>
+                            @error('cost_date')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-block">Add Cost</button>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa fa-plus"></i> Add Cost
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Costs List -->
+        <!-- ====================================================== -->
+        <!-- Costs List                                             -->
+        <!-- ====================================================== -->
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -185,9 +265,9 @@
                                     <tr>
                                         <td>{{ $cost->costType->name }}</td>
                                         <td>{{ $cost->agent ? $cost->agent->name : 'N/A' }}</td>
-                                        <td>৳{{ number_format($cost->amount, 2) }}</td>
-                                        <td>৳{{ number_format($cost->paid_amount, 2) }}</td>
-                                        <td>৳{{ number_format($cost->due_amount, 2) }}</td>
+                                        <td>{{ number_format($cost->amount, 0) }}</td>
+                                        <td>{{ number_format($cost->paid_amount, 0) }}</td>
+                                        <td>{{ number_format($cost->due_amount, 0) }}</td>
                                         <td>
                                             <span class="badge badge-{{ $cost->status === 'paid' ? 'success' : ($cost->status === 'partial' ? 'warning' : 'danger') }}">
                                                 {{ ucfirst($cost->status) }}
@@ -195,13 +275,16 @@
                                         </td>
                                         <td>{{ \Carbon\Carbon::parse($cost->cost_date)->format('M d, Y') }}</td>
                                         <td>
-                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#paymentModal{{ $cost->id }}">
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    data-toggle="modal" data-target="#paymentModal{{ $cost->id }}">
                                                 <i class="fa fa-money-bill"></i> Pay
                                             </button>
-                                            <form action="{{ route('itemshipments.costs.destroy', $cost->id) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('itemshipments.costs.destroy', $cost->id) }}"
+                                                  method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this cost?')">
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                        onclick="return confirm('Are you sure you want to delete this cost?')">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
                                             </form>
@@ -222,47 +305,58 @@
                                                     @csrf
                                                     <div class="modal-body">
                                                         <div class="form-group">
-                                                            <label>Due Amount: ৳{{ number_format($cost->due_amount, 2) }}</label>
+                                                            <label>Due Amount: {{ number_format($cost->due_amount, 0) }}</label>
                                                         </div>
-                                                      
+
                                                         <div class="form-group">
-                                                            <label for="amount{{ $cost->id }}">Payment Amount *</label>
-                                                            <input type="number" 
-                                                                   step="0.01" 
-                                                                   name="amount" 
-                                                                   id="amount{{ $cost->id }}" 
+                                                            <label for="amount{{ $cost->id }}">Payment Amount <span class="text-danger">*</span></label>
+                                                            <input type="number"
+                                                                   step="0.01"
+                                                                   name="amount"
+                                                                   id="amount{{ $cost->id }}"
                                                                    class="form-control"
-                                                                   @if(!$cost->costType->have_partial_payment) 
-                                                                       value="{{ number_format($cost->due_amount, 2, '.', '') }}" 
-                                                                       readonly 
+                                                                   @if(!$cost->costType->have_partial_payment)
+                                                                       value="{{ number_format($cost->due_amount, 2, '.', '') }}"
+                                                                       readonly
                                                                    @endif
-                                                                   required 
+                                                                   required
                                                                    max="{{ $cost->due_amount }}">
                                                         </div>
+
                                                         <div class="form-group">
-                                                            <label for="payment_date{{ $cost->id }}">Payment Date *</label>
-                                                            <input type="date" name="payment_date" id="payment_date{{ $cost->id }}" class="form-control" required value="{{ date('Y-m-d') }}">
+                                                            <label for="payment_date{{ $cost->id }}">Payment Date <span class="text-danger">*</span></label>
+                                                            <input type="date" name="payment_date" id="payment_date{{ $cost->id }}"
+                                                                   class="form-control" required value="{{ date('Y-m-d') }}">
                                                         </div>
+
                                                         <div class="form-group">
-                                                            <label for="payment_method{{ $cost->id }}">Payment Method *</label>
-                                                            <select name="payment_method" id="payment_method{{ $cost->id }}" class="form-control" required>
+                                                            <label for="payment_method{{ $cost->id }}">Payment Method <span class="text-danger">*</span></label>
+                                                            <select name="payment_method" id="payment_method{{ $cost->id }}"
+                                                                    class="form-control" required>
                                                                 <option value="cash">Cash</option>
                                                                 <option value="bank">Bank Transfer</option>
                                                                 <option value="check">Check</option>
                                                                 <option value="mobile_banking">Mobile Banking</option>
                                                             </select>
                                                         </div>
+
                                                         <div class="form-group">
                                                             <label for="reference_no{{ $cost->id }}">Reference No</label>
-                                                            <input type="text" name="reference_no" id="reference_no{{ $cost->id }}" class="form-control" placeholder="Transaction ID/Check No">
+                                                            <input type="text" name="reference_no" id="reference_no{{ $cost->id }}"
+                                                                   class="form-control" placeholder="Transaction ID/Check No">
                                                         </div>
+
                                                         <div class="form-group">
                                                             <label for="paid_by{{ $cost->id }}">Paid By</label>
-                                                            <input type="text" name="paid_by" id="paid_by{{ $cost->id }}" class="form-control" placeholder="Person name">
+                                                            <input type="text" name="paid_by" id="paid_by{{ $cost->id }}"
+                                                                   class="form-control" placeholder="Person name">
                                                         </div>
+
                                                         <div class="form-group">
                                                             <label for="notes{{ $cost->id }}">Notes</label>
-                                                            <textarea name="notes" id="notes{{ $cost->id }}" class="form-control" rows="2" placeholder="Payment notes"></textarea>
+                                                            <textarea name="notes" id="notes{{ $cost->id }}"
+                                                                      class="form-control" rows="2"
+                                                                      placeholder="Payment notes"></textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
@@ -310,16 +404,18 @@
                                 @foreach($itemShipment->costs->flatMap->payments->sortByDesc('payment_date') as $payment)
                                 <tr>
                                     <td>{{ $payment->itemsShipmentCost->costType->name }}</td>
-                                    <td>৳{{ number_format($payment->amount, 2) }}</td>
+                                    <td>{{ number_format($payment->amount, 0) }}</td>
                                     <td>{{ ucfirst($payment->payment_method) }}</td>
                                     <td>{{ $payment->reference_no ?? 'N/A' }}</td>
                                     <td>{{ $payment->paid_by ?? 'N/A' }}</td>
                                     <td>{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</td>
                                     <td>
-                                        <form action="{{ route('itemshipments.payments.destroy', $payment->id) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('itemshipments.payments.destroy', $payment->id) }}"
+                                              method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this payment?')">
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Are you sure you want to delete this payment?')">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
@@ -337,93 +433,77 @@
 </div>
 
 <script>
-$(document).ready(function() {
-    // Auto-calculate amount when rate and weight are entered
-    $('#rate_per_kg, #total_weight').on('input', function() {
-        var rate = parseFloat($('#rate_per_kg').val()) || 0;
-        var weight = parseFloat($('#total_weight').val()) || 0;
-        if (rate > 0 && weight > 0) {
-            $('#amount').val((rate * weight).toFixed(2));
-        }
-    });
-});
-
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     const costTypeDropdown = document.getElementById("cost_type_id");
-    const agentField = document.getElementById("agent_field");
-    const rateField = document.getElementById("rate_row");
-    const amountField = document.getElementById("amount_row");
+    const agentField       = document.getElementById("agent_field");
+    const rateField        = document.getElementById("rate_row");
+    const amountField      = document.getElementById("amount_row");
 
     const amountInput = document.getElementById("amount");
-    const rateInput = document.getElementById("rate_per_kg");
+    const rateInput   = document.getElementById("rate_per_kg");
     const weightInput = document.getElementById("total_weight");
 
     const costTypes = @json($costTypes);
+
+    // Helper: check if boolean-like value is true
+    function isTrue(v) {
+        return v === true || v === "true" || v === 1 || v === "1";
+    }
 
     function updateFormUI() {
         const selectedId = costTypeDropdown.value;
         const selectedType = costTypes.find(ct => ct.id == selectedId);
 
-        if (!selectedId || !selectedType) return;
-
-        console.log("Selected Type:", selectedType);
-
-        // Fix boolean (Laravel sends true/false as strings sometimes)
-        let haveAgent = selectedType.have_agent == true || selectedType.have_agent == "true";
+        if (!selectedId || !selectedType) {
+            // No selection - hide both extra sections
+            agentField.style.display = "none";
+            rateField.style.display  = "none";
+            amountField.style.display = "block";
+            return;
+        }
 
         // Toggle agent field
+        const haveAgent = isTrue(selectedType.have_agent);
         agentField.style.display = haveAgent ? "block" : "none";
-        if (!haveAgent) document.getElementById("agent_id").value = "";
-
-        // Handle type logic
-        if (selectedType.type === "per_kg") {
-            rateField.style.display = "block";
-            amountField.style.display = "none";
-            amountInput.value = "";
+        if (!haveAgent) {
+            const agentSelect = document.getElementById("agent_id");
+            if (agentSelect) agentSelect.value = "";
         }
-        else if (selectedType.type === "fixed") {
-            rateField.style.display = "none";
+
+        // Toggle rate vs amount based on type
+        if (selectedType.type === "per_kg") {
+            rateField.style.display   = "block";
+            amountField.style.display = "block"; // still show computed amount
+            // keep existing amount so user can see the computed value
+        } else if (selectedType.type === "fixed") {
+            rateField.style.display   = "none";
             amountField.style.display = "block";
             rateInput.value = "";
-        }
-        else {
-            // other type
-            rateField.style.display = "none";
+        } else {
+            rateField.style.display   = "none";
             amountField.style.display = "block";
         }
     }
 
-    // Auto calculate per KG amount
     function calculateAmount() {
         const selectedId = costTypeDropdown.value;
         const selectedType = costTypes.find(ct => ct.id == selectedId);
-
         if (!selectedType || selectedType.type !== "per_kg") return;
 
-        let rate = parseFloat(rateInput.value) || 0;
-        let weight = parseFloat(weightInput.value) || 0;
+        const rate   = parseFloat(rateInput.value)   || 0;
+        const weight = parseFloat(weightInput.value) || 0;
 
-        amountInput.value = (rate * weight).toFixed(2);
+        if (rate > 0 && weight > 0) {
+            amountInput.value = (rate * weight).toFixed(2);
+        }
     }
 
-    // Events
     costTypeDropdown.addEventListener("change", updateFormUI);
     rateInput.addEventListener("input", calculateAmount);
+    weightInput.addEventListener("input", calculateAmount);
 
-    // Run once on page load
+    // Run once on page load (in case old() had a selected value)
     updateFormUI();
-});
-
-document.addEventListener("DOMContentLoaded", function() {
-    @foreach($itemShipment->costs as $cost)
-        @if(!$cost->costType->have_partial_payment)
-            const amountField{{ $cost->id }} = document.getElementById("amount{{ $cost->id }}");
-            if (amountField{{ $cost->id }}) {
-                amountField{{ $cost->id }}.setAttribute("readonly", "true");
-                amountField{{ $cost->id }}.value = "{{ number_format($cost->due_amount, 2, '.', '') }}";
-            }
-        @endif
-    @endforeach
 });
 </script>
 @endsection

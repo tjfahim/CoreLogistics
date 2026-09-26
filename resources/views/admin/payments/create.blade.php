@@ -26,7 +26,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5>Total Bill</h5>
-                    <h3>{{ number_format($totalAmount, 2) }} tk</h3>
+                    <h3>{{ number_format($totalAmount, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5>Total Paid</h5>
-                    <h3>{{ number_format($totalPaid, 2) }} tk</h3>
+                    <h3>{{ number_format($totalPaid, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5>Total Due</h5>
-                    <h3>{{ number_format($totalDue, 2) }} tk</h3>
+                    <h3>{{ number_format($totalDue, 0) }} tk</h3>
                 </div>
             </div>
         </div>
@@ -105,23 +105,23 @@
                                     @endif
                                 </td>
                                 <td>{{ $item->tracking_no }}</td>
-                                <td>{{ number_format($item->weight_kg, 2) }}</td>
+                                <td>{{ number_format($item->weight_kg, 0) }}</td>
                                 <td>
                                     @if($item->price)
-                                    {{ number_format($item->price, 2) }}
+                                    {{ number_format($item->price, 0) }}
                                     @else
                                     <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($item->price_per_kg)
-                                    {{ number_format($item->price_per_kg, 2) }}
+                                    {{ number_format($item->price_per_kg, 0) }}
                                     @else
                                     <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="item-price">
-                                    <strong>{{ number_format($item->total_price, 2) }}</strong>
+                                    <strong>{{ number_format($item->total_price, 0) }}</strong>
                                 </td>
                                 <td>
                                     @if($item->paid_at)
@@ -147,7 +147,7 @@
                                     <strong>Remaining Due:</strong>
                                 </td>
                                 <td id="remainingDue" class="text-danger fw-bold">
-                                    {{ number_format($totalDue, 2) }} tk
+                                    {{ number_format($totalDue, 0) }} tk
                                 </td>
                                 <td></td>
                             </tr>

@@ -57,7 +57,7 @@
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Customer Code</th>
-                            <th>Shipping Mark</th>
+                            <th>Shipping Marks</th>
                             <th>Address</th>
                             <th>Action</th>
                         </tr>
@@ -71,7 +71,18 @@
                             <td>{{ $c->email }}</td>
                             <td>{{ $c->phone }}</td>
                             <td>{{ $c->customer_code }}</td>
-                            <td>{{ $c->shipping_mark1 }}, {{ $c->shipping_mark2 }}, {{ $c->shipping_mark3 }} {{ $c->shipping_mark4 }}</td>
+                            <td>
+                                @php
+                                    $allMarks = $c->all_shipping_marks;
+                                @endphp
+                                @if(count($allMarks) > 0)
+                                    @foreach($allMarks as $mark)
+                                        <span class="badge badge-info mb-1">{{ $mark }}</span>
+                                    @endforeach
+                                @else
+                                    <span class="text-muted">No marks</span>
+                                @endif
+                            </td>
                             <td>{{ $c->address }}</td>
                             <td>
                                 <a href="{{ route('customers.edit', $c->id) }}" class="btn btn-warning btn-sm">
@@ -89,7 +100,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted">No customers found</td>
+                            <td colspan="8" class="text-center text-muted">No customers found</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -102,17 +113,14 @@
 
 </div>
 
-
-
-
 <script>
 $(document).ready(function() {
     $('#customerTable').DataTable({
-        "order": [[0, "desc"]], // sort by ID descending
+        "order": [[0, "desc"]],
         "columnDefs": [
-            { "orderable": false, "targets": 6 } // Action column not sortable
+            { "orderable": false, "targets": 7 }
         ],
-        "pageLength": 10, // rows per page
+        "pageLength": 10,
         "lengthMenu": [5, 10, 25, 50],
         "responsive": true
     });

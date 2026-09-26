@@ -71,7 +71,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h6>Total Weight</h6>
-                                <h4 class="text-info">{{ number_format($itemshipment->cargoItems->sum('weight_kg'), 2) }} kg</h4>
+                                <h4 class="text-info">{{ number_format($itemshipment->cargoItems->sum('weight_kg'), 0) }} kg</h4>
                             </div>
                         </div>
                     </div>
@@ -79,7 +79,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h6>Current Total</h6>
-                                <h4 class="text-success">৳{{ number_format($itemshipment->cargoItems->sum('price'), 2) }}</h4>
+                                <h4 class="text-success">{{ number_format($itemshipment->cargoItems->sum('price'), 0) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -137,7 +137,7 @@
                                          <td>
                                         {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}
                                     </td>
-                                        <td class="text-right">{{ number_format($item->weight_kg ?? 0, 2) }}</td>
+                                        <td class="text-right">{{ number_format($item->weight_kg ?? 0, 0) }}</td>
                                         <td class="text-right text-info">
                                             <strong>{{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}</strong>
                                         </td>
@@ -153,7 +153,7 @@
                                                    placeholder="0.00">
                                         </td>
                                         <td class="text-right total-price" id="total-price-{{ $item->id }}">
-                                            <strong class="text-success">৳{{ number_format($item->price ?? 0, 2) }}</strong>
+                                            <strong class="text-success">{{ number_format($item->price ?? 0, 0) }}</strong>
                                         </td>
                                         <td>
                                             <span class="badge badge-{{ $item->status === 'shipping_ongoing' ? 'warning' : ($item->status === 'packed' ? 'info' : 'secondary') }}">
@@ -167,10 +167,10 @@
                                     <tr>
                                         <td colspan="4" class="text-right"><strong>Grand Totals:</strong></td>
                                         <td class="text-right">
-                                            <strong>৳{{ number_format($itemshipment->cargoItems->avg('price_per_kg'), 2) }}</strong>
+                                            <strong>{{ number_format($itemshipment->cargoItems->avg('price_per_kg'), 0) }}</strong>
                                         </td>
                                         <td></td>
-                                        <td class="text-right"><strong id="grand-total">৳{{ number_format($itemshipment->cargoItems->sum('price'), 2) }}</strong></td>
+                                        <td class="text-right"><strong id="grand-total">{{ number_format($itemshipment->cargoItems->sum('price'), 0) }}</strong></td>
                                         <td></td>
                                     </tr>
                                 </tfoot>

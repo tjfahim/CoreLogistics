@@ -52,40 +52,24 @@ class ShipmentReportController extends Controller
         return view('admin.reports.single-shipment', compact('report'));
     }
 
-    /**
-     * Generate multiple shipments report
-     */
-    public function multipleShipmentsReport(Request $request)
-    {
-        $filters = $request->validate([
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'status' => 'nullable|string',
-        ]);
-        
-        $report = $this->reportService->generateMultipleShipmentsReport($filters);
-        
-        return view('admin.reports.multiple-shipments', compact('report', 'filters'));
-    }
+  
 
     /**
      * Download report as PDF
      */
    public function downloadPdf($type, $id = null, Request $request = null)
 {
+    // Laravel auto-injects Request if it's type-hinted and not bound to route param
+    $request = $request ?? request();
+
     try {
         if ($type === 'single' && $id) {
             $report = $this->reportService->generateSingleShipmentReport($id);
             $pdf = \PDF::loadView('admin.reports.pdf.single-shipment', compact('report'));
             $filename = "shipment-report-{$report['shipment']->shipment_name}-" . date('Y-m-d') . ".pdf";
             return $pdf->download($filename);
-        } else {
-            $filters = $request ? $request->all() : [];
-            $report = $this->reportService->generateMultipleShipmentsReport($filters);
-            $pdf = \PDF::loadView('admin.reports.pdf.multiple-shipments', compact('report', 'filters'));
-            $filename = "multiple-shipments-report-" . date('Y-m-d') . ".pdf";
-            return $pdf->download($filename);
         }
+
     } catch (\Exception $e) {
         return back()->with('error', 'Error generating PDF: ' . $e->getMessage());
     }
@@ -101,12 +85,7 @@ class ShipmentReportController extends Controller
         if ($type === 'single' && $id) {
             $report = $this->reportService->generateSingleShipmentReport($id);
             // Export logic here
-        } else {
-            $filters = $request ? $request->all() : [];
-            $report = $this->reportService->generateMultipleShipmentsReport($filters);
-            // Export logic here
-        }
-        
+        } 
         return response()->json(['message' => 'Excel export feature to be implemented']);
     }
 }
