@@ -14,6 +14,24 @@
         </div>
     </div>
 
+    @if(request('highlight'))
+        @php
+            $highlighted = collect($billingSummary)->firstWhere('customer_id', (int) request('highlight'));
+        @endphp
+        @if($highlighted)
+            <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <i class="fa fa-search"></i>
+                    Showing invoice for <strong>{{ $highlighted['customer_name'] }}</strong>
+                    ({{ $highlighted['customer_code'] }}).
+                </div>
+                <a href="{{ route('shipments.billing', $itemshipment->id) }}" class="btn btn-sm btn-outline-secondary">
+                    Clear
+                </a>
+            </div>
+        @endif
+    @endif
+
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
@@ -79,6 +97,7 @@
                             $grandPrice  = 0;
                             $grandPaid   = 0;
                             $grandDue    = 0;
+                            $highlightId = (int) request('highlight');
                         @endphp
 
                         @foreach($billingSummary as $bill)
@@ -91,8 +110,11 @@
                                 $grandPrice  += $totalPrice;
                                 $grandPaid   += $paid;
                                 $grandDue    += $due;
+
+                                $isHighlighted = $highlightId && $bill['customer_id'] == $highlightId;
                             @endphp
-                            <tr>
+                            <tr id="customer-row-{{ $bill['customer_id'] }}"
+                                class="{{ $isHighlighted ? 'table-warning' : '' }}">
                                 <td>{{ $bill['customer_code'] }}</td>
                                 <td>{{ $bill['customer_name'] }}</td>
                                 <td>{{ $bill['total_items'] }}</td>
@@ -141,7 +163,7 @@
                                         <div class="d-flex flex-wrap gap-1">
                                             <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
                                                class="btn btn-sm btn-info">
-                                                View Bill
+                                               Invoice
                                             </a>
                                             <a href="{{ route('payments.create', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
                                                class="btn btn-sm btn-success">
@@ -257,6 +279,13 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // ---- Highlight scroll ----
+        var highlightedRow = document.querySelector('.table-warning');
+        if (highlightedRow) {
+            highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // ---- Price validation ----
         const priceInputs = document.querySelectorAll('input[name*="[price]"], input[name*="[price_per_kg]"]');
 
         priceInputs.forEach(input => {

@@ -72,8 +72,8 @@
                     <button type="button" class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
                     <button type="button" class="btn btn-info filter-btn" data-status="packed">Packed</button>
                     <button type="button" class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
-                    <button type="button" class="btn btn-success filter-btn" data-status="arrived_bd">Arrived BD</button>
                     <button type="button" class="btn btn-danger filter-btn" data-status="waiting_for_customs">Waiting for Customs</button>
+                    <button type="button" class="btn btn-success filter-btn" data-status="arrived_bd">Arrived BD</button>
                     <button type="button" class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
                     <button type="button" class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
                     <button type="button" class="btn btn-warning filter-btn active" data-status="all">All</button>

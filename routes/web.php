@@ -75,6 +75,10 @@ Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
     Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
+    Route::post('/admin/invoice-search', [DashboardController::class, 'searchInvoice'])
+    ->name('admin.invoice.search');
+        Route::post('/tracking-search', [DashboardController::class, 'searchTracking'])
+        ->name('admin.tracking.search');
     Route::resource('customers', CustomerController::class);
     Route::resource('products', ProductController::class);
     Route::resource('agents', AgentController::class);

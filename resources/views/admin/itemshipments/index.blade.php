@@ -72,18 +72,23 @@
                                     <i class="fa fa-dollar-sign"></i> Costs
                                 </a>
                                 <a href="{{ route('itemshipments.edit-ctn-numbers', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fa fa-list-ol"></i> Manage Ctn
+                                    </i>Ctn
                                 </a>
                                 <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fa fa-tags"></i> Manage Prices
+                                   </i> Prices
                                 </a>
                                 <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    Assign Customers
+                                    Customers
                                 </a>
 
                                 {{-- ⭐ NEW: Manage Returns --}}
                                 <a href="{{ route('itemsshipments.manage-returns', $shipment->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-undo"></i> Manage Returns
+                                   Returns
+                                </a>
+
+
+                                <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-sm btn-success">
+                                    <i class="fa fa-file-invoice-dollar"></i> Billing
                                 </a>
 
                                 <a href="{{ route('itemsshipments.show', $shipment->id) }}" class="btn btn-info btn-sm">
@@ -92,11 +97,6 @@
                                 <a href="{{ route('itemsshipments.edit', $shipment->id) }}" class="btn btn-warning btn-sm">
                                     <i class="fa fa-edit"></i>
                                 </a>
-
-                                <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-sm btn-success">
-                                    <i class="fa fa-file-invoice-dollar"></i> Billing
-                                </a>
-
                                 <form action="{{ route('itemsshipments.destroy', $shipment->id) }}"
                                       method="POST"
                                       class="d-inline">

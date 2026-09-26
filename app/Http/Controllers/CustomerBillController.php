@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CargoItem;
 use App\Models\CustomerPayment;
+use App\Models\Invoice;
 use App\Models\ItemsShipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -96,63 +97,69 @@ class CustomerBillController extends Controller
         ));
     }
     // Show individual customer bill
-    public function showCustomerBill(Customer $customer, ItemsShipment $itemshipment = null)
-    {
-        $query = $customer->cargoItems()->with(['itemshipments']);
-        
-        if ($itemshipment) {
-            $query->whereHas('itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            });
-        }
-        
-        $items = $query->get();
-        
-        // Calculate totals
-        $totalItems = $items->count();
-        $totalWeight = $items->sum('weight_kg');
-        $totalPrice = 0;
-        $itemsWithPrice = 0;
-        $itemsWithoutPrice = 0;
-        
-        $itemDetails = [];
-        foreach ($items as $item) {
-            $hasPrice = $item->hasPrice();
-            $itemPrice = $item->total_price;
-            
-            if ($hasPrice) {
-                $totalPrice += $itemPrice;
-                $itemsWithPrice++;
-            } else {
-                $itemsWithoutPrice++;
-            }
-            
-            $itemDetails[] = [
-                'id' => $item->id,
-                'goods_name_en' => $item->goods_name_en,
-                'goods_name_local' => $item->goods_name_local,
-                'weight_kg' => $item->weight_kg,
-                'cbm' => $item->cbm,
-                'tracking_no' => $item->tracking_no,
-                'has_price' => $hasPrice,
-                'price' => $item->price,
-                'price_per_kg' => $item->price_per_kg,
-                'total_price' => $itemPrice,
-                'shipments' => $item->itemshipments->pluck('shipment_name')->implode(', ')
-            ];
-        }
-        
-        return view('admin.itemshipments.bill', compact(
-            'customer',
-            'itemshipment',
-            'itemDetails',
-            'totalItems',
-            'totalWeight',
-            'totalPrice',
-            'itemsWithPrice',
-            'itemsWithoutPrice'
-        ));
+  public function showCustomerBill(Customer $customer, ItemsShipment $itemshipment = null)
+{
+    $query = $customer->cargoItems()->with(['itemshipments']);
+
+    if ($itemshipment) {
+        $query->whereHas('itemshipments', function ($q) use ($itemshipment) {
+            $q->where('items_shipments.id', $itemshipment->id);
+        });
     }
+
+    $items = $query->get();
+
+    $totalItems = $items->count();
+    $totalWeight = $items->sum('weight_kg');
+    $totalPrice = 0;
+    $itemsWithPrice = 0;
+    $itemsWithoutPrice = 0;
+
+    $itemDetails = [];
+    foreach ($items as $item) {
+        $hasPrice = $item->hasPrice();
+        $itemPrice = $item->total_price;
+
+        if ($hasPrice) {
+            $totalPrice += $itemPrice;
+            $itemsWithPrice++;
+        } else {
+            $itemsWithoutPrice++;
+        }
+
+        $itemDetails[] = [
+            'id'               => $item->id,
+            'goods_name_en'    => $item->goods_name_en,
+            'goods_name_local' => $item->goods_name_local,
+            'weight_kg'        => $item->weight_kg,
+            'cbm'              => $item->cbm,
+            'tracking_no'      => $item->tracking_no,
+            'has_price'        => $hasPrice,
+            'price'            => $item->price,
+            'price_per_kg'     => $item->price_per_kg,
+            'total_price'      => $itemPrice,
+            'shipments'        => $item->itemshipments->pluck('shipment_name')->implode(', '),
+        ];
+    }
+
+    // Invoice: only when scoped to a shipment
+    $invoice = null;
+    if ($itemshipment) {
+        $invoice = Invoice::forPair($customer->id, $itemshipment->id);
+    }
+
+    return view('admin.itemshipments.bill', compact(
+        'customer',
+        'itemshipment',
+        'invoice',
+        'itemDetails',
+        'totalItems',
+        'totalWeight',
+        'totalPrice',
+        'itemsWithPrice',
+        'itemsWithoutPrice'
+    ));
+}
     
     // Update item prices
     public function updateItemPrices(Request $request, ItemsShipment $itemshipment)

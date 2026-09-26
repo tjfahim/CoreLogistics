@@ -16,10 +16,10 @@
         <div class="inv-header">
             <div class="inv-header-left">
                 <h1>INVOICE</h1>
-                <p class="inv-meta">
-                    Invoice #: <strong>{{ $itemshipment ? $itemshipment->id : 'N/A' }}</strong><br>
-                    Date: <strong>{{ now()->format('d M Y') }}</strong>
-                </p>
+               <p class="inv-meta">
+    Invoice #: <strong>{{ $invoice->invoice_number ?? 'N/A' }}</strong><br>
+    Date: <strong>{{ now()->format('d M Y') }}</strong>
+</p>
             </div>
             <div class="inv-header-right">
                 <div class="inv-company">TechLab33</div>
