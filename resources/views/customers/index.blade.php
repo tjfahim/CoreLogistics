@@ -72,6 +72,8 @@
                             <td>{{ $c->phone }}</td>
                             <td>{{ $c->customer_code }}</td>
                             <td>
+                            
+
                                 @php
                                     $allMarks = $c->all_shipping_marks;
                                 @endphp
@@ -85,6 +87,9 @@
                             </td>
                             <td>{{ $c->address }}</td>
                             <td>
+                                <a href="{{ route('ledger.customer', $c->id) }}" class="btn btn-sm btn-info">
+    <i class="fa fa-book"></i> Ledger
+</a>
                                 <a href="{{ route('customers.edit', $c->id) }}" class="btn btn-warning btn-sm">
                                     <i class="fa fa-edit"></i> Edit
                                 </a>

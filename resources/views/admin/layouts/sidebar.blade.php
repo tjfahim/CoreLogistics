@@ -6,8 +6,8 @@
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-menu" aria-controls="main-menu" aria-expanded="false" aria-label="Toggle navigation">
                     <i class="fa fa-bars"></i>
                 </button>
-                <a class="navbar-brand" href="./"><img src="{{ asset('admin/images/logo.png') }}" alt="Logo"></a>
-                <a class="navbar-brand hidden" href="./"><img src="{{ asset('admin/images/logo2.png') }}" alt="Logo"></a>
+                <a class="navbar-brand" href="/admin/dashboard"><img src="{{ asset('admin/images/logo.png') }}" alt="Logo"></a>
+                <a class="navbar-brand hidden" href="/admin/dashboard"><img src="{{ asset('admin/images/logo2.png') }}" alt="Logo"></a>
             </div>
             <div id="main-menu" class="main-menu collapse navbar-collapse">
                 <ul class="nav navbar-nav">
@@ -29,23 +29,12 @@
                             <i class="menu-icon fa fa-cubes"></i> China Warehouse
                         </a>
                     </li>
-                    <li>
-    <a href="{{ route('cargo-items.pending') }}">
-        <i class="fa fa-clock-o"></i> Pending
-    </a>
-</li>
-<li>
-    <a href="{{ route('cargo-items.packed') }}">
-        <i class="fa fa-cube"></i> Packed
-    </a>
-</li>
-<li>
-    <a href="{{ route('cargo-items.arrived-bd') }}">
-        <i class="fa fa-plane"></i> Arrived BD
-    </a>
-</li>
-       
-                    
+                    <li class="{{ request()->routeIs('cargo-items.*') ? 'active' : '' }}">
+                        <a href="{{ route('cargo-items.arrived-bd') }}">
+                            <i class="menu-icon fa fa-cubes"></i> Bd Warehouse
+                        </a>
+                    </li>
+                 
                     
                     <!-- Operations -->
                     <li class="menu-title">OPERATIONS</li>
@@ -64,12 +53,19 @@
                             <i class="menu-icon fa fa-truck"></i> Dashboard Reports
                         </a>
                     </li> --}}
+                    <!-- Accounting -->
+<li class="menu-title">ACCOUNTING</li>
+<li class="{{ request()->routeIs('ledger.*') ? 'active' : '' }}">
+    <a href="{{ route('ledger.index') }}">
+        <i class="menu-icon fa fa-book"></i> Customer Ledger
+    </a>
+</li>
                     
                        <!-- Master Data -->
                     <li class="menu-title">MASTER DATA</li>
                     <li class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
     <a href="{{ route('users.index') }}">
-        <i class="menu-icon fa fa-user-circle"></i> Users
+        <i class="menu-icon fa fa-user-circle"></i> Admin Users
     </a>
 </li>
                     <li class="{{ request()->routeIs('customers.*') ? 'active' : '' }}">

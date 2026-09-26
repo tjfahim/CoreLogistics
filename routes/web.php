@@ -10,6 +10,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerExtraShippingMarkController;
 use App\Http\Controllers\ItemShipmentController;
 use App\Http\Controllers\ItemShipmentCostController;
+use App\Http\Controllers\LedgerController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
@@ -204,7 +205,10 @@ Route::delete('customer-extra-shipping-marks/inline-destroy/{id}', [CustomerExtr
         ->name('payments.history');
 
 
-        
+        Route::prefix('ledger')->name('ledger.')->group(function () {
+    Route::get('/', [LedgerController::class, 'index'])->name('index');
+    Route::get('/{customer}', [LedgerController::class, 'customer'])->name('customer');
+});
 
 
 
