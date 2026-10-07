@@ -48,11 +48,11 @@
 
                     <!-- Reports -->
                     <li class="menu-title">REPORTS</li>
-                    {{-- <li class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <li class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
                         <a href="{{ route('reports.dashboard') }}">
                             <i class="menu-icon fa fa-truck"></i> Dashboard Reports
                         </a>
-                    </li> --}}
+                    </li>
                     <!-- Accounting -->
 <li class="menu-title">ACCOUNTING</li>
 <li class="{{ request()->routeIs('ledger.*') ? 'active' : '' }}">
