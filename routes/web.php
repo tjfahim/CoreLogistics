@@ -11,6 +11,7 @@ use App\Http\Controllers\CustomerExtraShippingMarkController;
 use App\Http\Controllers\ItemShipmentController;
 use App\Http\Controllers\ItemShipmentCostController;
 use App\Http\Controllers\LedgerController;
+use App\Http\Controllers\LegacyUploadController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
@@ -225,4 +226,16 @@ Route::prefix('reports')->group(function () {
     Route::get('/export/{type}/{id?}', [ShipmentReportController::class, 'exportExcel'])->name('reports.export.excel');
 });
 
+
+
+Route::prefix('legacy')->name('legacy.')->group(function () {
+    Route::get('/',                          [LegacyUploadController::class, 'index'])->name('index');
+    Route::post('/',                         [LegacyUploadController::class, 'store'])->name('store');
+    Route::get('/{upload}',                  [LegacyUploadController::class, 'show'])->name('show');
+    Route::post('/{upload}/approve',         [LegacyUploadController::class, 'approve'])->name('approve');
+    Route::post('/{upload}/import-live',     [LegacyUploadController::class, 'importLive'])->name('import-live');
+    Route::get('/{upload}/report',           [LegacyUploadController::class, 'report'])->name('report');
+    Route::get('/{upload}/download',         [LegacyUploadController::class, 'download'])->name('download');
+    Route::delete('/{upload}',               [LegacyUploadController::class, 'destroy'])->name('destroy');
+});
 });

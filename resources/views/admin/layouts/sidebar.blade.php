@@ -53,6 +53,11 @@
                             <i class="menu-icon fa fa-truck"></i> Dashboard Reports
                         </a>
                     </li>
+                    <li class="{{ request()->routeIs('legacy.*') ? 'active' : '' }}">
+                        <a href="{{ route('legacy.index') }}">
+                            <i class="menu-icon fa fa-truck"></i> Legacy Uploads
+                        </a>
+                    </li>
                     <!-- Accounting -->
 <li class="menu-title">ACCOUNTING</li>
 <li class="{{ request()->routeIs('ledger.*') ? 'active' : '' }}">
