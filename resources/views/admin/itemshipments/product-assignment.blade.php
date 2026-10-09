@@ -160,7 +160,7 @@
 
                         <!-- Pagination -->
                         <div class="d-flex justify-content-center mt-3">
-                            {{ $products->links() }}
+                            {{ $products->links('pagination::bootstrap-4') }}
                         </div>
 
                         <!-- Submit Button -->

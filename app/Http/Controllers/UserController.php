@@ -1,51 +1,64 @@
 <?php
+// app/Http/Controllers/UserController.php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers;   // ← FIXED
 
+use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
     public function index()
     {
-        $users = User::orderBy('created_at', 'desc')->paginate(10);
+        $users = User::with('roleRelation')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
         return view('admin.users.index', compact('users'));
     }
 
     public function create()
     {
-        return view('admin.users.create');
+        $roles = Role::active()->orderBy('name')->get();
+        return view('admin.users.create', compact('roles'));
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:1,2',
-            'status' => 'required|in:0,1',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'role_id'  => 'required|exists:roles,id',   // ← now required, dynamic
+            'status'   => 'required|in:0,1',
+            'image'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Auto-set legacy 'role' flag:
+        //   if selected role is superadmin/admin -> role=2
+        //   else -> role=1
+        $selectedRole = Role::find($request->role_id);
+        $legacyFlag   = in_array($selectedRole->slug, ['superadmin', 'admin']) ? 2 : 1;
+
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'     => $request->name,
+            'email'    => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'status' => $request->status,
+            'role'     => $legacyFlag,
+            'role_id'  => $request->role_id,
+            'status'   => $request->status,
         ];
 
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
+            $image     = $request->file('image');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('uploads/users'), $imageName);
             $data['image'] = $imageName;
@@ -53,39 +66,46 @@ class UserController extends Controller
 
         User::create($data);
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+        return redirect()->route('users.index')
+            ->with('success', 'User created successfully.');
     }
 
     public function show(User $user)
     {
+        $user->load('roleRelation.permissions');
         return view('admin.users.show', compact('user'));
     }
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $roles = Role::active()->orderBy('name')->get();
+        return view('admin.users.edit', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6|confirmed',
-            'role' => 'required|in:1,2',
-            'status' => 'required|in:0,1',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'role_id'  => 'required|exists:roles,id',
+            'status'   => 'required|in:0,1',
+            'image'    => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        $selectedRole = Role::find($request->role_id);
+        $legacyFlag   = in_array($selectedRole->slug, ['superadmin', 'admin']) ? 2 : 1;
+
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'status' => $request->status,
+            'name'    => $request->name,
+            'email'   => $request->email,
+            'role'    => $legacyFlag,
+            'role_id' => $request->role_id,
+            'status'  => $request->status,
         ];
 
         if ($request->filled('password')) {
@@ -93,12 +113,11 @@ class UserController extends Controller
         }
 
         if ($request->hasFile('image')) {
-            // Delete old image
             if ($user->image && file_exists(public_path('uploads/users/' . $user->image))) {
                 unlink(public_path('uploads/users/' . $user->image));
             }
 
-            $image = $request->file('image');
+            $image     = $request->file('image');
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('uploads/users'), $imageName);
             $data['image'] = $imageName;
@@ -106,24 +125,25 @@ class UserController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('users.index')->with('success', 'User updated successfully.');
+        return redirect()->route('users.index')
+            ->with('success', 'User updated successfully.');
     }
 
     public function destroy(User $user)
     {
-        // Prevent deleting yourself
         if (auth()->id() === $user->id) {
-            return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
+            return redirect()->route('users.index')
+                ->with('error', 'You cannot delete your own account.');
         }
 
-        // Delete image
         if ($user->image && file_exists(public_path('uploads/users/' . $user->image))) {
             unlink(public_path('uploads/users/' . $user->image));
         }
 
         $user->delete();
 
-        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+        return redirect()->route('users.index')
+            ->with('success', 'User deleted successfully.');
     }
 
     public function toggleStatus(User $user)
@@ -137,8 +157,8 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'status' => $user->status,
-            'message' => 'Status updated successfully.'
+            'status'  => $user->status,
+            'message' => 'Status updated successfully.',
         ]);
     }
 }

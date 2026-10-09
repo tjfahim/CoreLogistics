@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CargoItemController;
@@ -87,6 +89,17 @@ Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
 
 Route::resource('users', UserController::class);
     Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+
+   // Role CRUD
+    Route::resource('roles', RoleController::class);
+
+    // Toggle status (AJAX)
+    Route::post('roles/{role}/toggle-status', [RoleController::class, 'toggleStatus'])
+        ->name('roles.toggle-status');
+     // Permissions
+    Route::resource('permissions', PermissionController::class);
+    Route::post('permissions/bulk-store', [PermissionController::class, 'bulkStore'])
+        ->name('permissions.bulk-store');
 // Existing (keep as is)
 Route::get('cargo-items/pending', [CargoItemController::class, 'pendingItems'])->name('cargo-items.pending');
 Route::get('cargo-items/packed', [CargoItemController::class, 'packedItems'])->name('cargo-items.packed');

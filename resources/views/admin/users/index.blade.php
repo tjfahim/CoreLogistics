@@ -52,13 +52,25 @@
                                     </td>
                                     <td>{{ $user->name }}</td>
                                     <td>{{ $user->email }}</td>
-                                    <td>
-                                        @if($user->role == 2)
-                                            <span class="badge badge-success">Admin</span>
-                                        @else
-                                            <span class="badge badge-secondary">User</span>
-                                        @endif
-                                    </td>
+                                   <td>
+    @if($user->roleRelation)
+        @php
+            $badgeClass = match($user->roleRelation->slug) {
+                'superadmin' => 'badge-dark',
+                'admin'      => 'badge-success',
+                'manager'    => 'badge-primary',
+                default      => 'badge-secondary',
+            };
+        @endphp
+        <span class="badge {{ $badgeClass }}">
+            {{ $user->roleRelation->name }}
+        </span>
+    @elseif($user->role == 2)
+        <span class="badge badge-success">Admin (legacy)</span>
+    @else
+        <span class="badge badge-secondary">User</span>
+    @endif
+</td>
                                     <td>
                                         <span class="badge {{ $user->status == 1 ? 'badge-success' : 'badge-danger' }} status-badge" 
                                               data-id="{{ $user->id }}">
@@ -95,7 +107,7 @@
                         </table>
 
                         <div class="mt-3">
-                            {{ $users->links() }}
+                            {{ $users->links('pagination::bootstrap-4') }}
                         </div>
                     </div>
                 </div>

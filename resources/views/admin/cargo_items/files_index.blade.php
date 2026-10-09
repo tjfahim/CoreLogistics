@@ -115,7 +115,7 @@
                 </table>
 
                 <div class="mt-3">
-                    {{ $files->links() }}
+                    {{ $files->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>

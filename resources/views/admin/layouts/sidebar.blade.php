@@ -73,6 +73,16 @@
         <i class="menu-icon fa fa-user-circle"></i> Admin Users
     </a>
 </li>
+                    <li class="{{ request()->routeIs('roles.*') ? 'active' : '' }}">
+    <a href="{{ route('roles.index') }}">
+        <i class="menu-icon fa fa-user-circle"></i> Roles
+    </a>
+</li>
+                    <li class="{{ request()->routeIs('permissions.*') ? 'active' : '' }}">
+    <a href="{{ route('permissions.index') }}">
+        <i class="menu-icon fa fa-user-circle"></i> Permissions
+    </a>
+</li>
                     <li class="{{ request()->routeIs('customers.*') ? 'active' : '' }}">
                         <a href="{{ route('customers.index') }}">
                             <i class="menu-icon fa fa-users"></i> Customers
