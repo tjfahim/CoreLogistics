@@ -23,12 +23,22 @@
 
 <div class="content mt-3">
 
-    <!-- Success Message -->
     @if(session('success'))
         <div class="col-sm-12">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <span class="badge badge-pill badge-success">Success</span>
                 {{ session('success') }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="col-sm-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -42,9 +52,12 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Agent List</strong>
 
-                <a href="{{ route('agents.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> Add Agent
-                </a>
+                {{-- ✅ Add Agent --}}
+                @can('add-agents')
+                    <a href="{{ route('agents.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add Agent
+                    </a>
+                @endcan
             </div>
 
             <div class="card-body">
@@ -81,17 +94,27 @@
                             <td>{{ $a->address }}</td>
 
                             <td>
-                                <a href="{{ route('agents.edit', $a->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-edit"></i> Edit
-                                </a>
+                                @canany(['edit-agents', 'delete-agents'])
+                                    {{-- ✅ Edit --}}
+                                    @can('edit-agents')
+                                        <a href="{{ route('agents.edit', $a->id) }}" class="btn btn-warning btn-sm">
+                                            <i class="fa fa-edit"></i> Edit
+                                        </a>
+                                    @endcan
 
-                                <form action="{{ route('agents.destroy', $a->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
+                                    {{-- ✅ Delete --}}
+                                    @can('delete-agents')
+                                        <form action="{{ route('agents.destroy', $a->id) }}" method="POST" class="d-inline delete-form">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-danger btn-sm">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endcanany
                             </td>
                         </tr>
                         @empty
@@ -109,7 +132,6 @@
 
 </div>
 
-
 <script>
 $(document).ready(function() {
     $('#agentTable').DataTable({
@@ -120,6 +142,14 @@ $(document).ready(function() {
         "pageLength": 10,
         "lengthMenu": [5, 10, 25, 50],
         "responsive": true
+    });
+
+    // Confirm before delete
+    $('.delete-form').on('submit', function (e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this agent?')) {
+            this.submit();
+        }
     });
 });
 </script>

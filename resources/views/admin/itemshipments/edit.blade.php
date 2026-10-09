@@ -24,6 +24,15 @@
 </div>
 
 <div class="content mt-3">
+    @cannot('edit-shipments')
+    <div class="card">
+        <div class="card-body">
+            <div class="alert alert-danger mb-0">
+                You do not have permission to edit shipments.
+            </div>
+        </div>
+    </div>
+@endcannot
     <div class="col-lg-12">
 
         @if(session('success'))
@@ -40,221 +49,281 @@
             </div>
         @endif
 
-        <form action="{{ route('itemsshipments.update', $itemshipment->id) }}" method="POST" id="shipmentForm">
-            @csrf
-            @method('PUT')
-
-            <div class="card mb-3">
-                <div class="card-header bg-primary text-white shipment-header">
-                    <strong><i class="fa fa-ship"></i> Shipment Information</strong>
-                    <a href="{{ route('itemsshipments.show', $itemshipment->id) }}" class="btn btn-light btn-sm">
-                        <i class="fa fa-arrow-left"></i> Back
-                    </a>
-                </div>
-
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Shipment Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control @error('shipment_name') is-invalid @enderror"
-                                       id="shipment_name" name="shipment_name"
-                                       value="{{ old('shipment_name', $itemshipment->shipment_name) }}" required>
-                                @error('shipment_name')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Shipment Date</label>
-                                <input type="date" class="form-control @error('shipment_date') is-invalid @enderror"
-                                       id="shipment_date" name="shipment_date"
-                                       value="{{ old('shipment_date', $itemshipment->shipment_date ? $itemshipment->shipment_date->format('Y-m-d') : '') }}">
-                                @error('shipment_date')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold">Status</label>
-                                @php
-                                    $currentStatus = old('status', $itemshipment->status);
-                                    $statuses = [
-                                        'draft'               => 'Draft',
-                                        'pending'             => 'Shipment Ongoing',
-                                        'shipped'             => 'Shipped',
-                                        'arrived_bd'          => 'Arrived BD',
-                                        'waiting_for_customs' => 'Waiting for Customs',
-                                        'delivered'           => 'Delivered',
-                                        'cancelled'           => 'Cancelled',
-                                    ];
-                                @endphp
-                                <select class="form-control @error('status') is-invalid @enderror" id="status" name="status">
-                                    @foreach($statuses as $value => $label)
-                                        <option value="{{ $value }}" {{ $currentStatus == $value ? 'selected' : '' }}>
-                                            {{ $label }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('status')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Note</label>
-                        <textarea class="form-control @error('note') is-invalid @enderror"
-                                  id="note" name="note" rows="2"
-                                  placeholder="Optional notes about this shipment">{{ old('note', $itemshipment->note) }}</textarea>
-                        @error('note')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header bg-info text-white items-header">
-                    <div>
-                        <strong><i class="fa fa-cubes"></i> Select Items</strong>
-                        <span class="badge badge-light ml-2" id="selectedCountBadge">0 selected</span>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-light btn-sm" id="selectAllBtn">
-                            <i class="fa fa-check-square"></i> Select All
-                        </button>
-                        <button type="button" class="btn btn-light btn-sm" id="deselectAllBtn">
-                            <i class="fa fa-square"></i> Deselect All
-                        </button>
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    @if($availableItems->count() > 0 || $itemshipment->cargoItems->count() > 0)
-
-                        <div class="alert alert-info small">
-                            <i class="fa fa-info-circle"></i>
-                            <strong>Tip:</strong> Click anywhere on a row to select or deselect the item.
-                        </div>
-
-                        <div class="table-responsive">
-                            <table id="itemsTable" class="table table-bordered table-hover table-sm" width="100%">
-                                <thead class="thead-dark">
-                                    <tr>
-                                        <th width="45"><input type="checkbox" id="selectAllItems"></th>
-                                        <th>ID</th>
-                                        <th>Printed CTN</th>
-                                        <th>Written CTN</th>
-                                        <th>Tracking No.</th>
-                                        <th>Goods Name</th>
-                                        <th>Pack No.</th>
-                                        <th>Unit Pcs</th>
-                                        <th>Weight</th>
-                                        <th>Dimensions / CBM</th>
-                                        <th>Shipping Mark</th>
-                                        <th>Remark</th>
-                                        <th>Copy</th>
-                                        <th>Warehouse</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($itemshipment->cargoItems as $item)
-                                        <tr class="shipment-item-row selected-row" data-item-id="{{ $item->id }}">
-                                            <td class="text-center">
-                                                <input type="checkbox" value="{{ $item->id }}" class="item-checkbox" checked>
-                                            </td>
-                                            <td>{{ $item->id }}</td>
-                                            <td>{{ $item->printed_ctn_no }}</td>
-                                            <td>{{ $item->written_ctn_no }}</td>
-                                            <td>{{ $item->tracking_no }}</td>
-                                            <td>
-                                                {{ $item->goods_name_en }}
-                                                @if($item->goods_name_local)
-                                                    <br><small class="text-muted">({{ $item->goods_name_local }})</small>
-                                                @endif
-                                            </td>
-                                            <td>{{ $item->pack_no }}</td>
-                                            <td>{{ $item->unit_pcs }}</td>
-                                            <td>{{ number_format((float) $item->weight_kg, 3) }}</td>
-                                            <td>
-                                                {{ number_format((float) $item->length_cm, 0) }} ×
-                                                {{ number_format((float) $item->width_cm, 0) }} ×
-                                                {{ number_format((float) $item->height_cm, 0) }} =
-                                                {{ number_format((float) $item->cbm, 3) }}
-                                            </td>
-                                            <td>{{ $item->shipping_mark ?? '-' }}</td>
-                                            <td>{{ $item->remark ?? '-' }}</td>
-                                            <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
-                                            <td>{{ $item->warehouse ?? '-' }}</td>
-                                        </tr>
-                                    @endforeach
-
-                                    @foreach($availableItems as $item)
-                                        <tr class="shipment-item-row" data-item-id="{{ $item->id }}">
-                                            <td class="text-center">
-                                                <input type="checkbox" value="{{ $item->id }}" class="item-checkbox">
-                                            </td>
-                                            <td>{{ $item->id }}</td>
-                                            <td>{{ $item->printed_ctn_no }}</td>
-                                            <td>{{ $item->written_ctn_no }}</td>
-                                            <td>{{ $item->tracking_no }}</td>
-                                            <td>
-                                                {{ $item->goods_name_en }}
-                                                @if($item->goods_name_local)
-                                                    <br><small class="text-muted">({{ $item->goods_name_local }})</small>
-                                                @endif
-                                            </td>
-                                            <td>{{ $item->pack_no }}</td>
-                                            <td>{{ $item->unit_pcs }}</td>
-                                            <td>{{ number_format((float) $item->weight_kg, 3) }}</td>
-                                            <td>
-                                                {{ number_format((float) $item->length_cm, 0) }} ×
-                                                {{ number_format((float) $item->width_cm, 0) }} ×
-                                                {{ number_format((float) $item->height_cm, 0) }} =
-                                                {{ number_format((float) $item->cbm, 3) }}
-                                            </td>
-                                            <td>{{ $item->shipping_mark ?? '-' }}</td>
-                                            <td>{{ $item->remark ?? '-' }}</td>
-                                            <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
-                                            <td>{{ $item->warehouse ?? '-' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        @error('selected_items')
-                            <small class="text-danger d-block mt-2">{{ $message }}</small>
-                        @enderror
-
-                    @else
-                        <div class="alert alert-warning mb-0">
-                            <i class="fa fa-exclamation-triangle"></i> No items available.
-                        </div>
-                    @endif
-                </div>
-            </div>
-
+        {{-- ✅ Page-level guard --}}
+        @cannot('edit-shipments')
             <div class="card">
-                <div class="card-body action-buttons">
-                    <a href="{{ route('itemsshipments.show', $itemshipment->id) }}" class="btn btn-secondary">
-                        <i class="fa fa-times"></i> Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">
-                        <i class="fa fa-save"></i> Update Shipment
-                    </button>
+                <div class="card-body">
+                    <div class="alert alert-danger mb-0">
+                        You do not have permission to edit shipments.
+                    </div>
                 </div>
             </div>
+        @endcannot
 
-        </form>
+        @can('edit-shipments')
+            <form action="{{ route('itemsshipments.update', $itemshipment->id) }}" method="POST" id="shipmentForm">
+                @csrf
+                @method('PUT')
+
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white shipment-header">
+                        <strong><i class="fa fa-ship"></i> Shipment Information</strong>
+                        <a href="{{ route('itemsshipments.show', $itemshipment->id) }}" class="btn btn-light btn-sm">
+                            <i class="fa fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Shipment Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control @error('shipment_name') is-invalid @enderror"
+                                           id="shipment_name" name="shipment_name"
+                                           value="{{ old('shipment_name', $itemshipment->shipment_name) }}" required>
+                                    @error('shipment_name')
+                                        <small class="text-danger">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Shipment Date</label>
+                                    <input type="date" class="form-control @error('shipment_date') is-invalid @enderror"
+                                           id="shipment_date" name="shipment_date"
+                                           value="{{ old('shipment_date', $itemshipment->shipment_date ? $itemshipment->shipment_date->format('Y-m-d') : '') }}">
+                                    @error('shipment_date')
+                                        <small class="text-danger">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Status</label>
+                                    @php
+                                        $currentStatus = old('status', $itemshipment->status);
+
+                                        // ✅ Map each status value → its permission slug
+                                        $statusPermissions = [
+                                            'draft'               => null,                        // draft = base edit, no extra perm
+                                            'pending'             => 'status-ongoing',
+                                            'shipped'             => 'status-shipped',
+                                            'arrived_bd'          => 'status-arrived-bd',
+                                            'waiting_for_customs' => 'status-waiting-for-custom',
+                                            'delivered'           => 'status-delivered',
+                                            'cancelled'           => 'status-cancelled',
+                                        ];
+
+                                        // Labels
+                                        $statusLabels = [
+                                            'draft'               => 'Draft',
+                                            'pending'             => 'Shipment Ongoing',
+                                            'shipped'             => 'Shipped',
+                                            'arrived_bd'          => 'Arrived BD',
+                                            'waiting_for_customs' => 'Waiting for Customs',
+                                            'delivered'           => 'Delivered',
+                                            'cancelled'           => 'Cancelled',
+                                        ];
+
+                                        // Which statuses can this user pick?
+                                        $allowedStatuses = [];
+                                        foreach ($statusLabels as $value => $label) {
+                                            $slug = $statusPermissions[$value] ?? null;
+
+                                            // Always allow "draft" (it's the base edit state)
+                                            if ($slug === null) {
+                                                $allowedStatuses[$value] = $label;
+                                                continue;
+                                            }
+
+                                            if (auth()->user()->hasPermission($slug)) {
+                                                $allowedStatuses[$value] = $label;
+                                            }
+                                        }
+
+                                        // Ensure current status is always visible (so user can see it even if they can't change to it)
+                                        if (!array_key_exists($currentStatus, $allowedStatuses) && isset($statusLabels[$currentStatus])) {
+                                            // Prepend current so it's still shown but they can only keep it
+                                            $allowedStatuses = [$currentStatus => $statusLabels[$currentStatus] . ' (current)'] + $allowedStatuses;
+                                        }
+                                    @endphp
+
+                                    @if(count($allowedStatuses) > 1)
+                                        <select class="form-control @error('status') is-invalid @enderror" id="status" name="status">
+                                            @foreach($allowedStatuses as $value => $label)
+                                                <option value="{{ $value }}" {{ $currentStatus == $value ? 'selected' : '' }}>
+                                                    {{ $label }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        {{-- Only one status available → show as read-only --}}
+                                        <input type="text" class="form-control" value="{{ reset($allowedStatuses) }}" readonly>
+                                        <input type="hidden" name="status" value="{{ array_key_first($allowedStatuses) }}">
+                                        <small class="text-muted">
+                                            <i class="fa fa-lock"></i>
+                                            You don't have permission to change this status.
+                                        </small>
+                                    @endif
+
+                                    @error('status')
+                                        <small class="text-danger">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold">Note</label>
+                            <textarea class="form-control @error('note') is-invalid @enderror"
+                                      id="note" name="note" rows="2"
+                                      placeholder="Optional notes about this shipment">{{ old('note', $itemshipment->note) }}</textarea>
+                            @error('note')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white items-header">
+                        <div>
+                            <strong><i class="fa fa-cubes"></i> Select Items</strong>
+                            <span class="badge badge-light ml-2" id="selectedCountBadge">0 selected</span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-light btn-sm" id="selectAllBtn">
+                                <i class="fa fa-check-square"></i> Select All
+                            </button>
+                            <button type="button" class="btn btn-light btn-sm" id="deselectAllBtn">
+                                <i class="fa fa-square"></i> Deselect All
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        @if($availableItems->count() > 0 || $itemshipment->cargoItems->count() > 0)
+
+                            <div class="alert alert-info small">
+                                <i class="fa fa-info-circle"></i>
+                                <strong>Tip:</strong> Click anywhere on a row to select or deselect the item.
+                            </div>
+
+                            <div class="table-responsive">
+                                <table id="itemsTable" class="table table-bordered table-hover table-sm" width="100%">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th width="45"><input type="checkbox" id="selectAllItems"></th>
+                                            <th>ID</th>
+                                            <th>Printed CTN</th>
+                                            <th>Written CTN</th>
+                                            <th>Tracking No.</th>
+                                            <th>Goods Name</th>
+                                            <th>Pack No.</th>
+                                            <th>Unit Pcs</th>
+                                            <th>Weight</th>
+                                            <th>Dimensions / CBM</th>
+                                            <th>Shipping Mark</th>
+                                            <th>Remark</th>
+                                            <th>Copy</th>
+                                            <th>Warehouse</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($itemshipment->cargoItems as $item)
+                                            <tr class="shipment-item-row selected-row" data-item-id="{{ $item->id }}">
+                                                <td class="text-center">
+                                                    <input type="checkbox" value="{{ $item->id }}" class="item-checkbox" checked>
+                                                </td>
+                                                <td>{{ $item->id }}</td>
+                                                <td>{{ $item->printed_ctn_no }}</td>
+                                                <td>{{ $item->written_ctn_no }}</td>
+                                                <td>{{ $item->tracking_no }}</td>
+                                                <td>
+                                                    {{ $item->goods_name_en }}
+                                                    @if($item->goods_name_local)
+                                                        <br><small class="text-muted">({{ $item->goods_name_local }})</small>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $item->pack_no }}</td>
+                                                <td>{{ $item->unit_pcs }}</td>
+                                                <td>{{ number_format((float) $item->weight_kg, 3) }}</td>
+                                                <td>
+                                                    {{ number_format((float) $item->length_cm, 0) }} ×
+                                                    {{ number_format((float) $item->width_cm, 0) }} ×
+                                                    {{ number_format((float) $item->height_cm, 0) }} =
+                                                    {{ number_format((float) $item->cbm, 3) }}
+                                                </td>
+                                                <td>{{ $item->shipping_mark ?? '-' }}</td>
+                                                <td>{{ $item->remark ?? '-' }}</td>
+                                                <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
+                                                <td>{{ $item->warehouse ?? '-' }}</td>
+                                            </tr>
+                                        @endforeach
+
+                                        @foreach($availableItems as $item)
+                                            <tr class="shipment-item-row" data-item-id="{{ $item->id }}">
+                                                <td class="text-center">
+                                                    <input type="checkbox" value="{{ $item->id }}" class="item-checkbox">
+                                                </td>
+                                                <td>{{ $item->id }}</td>
+                                                <td>{{ $item->printed_ctn_no }}</td>
+                                                <td>{{ $item->written_ctn_no }}</td>
+                                                <td>{{ $item->tracking_no }}</td>
+                                                <td>
+                                                    {{ $item->goods_name_en }}
+                                                    @if($item->goods_name_local)
+                                                        <br><small class="text-muted">({{ $item->goods_name_local }})</small>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $item->pack_no }}</td>
+                                                <td>{{ $item->unit_pcs }}</td>
+                                                <td>{{ number_format((float) $item->weight_kg, 3) }}</td>
+                                                <td>
+                                                    {{ number_format((float) $item->length_cm, 0) }} ×
+                                                    {{ number_format((float) $item->width_cm, 0) }} ×
+                                                    {{ number_format((float) $item->height_cm, 0) }} =
+                                                    {{ number_format((float) $item->cbm, 3) }}
+                                                </td>
+                                                <td>{{ $item->shipping_mark ?? '-' }}</td>
+                                                <td>{{ $item->remark ?? '-' }}</td>
+                                                <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
+                                                <td>{{ $item->warehouse ?? '-' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @error('selected_items')
+                                <small class="text-danger d-block mt-2">{{ $message }}</small>
+                            @enderror
+
+                        @else
+                            <div class="alert alert-warning mb-0">
+                                <i class="fa fa-exclamation-triangle"></i> No items available.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body action-buttons">
+                        <a href="{{ route('itemsshipments.show', $itemshipment->id) }}" class="btn btn-secondary">
+                            <i class="fa fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fa fa-save"></i> Update Shipment
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        @endcan
     </div>
 </div>
 
@@ -265,6 +334,9 @@
 <script>
 $(document).ready(function () {
     'use strict';
+
+    // Bail out if the form isn't rendered (no edit-shipments permission)
+    if (!document.getElementById('shipmentForm')) return;
 
     const selectedIds = new Set();
 

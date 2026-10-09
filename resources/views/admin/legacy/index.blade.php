@@ -9,31 +9,34 @@
     @endforeach
     @if($errors->any()) <div class="alert alert-danger">{{ $errors->first() }}</div> @endif
 
-    <div class="card shadow mb-4">
-        <div class="card-header"><strong>Upload old Excel (the *_import_ready.xlsx file)</strong></div>
-        <div class="card-body">
-            <form method="POST" action="{{ route('legacy.store') }}" enctype="multipart/form-data">
-                @csrf
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        <label>Excel file (.xlsx)</label>
-                        <input type="file" name="file" class="form-control-file" accept=".xlsx" required>
+    {{-- ✅ Upload form — only for add-old-data --}}
+    @can('add-old-data')
+        <div class="card shadow mb-4">
+            <div class="card-header"><strong>Upload old Excel (the *_import_ready.xlsx file)</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ route('legacy.store') }}" enctype="multipart/form-data">
+                    @csrf
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Excel file (.xlsx)</label>
+                            <input type="file" name="file" class="form-control-file" accept=".xlsx" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Title</label>
+                            <input type="text" name="title" class="form-control" placeholder="June 2026 deliveries">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Note</label>
+                            <input type="text" name="note" class="form-control">
+                        </div>
+                        <div class="form-group col-md-2 d-flex align-items-end">
+                            <button class="btn btn-primary btn-block">Upload &amp; Read</button>
+                        </div>
                     </div>
-                    <div class="form-group col-md-3">
-                        <label>Title</label>
-                        <input type="text" name="title" class="form-control" placeholder="June 2026 deliveries">
-                    </div>
-                    <div class="form-group col-md-3">
-                        <label>Note</label>
-                        <input type="text" name="note" class="form-control">
-                    </div>
-                    <div class="form-group col-md-2 d-flex align-items-end">
-                        <button class="btn btn-primary btn-block">Upload &amp; Read</button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+    @endcan
 
     <div class="card shadow">
         <div class="card-body table-responsive">
@@ -59,11 +62,22 @@
                         <td class="text-right">{{ number_format($u->total_due, 0) }}</td>
                         <td>{{ $u->created_at->format('d M Y H:i') }}</td>
                         <td class="text-nowrap">
-                            <a href="{{ route('legacy.show', $u) }}" class="btn btn-sm btn-outline-primary">Review</a>
-                            @if($u->status !== 'staged')
-                                <a href="{{ route('legacy.report', $u) }}" class="btn btn-sm btn-info">Report</a>
-                            @endif
-                            <a href="{{ route('legacy.download', $u) }}" class="btn btn-sm btn-outline-secondary">File</a>
+                            {{-- ✅ Review — needs view-old-data --}}
+                            @can('view-old-data')
+                                <a href="{{ route('legacy.show', $u) }}" class="btn btn-sm btn-outline-primary">Review</a>
+                            @endcan
+
+                            {{-- ✅ Report — needs view-old-data --}}
+                            @can('view-old-data')
+                                @if($u->status !== 'staged')
+                                    <a href="{{ route('legacy.report', $u) }}" class="btn btn-sm btn-info">Report</a>
+                                @endif
+                            @endcan
+
+                            {{-- ✅ File download — needs view-old-data --}}
+                            @can('view-old-data')
+                                <a href="{{ route('legacy.download', $u) }}" class="btn btn-sm btn-outline-secondary">File</a>
+                            @endcan
                         </td>
                     </tr>
                 @empty

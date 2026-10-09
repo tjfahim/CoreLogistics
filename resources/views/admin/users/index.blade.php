@@ -8,9 +8,13 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <strong class="card-title">User Management</strong>
-                        <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
-                            <i class="fa fa-plus"></i> Add New User
-                        </a>
+
+                        {{-- ✅ Create button --}}
+                        @can('create-users')
+                            <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
+                                <i class="fa fa-plus"></i> Add New User
+                            </a>
+                        @endcan
                     </div>
                     <div class="card-body">
                         @if(session('success'))
@@ -45,60 +49,79 @@
                                 <tr>
                                     <td>{{ $users->firstItem() + $key }}</td>
                                     <td>
-                                        <img src="{{ $user->image_url }}" 
-                                             alt="{{ $user->name }}" 
-                                             class="rounded-circle" 
+                                        <img src="{{ $user->image_url }}"
+                                             alt="{{ $user->name }}"
+                                             class="rounded-circle"
                                              style="width: 40px; height: 40px; object-fit: cover;">
                                     </td>
                                     <td>{{ $user->name }}</td>
                                     <td>{{ $user->email }}</td>
-                                   <td>
-    @if($user->roleRelation)
-        @php
-            $badgeClass = match($user->roleRelation->slug) {
-                'superadmin' => 'badge-dark',
-                'admin'      => 'badge-success',
-                'manager'    => 'badge-primary',
-                default      => 'badge-secondary',
-            };
-        @endphp
-        <span class="badge {{ $badgeClass }}">
-            {{ $user->roleRelation->name }}
-        </span>
-    @elseif($user->role == 2)
-        <span class="badge badge-success">Admin (legacy)</span>
-    @else
-        <span class="badge badge-secondary">User</span>
-    @endif
-</td>
                                     <td>
-                                        <span class="badge {{ $user->status == 1 ? 'badge-success' : 'badge-danger' }} status-badge" 
-                                              data-id="{{ $user->id }}">
-                                            {{ $user->status == 1 ? 'Active' : 'Inactive' }}
-                                        </span>
+                                        @if($user->roleRelation)
+                                            @php
+                                                $badgeClass = match($user->roleRelation->slug) {
+                                                    'superadmin' => 'badge-dark',
+                                                    'admin'      => 'badge-success',
+                                                    'manager'    => 'badge-primary',
+                                                    default      => 'badge-secondary',
+                                                };
+                                            @endphp
+                                            <span class="badge {{ $badgeClass }}">
+                                                {{ $user->roleRelation->name }}
+                                            </span>
+                                        @elseif($user->role == 2)
+                                            <span class="badge badge-success">Admin (legacy)</span>
+                                        @else
+                                            <span class="badge badge-secondary">User</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        {{-- ✅ Toggle Status --}}
+                                        @can('toggle-user-status')
+                                            <span class="badge {{ $user->status == 1 ? 'badge-success' : 'badge-danger' }} status-badge"
+                                                  data-id="{{ $user->id }}"
+                                                  style="cursor:pointer;">
+                                                {{ $user->status == 1 ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        @else
+                                            <span class="badge {{ $user->status == 1 ? 'badge-success' : 'badge-danger' }}">
+                                                {{ $user->status == 1 ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        @endcan
                                     </td>
                                     <td>{{ $user->created_at->format('d M Y') }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{{ route('users.show', $user->id) }}" 
-                                               class="btn btn-info btn-sm" title="View">
-                                                <i class="fa fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('users.edit', $user->id) }}" 
-                                               class="btn btn-warning btn-sm" title="Edit">
-                                                <i class="fa fa-edit"></i>
-                                            </a>
-                                            @if(auth()->id() !== $user->id)
-                                            <form action="{{ route('users.destroy', $user->id) }}" 
-                                                  method="POST" 
-                                                  class="d-inline delete-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" title="Delete">
-                                                    <i class="fa fa-trash"></i>
-                                                </button>
-                                            </form>
-                                            @endif
+                                            {{-- ✅ View --}}
+                                            @can('view-users')
+                                                <a href="{{ route('users.show', $user->id) }}"
+                                                   class="btn btn-info btn-sm" title="View">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Edit --}}
+                                            @can('edit-users')
+                                                <a href="{{ route('users.edit', $user->id) }}"
+                                                   class="btn btn-warning btn-sm" title="Edit">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Delete --}}
+                                            @can('delete-users')
+                                                @if(auth()->id() !== $user->id)
+                                                <form action="{{ route('users.destroy', $user->id) }}"
+                                                      method="POST"
+                                                      class="d-inline delete-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                                @endif
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
@@ -130,13 +153,11 @@
         $('.status-badge').on('click', function() {
             var badge = $(this);
             var userId = badge.data('id');
-            
+
             $.ajax({
                 url: '/admin/users/' + userId + '/toggle-status',
                 type: 'POST',
-                data: {
-                    _token: '{{ csrf_token() }}'
-                },
+                data: { _token: '{{ csrf_token() }}' },
                 success: function(response) {
                     if (response.success) {
                         if (response.status == 1) {

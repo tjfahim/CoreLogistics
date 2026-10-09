@@ -50,13 +50,22 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Manage Prices - {{ $itemshipment->shipment_name }}</strong>
                 <div>
-                    <a href="javascript:history.back()" 
-               class="btn btn-secondary">
-                <i class="fa fa-arrow-left"></i> Back
-            </a>
+                    <a href="javascript:history.back()" class="btn btn-secondary">
+                        <i class="fa fa-arrow-left"></i> Back
+                    </a>
                 </div>
             </div>
             <div class="card-body">
+
+                {{-- ✅ Page-level guard: need view-price to see, edit-price to edit --}}
+                @cannot('view-price')
+                    <div class="alert alert-danger mb-0">
+                        You do not have permission to view prices.
+                    </div>
+                @endcannot
+
+                @can('view-price')
+
                 <!-- Shipment Summary -->
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -95,16 +104,22 @@
                     </div>
                 </div>
 
-                <!-- Price Update Form -->
-                <form action="{{ route('itemshipments.update-prices', $itemshipment->id) }}" method="POST" id="priceForm">
-                    @csrf
+                {{-- Form is only rendered if user can edit prices --}}
+                @can('edit-price')
+                    <form action="{{ route('itemshipments.update-prices', $itemshipment->id) }}" method="POST" id="priceForm">
+                        @csrf
+                @endcan
+
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5>Update Item Prices (Price per KG)</h5>
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fa fa-save"></i> Update All Prices
-                        </button>
+
+                        @can('edit-price')
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fa fa-save"></i> Update All Prices
+                            </button>
+                        @endcan
                     </div>
-                    
+
                     @if($itemshipment->cargoItems->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-striped table-bordered">
@@ -114,7 +129,7 @@
                                         <th>CTN NO.</th>
                                         <th>Goods Name</th>
                                         <th>Shipping Mark</th>
-                                            <th>CBM</th>
+                                        <th>CBM</th>
                                         <th>Weight (kg)</th>
                                         <th>Current Price/KG (৳)</th>
                                         <th>New Price/KG (৳)</th>
@@ -134,23 +149,27 @@
                                         </td>
                                         <td>{{ $item->goods_name_en }}</td>
                                         <td>{{ $item->shipping_mark }}</td>
-                                         <td>
-                                        {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}
-                                    </td>
+                                        <td>
+                                            {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}
+                                        </td>
                                         <td class="text-right">{{ number_format($item->weight_kg ?? 0, 0) }}</td>
                                         <td class="text-right text-info">
                                             <strong>{{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}</strong>
                                         </td>
                                         <td>
-                                            <input type="number" 
-                                                   name="prices[{{ $item->id }}]" 
-                                                   value="{{ $item->price_per_kg ?? '' }}" 
-                                                   step="0.01" 
-                                                   min="0" 
-                                                   class="form-control form-control-sm price-per-kg"
-                                                   data-item-id="{{ $item->id }}"
-                                                   data-weight="{{ $item->weight_kg ?? 0 }}"
-                                                   placeholder="0.00">
+                                            @can('edit-price')
+                                                <input type="number"
+                                                       name="prices[{{ $item->id }}]"
+                                                       value="{{ $item->price_per_kg ?? '' }}"
+                                                       step="0.01"
+                                                       min="0"
+                                                       class="form-control form-control-sm price-per-kg"
+                                                       data-item-id="{{ $item->id }}"
+                                                       data-weight="{{ $item->weight_kg ?? 0 }}"
+                                                       placeholder="0.00">
+                                            @else
+                                                {{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}
+                                            @endcan
                                         </td>
                                         <td class="text-right total-price" id="total-price-{{ $item->id }}">
                                             <strong class="text-success">{{ number_format($item->price ?? 0, 0) }}</strong>
@@ -176,95 +195,76 @@
                                 </tfoot>
                             </table>
                         </div>
-
-                     
                     @else
                         <div class="alert alert-warning text-center">
                             <i class="fa fa-exclamation-triangle"></i> No items found in this shipment.
                         </div>
                     @endif
+
+                    @can('edit-price')
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5>Update Item Prices (Price per KG)</h5>
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fa fa-save"></i> Update All Prices
-                        </button>
-                    </div>
-                </form>
+                            <h5>Update Item Prices (Price per KG)</h5>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fa fa-save"></i> Update All Prices
+                            </button>
+                        </div>
+                    @endcan
+
+                @can('edit-price')
+                    </form>
+                @endcan
+
+                @endcan {{-- view-price --}}
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .table td, .table th {
-        padding: 0.75rem;
-        vertical-align: middle;
-    }
-    .price-per-kg {
-        min-width: 120px;
-        text-align: center;
-        font-weight: bold;
-    }
-    .total-price {
-        font-weight: bold;
-        min-width: 100px;
-    }
-    .card.bg-light {
-        border: 1px solid #dee2e6;
-    }
-    .table tfoot {
-        font-weight: bold;
-    }
+    .table td, .table th { padding: 0.75rem; vertical-align: middle; }
+    .price-per-kg { min-width: 120px; text-align: center; font-weight: bold; }
+    .total-price { font-weight: bold; min-width: 100px; }
+    .card.bg-light { border: 1px solid #dee2e6; }
+    .table tfoot { font-weight: bold; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const priceInputs = document.querySelectorAll('.price-per-kg');
     const grandTotalElement = document.getElementById('grand-total');
-    
-    // Function to calculate total price for an item
+
+    if (priceInputs.length === 0) return; // no edit permission → nothing to do
+
     function calculateTotalPrice(input) {
         const itemId = input.getAttribute('data-item-id');
         const weight = parseFloat(input.getAttribute('data-weight')) || 0;
         const pricePerKg = parseFloat(input.value) || 0;
         const totalPrice = weight * pricePerKg;
-        
-        // Update the total price display
+
         const totalPriceElement = document.getElementById(`total-price-${itemId}`);
         if (totalPriceElement) {
             totalPriceElement.innerHTML = `<strong class="text-success">৳${totalPrice.toFixed(2)}</strong>`;
         }
-        
-        // Update grand total
+
         updateGrandTotal();
     }
-    
-    // Function to update grand total
+
     function updateGrandTotal() {
         let grandTotal = 0;
-        
         priceInputs.forEach(input => {
             const weight = parseFloat(input.getAttribute('data-weight')) || 0;
             const pricePerKg = parseFloat(input.value) || 0;
             grandTotal += weight * pricePerKg;
         });
-        
         if (grandTotalElement) {
             grandTotalElement.textContent = `৳${grandTotal.toFixed(2)}`;
         }
     }
-    
-    // Add event listeners to all price inputs
+
     priceInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            calculateTotalPrice(this);
-        });
-        
-        // Calculate initial totals
+        input.addEventListener('input', function() { calculateTotalPrice(this); });
         calculateTotalPrice(input);
     });
 });
-
-
 </script>
 @endsection

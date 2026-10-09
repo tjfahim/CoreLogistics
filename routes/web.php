@@ -74,7 +74,9 @@ Route::get('/migrate-fresh-seed', function () {
         ], 500);
     }
 });
-Route::group(['middleware' => 'role:2', 'prefix' => 'admin'], function () {
+Route::middleware(['admin.access'])
+    ->prefix('admin')
+    ->group(function () {
     Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');

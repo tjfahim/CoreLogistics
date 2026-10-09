@@ -23,12 +23,23 @@
 
 <div class="content mt-3">
 
-    <!-- Success Message -->
+    {{-- Success Message --}}
     @if(session('success'))
         <div class="col-sm-12">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <span class="badge badge-pill badge-success">Success</span>
                 {{ session('success') }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="col-sm-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -42,9 +53,12 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Customer List</strong>
 
-                <a href="{{ route('customers.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> Add Customer
-                </a>
+                {{-- ✅ Add Customer --}}
+                @can('create-customers')
+                    <a href="{{ route('customers.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add Customer
+                    </a>
+                @endcan
             </div>
 
             <div class="card-body">
@@ -72,8 +86,6 @@
                             <td>{{ $c->phone }}</td>
                             <td>{{ $c->customer_code }}</td>
                             <td>
-                            
-
                                 @php
                                     $allMarks = $c->all_shipping_marks;
                                 @endphp
@@ -87,20 +99,34 @@
                             </td>
                             <td>{{ $c->address }}</td>
                             <td>
-                                <a href="{{ route('ledger.customer', $c->id) }}" class="btn btn-sm btn-info">
-    <i class="fa fa-book"></i> Ledger
-</a>
-                                <a href="{{ route('customers.edit', $c->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-edit"></i> Edit
-                                </a>
+                                @canany(['view-customers', 'edit-customers', 'delete-customers'])
+                                    {{-- ✅ Ledger (depends on view permission) --}}
+                                    @can('view-customers')
+                                        <a href="{{ route('ledger.customer', $c->id) }}" class="btn btn-sm btn-info">
+                                            <i class="fa fa-book"></i> Ledger
+                                        </a>
+                                    @endcan
 
-                                <form action="{{ route('customers.destroy', $c->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
+                                    {{-- ✅ Edit --}}
+                                    @can('edit-customers')
+                                        <a href="{{ route('customers.edit', $c->id) }}" class="btn btn-warning btn-sm">
+                                            <i class="fa fa-edit"></i> Edit
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ Delete --}}
+                                    @can('delete-customers')
+                                        <form action="{{ route('customers.destroy', $c->id) }}" method="POST" class="d-inline delete-form">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-danger btn-sm">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endcanany
                             </td>
                         </tr>
                         @empty
@@ -128,6 +154,14 @@ $(document).ready(function() {
         "pageLength": 10,
         "lengthMenu": [5, 10, 25, 50],
         "responsive": true
+    });
+
+    // Confirm before delete
+    $('.delete-form').on('submit', function (e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this customer?')) {
+            this.submit();
+        }
     });
 });
 </script>

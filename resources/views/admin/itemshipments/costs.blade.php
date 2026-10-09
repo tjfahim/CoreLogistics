@@ -126,8 +126,9 @@
         </div>
 
         <!-- ====================================================== -->
-        <!-- Add Cost Form                                          -->
+        <!-- Add Cost Form — ✅ ONLY if user has add-shipment-cost -->
         <!-- ====================================================== -->
+        @can('add-shipment-cost')
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">
@@ -234,11 +235,12 @@
                 </div>
             </div>
         </div>
+        @endcan
 
         <!-- ====================================================== -->
-        <!-- Costs List                                             -->
+        <!-- Costs List — column width adjusts if add form hidden  -->
         <!-- ====================================================== -->
-        <div class="col-md-8">
+        <div class="{{ auth()->user()->hasPermission('add-shipment-cost') ? 'col-md-8' : 'col-md-12' }}">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <strong>Item Shipment Costs</strong>
@@ -275,23 +277,36 @@
                                         </td>
                                         <td>{{ \Carbon\Carbon::parse($cost->cost_date)->format('M d, Y') }}</td>
                                         <td>
-                                            <button type="button" class="btn btn-primary btn-sm"
-                                                    data-toggle="modal" data-target="#paymentModal{{ $cost->id }}">
-                                                <i class="fa fa-money-bill"></i> Pay
-                                            </button>
-                                            <form action="{{ route('itemshipments.costs.destroy', $cost->id) }}"
-                                                  method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                        onclick="return confirm('Are you sure you want to delete this cost?')">
-                                                    <i class="fa fa-trash"></i>
+                                            {{-- ✅ Pay button (add-shipment-cost used as "add payment") --}}
+                                            @can('add-shipment-cost')
+                                                <button type="button" class="btn btn-primary btn-sm"
+                                                        data-toggle="modal" data-target="#paymentModal{{ $cost->id }}">
+                                                    <i class="fa fa-money-bill"></i> Pay
                                                 </button>
-                                            </form>
+                                            @endcan
+
+                                            {{-- ✅ Delete cost --}}
+                                            @can('delete-shipment-cost')
+                                                <form action="{{ route('itemshipments.costs.destroy', $cost->id) }}"
+                                                      method="POST" class="d-inline delete-cost-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endcan
+
+                                            @cannot('add-shipment-cost')
+                                                @cannot('delete-shipment-cost')
+                                                    <span class="text-muted">—</span>
+                                                @endcannot
+                                            @endcannot
                                         </td>
                                     </tr>
 
                                     <!-- Payment Modal -->
+                                    @can('add-shipment-cost')
                                     <div class="modal fade" id="paymentModal{{ $cost->id }}" tabindex="-1" role="dialog">
                                         <div class="modal-dialog" role="document">
                                             <div class="modal-content">
@@ -367,6 +382,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @endcan
                                     @endforeach
                                 </tbody>
                             </table>
@@ -410,15 +426,19 @@
                                     <td>{{ $payment->paid_by ?? 'N/A' }}</td>
                                     <td>{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</td>
                                     <td>
-                                        <form action="{{ route('itemshipments.payments.destroy', $payment->id) }}"
-                                              method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Are you sure you want to delete this payment?')">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        {{-- ✅ Delete payment (uses delete-shipment-cost) --}}
+                                        @can('delete-shipment-cost')
+                                            <form action="{{ route('itemshipments.payments.destroy', $payment->id) }}"
+                                                  method="POST" class="d-inline delete-payment-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endcan
                                     </td>
                                 </tr>
                                 @endforeach
@@ -435,6 +455,10 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const costTypeDropdown = document.getElementById("cost_type_id");
+
+    // If add-shipment-cost is not granted, the form isn't in the DOM
+    if (!costTypeDropdown) return;
+
     const agentField       = document.getElementById("agent_field");
     const rateField        = document.getElementById("rate_row");
     const amountField      = document.getElementById("amount_row");
@@ -445,7 +469,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const costTypes = @json($costTypes);
 
-    // Helper: check if boolean-like value is true
     function isTrue(v) {
         return v === true || v === "true" || v === 1 || v === "1";
     }
@@ -455,14 +478,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const selectedType = costTypes.find(ct => ct.id == selectedId);
 
         if (!selectedId || !selectedType) {
-            // No selection - hide both extra sections
             agentField.style.display = "none";
             rateField.style.display  = "none";
             amountField.style.display = "block";
             return;
         }
 
-        // Toggle agent field
         const haveAgent = isTrue(selectedType.have_agent);
         agentField.style.display = haveAgent ? "block" : "none";
         if (!haveAgent) {
@@ -470,11 +491,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (agentSelect) agentSelect.value = "";
         }
 
-        // Toggle rate vs amount based on type
         if (selectedType.type === "per_kg") {
             rateField.style.display   = "block";
-            amountField.style.display = "block"; // still show computed amount
-            // keep existing amount so user can see the computed value
+            amountField.style.display = "block";
         } else if (selectedType.type === "fixed") {
             rateField.style.display   = "none";
             amountField.style.display = "block";
@@ -502,8 +521,28 @@ document.addEventListener("DOMContentLoaded", function () {
     rateInput.addEventListener("input", calculateAmount);
     weightInput.addEventListener("input", calculateAmount);
 
-    // Run once on page load (in case old() had a selected value)
     updateFormUI();
+});
+
+// Confirm before delete (cost & payment)
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.delete-cost-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (confirm('Are you sure you want to delete this cost?')) {
+                this.submit();
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-payment-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (confirm('Are you sure you want to delete this payment?')) {
+                this.submit();
+            }
+        });
+    });
 });
 </script>
 @endsection

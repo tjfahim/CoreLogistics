@@ -45,9 +45,13 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Imported Excel Files</strong>
-                <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> Upload New
-                </a>
+
+                {{-- ✅ Upload New — only if user can import --}}
+                @can('import-warehouse-file')
+                    <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Upload New
+                    </a>
+                @endcan
             </div>
             <div class="card-body">
                 <table class="table table-striped table-bordered">
@@ -87,23 +91,38 @@
                             <td>{{ $f->uploader->name ?? '—' }}</td>
                             <td>{{ $f->created_at->format('Y-m-d H:i') }}</td>
                             <td>
-                                <a href="{{ route('cargo-items.files.view', $f->id) }}" 
-                                   class="btn btn-info btn-sm" title="View">
-                                    <i class="fa fa-eye"></i>
-                                </a>
-                                <a href="{{ route('cargo-items.files.download', $f->id) }}" 
-                                   class="btn btn-secondary btn-sm" title="Download">
-                                    <i class="fa fa-download"></i>
-                                </a>
-                                <form action="{{ route('cargo-items.files.destroy', $f->id) }}" 
-                                      method="POST" class="d-inline"
-                                      onsubmit="return confirm('Delete this file permanently?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm" title="Delete">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
+                                @canany(['view-warehouse-item', 'import-warehouse-file', 'delete-warehouse-item'])
+                                    {{-- ✅ View --}}
+                                    @can('view-warehouse-item')
+                                        <a href="{{ route('cargo-items.files.view', $f->id) }}"
+                                           class="btn btn-info btn-sm" title="View">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ Download --}}
+                                    @can('view-warehouse-item')
+                                        <a href="{{ route('cargo-items.files.download', $f->id) }}"
+                                           class="btn btn-secondary btn-sm" title="Download">
+                                            <i class="fa fa-download"></i>
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ Delete --}}
+                                    @can('delete-warehouse-item')
+                                        <form action="{{ route('cargo-items.files.destroy', $f->id) }}"
+                                              method="POST" class="d-inline"
+                                              onsubmit="return confirm('Delete this file permanently?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-danger btn-sm" title="Delete">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endcanany
                             </td>
                         </tr>
                         @empty

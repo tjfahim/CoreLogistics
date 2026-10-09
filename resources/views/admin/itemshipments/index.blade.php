@@ -27,13 +27,23 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="col-sm-12">
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        </div>
+    @endif
+
     <div class="col-lg-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Shipment List</strong>
-                <a href="{{ route('itemsshipments.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> Create Shipment
-                </a>
+
+                {{-- ✅ Create Shipment --}}
+                @can('create-shipments')
+                    <a href="{{ route('itemsshipments.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Create Shipment
+                    </a>
+                @endcan
             </div>
 
             <div class="card-body">
@@ -68,45 +78,87 @@
                             <td>{{ $shipment->note ? Str::limit($shipment->note, 50) : '-' }}</td>
                             <td>{{ $shipment->created_at->format('Y-m-d') }}</td>
                             <td>
-                                <a href="{{ route('itemshipments.costs.show', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fa fa-dollar-sign"></i> Costs
-                                </a>
-                                <a href="{{ route('itemshipments.edit-ctn-numbers', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    </i>Ctn
-                                </a>
-                                <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                   </i> Prices
-                                </a>
-                                <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                    Customers
-                                </a>
+                                @canany([
+                                    'view-shipment-cost',
+                                    'view-ctn',
+                                    'view-price',
+                                    'edit-shipments',
+                                    'view-returns',
+                                    'view-invoices',
+                                    'view-shipments',
+                                    'delete-shipments'
+                                ])
+                                    {{-- ✅ Costs --}}
+                                    @can('view-shipment-cost')
+                                        <a href="{{ route('itemshipments.costs.show', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                            <i class="fa fa-dollar-sign"></i> Costs
+                                        </a>
+                                    @endcan
 
-                                {{-- ⭐ NEW: Manage Returns --}}
-                                <a href="{{ route('itemsshipments.manage-returns', $shipment->id) }}" class="btn btn-warning btn-sm">
-                                   Returns
-                                </a>
+                                    {{-- ✅ CTN --}}
+                                    @can('view-ctn')
+                                        <a href="{{ route('itemshipments.edit-ctn-numbers', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                            CTN
+                                        </a>
+                                    @endcan
 
+                                    {{-- ✅ Prices --}}
+                                    @can('view-price')
+                                        <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                            Prices
+                                        </a>
+                                    @endcan
 
-                                <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-sm btn-success">
-                                    <i class="fa fa-file-invoice-dollar"></i> Billing
-                                </a>
+                                    {{-- ✅ Customer Assignment — edit-shipments --}}
+                                    @can('edit-shipments')
+                                        <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                            Customers
+                                        </a>
+                                    @endcan
 
-                                <a href="{{ route('itemsshipments.show', $shipment->id) }}" class="btn btn-info btn-sm">
-                                    <i class="fa fa-eye"></i>
-                                </a>
-                                <a href="{{ route('itemsshipments.edit', $shipment->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-edit"></i>
-                                </a>
-                                <form action="{{ route('itemsshipments.destroy', $shipment->id) }}"
-                                      method="POST"
-                                      class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm"
-                                            onclick="return confirm('Are you sure you want to delete this shipment?')">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
+                                    {{-- ✅ Returns --}}
+                                    @can('view-returns')
+                                        <a href="{{ route('itemsshipments.manage-returns', $shipment->id) }}" class="btn btn-warning btn-sm">
+                                            Returns
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ Billing --}}
+                                    @can('view-invoices')
+                                        <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-sm btn-success">
+                                            <i class="fa fa-file-invoice-dollar"></i> Billing
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ View --}}
+                                    @can('view-shipments')
+                                        <a href="{{ route('itemsshipments.show', $shipment->id) }}" class="btn btn-info btn-sm">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ Edit --}}
+                                    @can('edit-shipments')
+                                        <a href="{{ route('itemsshipments.edit', $shipment->id) }}" class="btn btn-warning btn-sm">
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+                                    @endcan
+
+                                    {{-- ✅ Delete --}}
+                                    @can('delete-shipments')
+                                        <form action="{{ route('itemsshipments.destroy', $shipment->id) }}"
+                                              method="POST"
+                                              class="d-inline delete-form">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-danger btn-sm">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endcanany
                             </td>
                         </tr>
                         @endforeach
@@ -123,6 +175,14 @@ $(document).ready(function() {
         "pageLength": 50,
         "lengthMenu": [ 50, 100, 200, 500, 1000 ],
         "order": [[0, 'desc']]
+    });
+
+    // Confirm before delete
+    $('.delete-form').on('submit', function (e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this shipment?')) {
+            this.submit();
+        }
     });
 });
 </script>

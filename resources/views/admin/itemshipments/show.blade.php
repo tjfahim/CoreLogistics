@@ -29,16 +29,34 @@
     @endif
 
     <div class="col-lg-12">
+
+        @cannot('view-shipments')
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-danger mb-0">
+                        You do not have permission to view shipments.
+                    </div>
+                </div>
+            </div>
+        @endcannot
+
+        @can('view-shipments')
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Shipment: {{ $itemshipment->shipment_name }}</strong>
                 <div>
-                    <a href="{{ route('itemsshipments.edit', $itemshipment->id) }}" class="btn btn-warning btn-sm">
-                        <i class="fa fa-edit"></i> Edit
-                    </a>
+                    {{-- ✅ Edit --}}
+                    @can('edit-shipments')
+                        <a href="{{ route('itemsshipments.edit', $itemshipment->id) }}" class="btn btn-warning btn-sm">
+                            <i class="fa fa-edit"></i> Edit
+                        </a>
+                    @endcan
+
                     <a href="{{ route('itemsshipments.index') }}" class="btn btn-secondary btn-sm">
                         <i class="fa fa-arrow-left"></i> Back
                     </a>
+
+                    {{-- ✅ Print — anyone who can view can print --}}
                     <button class="btn btn-primary btn-sm" onclick="printShipment()">
                         <i class="fa fa-print"></i> Print
                     </button>
@@ -164,10 +182,10 @@
                 @endif
             </div>
         </div>
+        @endcan
     </div>
 </div>
 
-<!-- Print Script -->
 <script>
 function printShipment() {
     var printContents = document.querySelector('.card').innerHTML;

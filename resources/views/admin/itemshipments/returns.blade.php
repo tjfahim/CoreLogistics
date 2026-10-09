@@ -25,7 +25,6 @@
 <div class="content mt-3">
     <div class="col-lg-12">
 
- 
         <div id="toast" class="toast" style="position: fixed; top: 20px; right: 20px; min-width: 250px; z-index: 9999; display: none;">
             <div class="toast-header bg-success text-white">
                 <strong class="mr-auto"><i class="fa fa-check-circle"></i> Success</strong>
@@ -46,111 +45,133 @@
 
             <div class="card-body">
 
-                @if($itemshipment->cargoItems->count() > 0)
-
-                    <div class="alert alert-info small">
-                        <i class="fa fa-info-circle"></i>
-                        <strong>Tip:</strong> Select one or more items and click <strong>"Return Selected"</strong> to move them back to Pending.
+                {{-- ✅ Guard entire page content with view-returns --}}
+                @cannot('view-returns')
+                    <div class="alert alert-danger">
+                        You do not have permission to view returns.
                     </div>
+                @endcannot
 
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <button type="button" class="btn btn-warning btn-sm" id="returnSelectedBtn" disabled>
-                                <i class="fa fa-undo"></i> Return Selected (<span id="selectedCount">0</span>)
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSelectionBtn">
-                                Clear
-                            </button>
+                @can('view-returns')
+                    @if($itemshipment->cargoItems->count() > 0)
+
+                        <div class="alert alert-info small">
+                            <i class="fa fa-info-circle"></i>
+                            <strong>Tip:</strong> Select one or more items and click <strong>"Return Selected"</strong> to move them back to Pending.
                         </div>
-                        <div>
-                            <span class="text-muted small">
-                                Total: <strong>{{ $itemshipment->cargoItems->count() }}</strong> items
-                            </span>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                {{-- ✅ Return Selected button — guarded by add-returns --}}
+                                @can('add-returns')
+                                    <button type="button" class="btn btn-warning btn-sm" id="returnSelectedBtn" disabled>
+                                        <i class="fa fa-undo"></i> Return Selected (<span id="selectedCount">0</span>)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSelectionBtn">
+                                        Clear
+                                    </button>
+                                @endcan
+
+                                @cannot('add-returns')
+                                    <span class="text-muted small">
+                                        <i class="fa fa-lock"></i> You do not have permission to return items.
+                                    </span>
+                                @endcannot
+                            </div>
+                            <div>
+                                <span class="text-muted small">
+                                    Total: <strong>{{ $itemshipment->cargoItems->count() }}</strong> items
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="table-responsive">
-                        <table id="itemsTable" class="table table-striped table-bordered table-hover">
-                            <thead class="thead-dark">
-                                <tr>
-                                    <th style="width: 40px;">
-                                        <input type="checkbox" id="selectAllItems">
-                                    </th>
-                                    <th>ID</th>
-                                    <th>Printed CTN</th>
-                                    <th>Written CTN</th>
-                                    <th>Tracking No.</th>
-                                    <th>Goods Name</th>
-                                    <th>Pack No.</th>
-                                    <th>Unit Pcs</th>
-                                    <th>Weight</th>
-                                    <th>Status</th>
-                                    <th>Returned</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach($itemshipment->cargoItems as $item)
-                                    <tr data-item-id="{{ $item->id }}"
-                                        class="{{ $item->latestReturn ? 'returned-row' : '' }}"
-                                        @if($item->latestReturn)
-                                            title="Returned {{ $item->latestReturn->return_date?->format('Y-m-d') }} — {{ $item->latestReturn->note ?? 'No note' }}"
-                                        @endif>
-                                        <td class="text-center">
-                                            <input type="checkbox" class="item-checkbox" value="{{ $item->id }}">
-                                        </td>
-                                        <td>{{ $item->id }}</td>
-                                        <td>{{ $item->printed_ctn_no }}</td>
-                                        <td>{{ $item->written_ctn_no }}</td>
-                                        <td>{{ $item->tracking_no }}</td>
-                                        <td>
-                                            {{ $item->goods_name_en }}
-                                            @if($item->goods_name_local)
-                                                <br><small class="text-muted">({{ $item->goods_name_local }})</small>
-                                            @endif
-                                        </td>
-                                        <td>{{ $item->pack_no }}</td>
-                                        <td>{{ $item->unit_pcs }}</td>
-                                        <td>{{ number_format((float) $item->weight_kg, 3) }}</td>
-                                        <td>
-                                            @php
-                                                $colors = [
-                                                    'pending' => 'secondary',
-                                                    'packed' => 'info',
-                                                    'shipping_ongoing' => 'primary',
-                                                    'arrived_bd' => 'success',
-                                                    'waiting_for_customs' => 'danger',
-                                                    'ready_to_deliver' => 'dark',
-                                                    'delivered' => 'success',
-                                                ];
-                                                $c = $colors[$item->status] ?? 'secondary';
-                                            @endphp
-                                            <span class="badge badge-{{ $c }}">
-                                                {{ strtoupper(str_replace('_', ' ', $item->status)) }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            @if($item->latestReturn)
-                                                <span class="badge badge-warning">RETURNED</span>
-                                                <br>
-                                                <small class="text-muted">
-                                                    {{ $item->latestReturn->return_date?->format('Y-m-d') }}
-                                                </small>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
+                        <div class="table-responsive">
+                            <table id="itemsTable" class="table table-striped table-bordered table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th style="width: 40px;">
+                                            @can('add-returns')
+                                                <input type="checkbox" id="selectAllItems">
+                                            @endcan
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Printed CTN</th>
+                                        <th>Written CTN</th>
+                                        <th>Tracking No.</th>
+                                        <th>Goods Name</th>
+                                        <th>Pack No.</th>
+                                        <th>Unit Pcs</th>
+                                        <th>Weight</th>
+                                        <th>Status</th>
+                                        <th>Returned</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
 
-                @else
-                    <div class="alert alert-warning mb-0">
-                        <i class="fa fa-exclamation-triangle"></i> No items in this shipment.
-                    </div>
-                @endif
+                                <tbody>
+                                    @foreach($itemshipment->cargoItems as $item)
+                                        <tr data-item-id="{{ $item->id }}"
+                                            class="{{ $item->latestReturn ? 'returned-row' : '' }}"
+                                            @if($item->latestReturn)
+                                                title="Returned {{ $item->latestReturn->return_date?->format('Y-m-d') }} — {{ $item->latestReturn->note ?? 'No note' }}"
+                                            @endif>
+                                            <td class="text-center">
+                                                @can('add-returns')
+                                                    <input type="checkbox" class="item-checkbox" value="{{ $item->id }}">
+                                                @endcan
+                                            </td>
+                                            <td>{{ $item->id }}</td>
+                                            <td>{{ $item->printed_ctn_no }}</td>
+                                            <td>{{ $item->written_ctn_no }}</td>
+                                            <td>{{ $item->tracking_no }}</td>
+                                            <td>
+                                                {{ $item->goods_name_en }}
+                                                @if($item->goods_name_local)
+                                                    <br><small class="text-muted">({{ $item->goods_name_local }})</small>
+                                                @endif
+                                            </td>
+                                            <td>{{ $item->pack_no }}</td>
+                                            <td>{{ $item->unit_pcs }}</td>
+                                            <td>{{ number_format((float) $item->weight_kg, 3) }}</td>
+                                            <td>
+                                                @php
+                                                    $colors = [
+                                                        'pending' => 'secondary',
+                                                        'packed' => 'info',
+                                                        'shipping_ongoing' => 'primary',
+                                                        'arrived_bd' => 'success',
+                                                        'waiting_for_customs' => 'danger',
+                                                        'ready_to_deliver' => 'dark',
+                                                        'delivered' => 'success',
+                                                    ];
+                                                    $c = $colors[$item->status] ?? 'secondary';
+                                                @endphp
+                                                <span class="badge badge-{{ $c }}">
+                                                    {{ strtoupper(str_replace('_', ' ', $item->status)) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if($item->latestReturn)
+                                                    <span class="badge badge-warning">RETURNED</span>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ $item->latestReturn->return_date?->format('Y-m-d') }}
+                                                    </small>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                    @else
+                        <div class="alert alert-warning mb-0">
+                            <i class="fa fa-exclamation-triangle"></i> No items in this shipment.
+                        </div>
+                    @endif
+                @endcan
 
             </div>
         </div>
@@ -158,7 +179,8 @@
     </div>
 </div>
 
-{{-- ============ Return Modal (Custom — no Bootstrap JS needed) ============ --}}
+{{-- ============ Return Modal — only render if user can add returns ============ --}}
+@can('add-returns')
 <div id="returnModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1050; overflow-y:auto; padding:40px 16px;">
     <div style="background:#fff; border-radius:6px; width:100%; max-width:800px; margin:0 auto; box-shadow:0 10px 30px rgba(0,0,0,.25);">
         <div style="padding:12px 16px; background:#ffc107; display:flex; justify-content:space-between; align-items:center;">
@@ -202,6 +224,7 @@
         </div>
     </div>
 </div>
+@endcan
 @endsection
 
 @push('styles')
@@ -311,7 +334,7 @@ jQuery(function($) {
     var hasDataTable = (typeof $.fn.DataTable === 'function') ||
                        (typeof $.fn.dataTable === 'function');
 
-    if (hasDataTable) {
+    if (hasDataTable && document.getElementById('itemsTable')) {
         try {
             $('#itemsTable').DataTable({
                 "pageLength": 50,
@@ -325,6 +348,14 @@ jQuery(function($) {
         }
     } else {
         window.dbg && window.dbg('DataTables NOT available — table will render as plain HTML');
+    }
+
+    // ============================================
+    // Bail out if user can't add returns (no form/buttons in DOM)
+    // ============================================
+    if (!document.getElementById('returnSelectedBtn')) {
+        window.dbg && window.dbg('No add-returns permission — skipping return logic');
+        return;
     }
 
     // ============================================

@@ -59,12 +59,19 @@
                         </span>
                     </strong>
                     <div>
-                        <a href="{{ route('cargo-items.files.index') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fa fa-folder"></i> Imported Files
-                        </a>
-                        <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
-                            <i class="fa fa-plus"></i> Add Item
-                        </a>
+                        {{-- ✅ Imported Files — view-warehouse --}}
+                        @can('view-warehouse')
+                            <a href="{{ route('cargo-items.files.index') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fa fa-folder"></i> Imported Files
+                            </a>
+                        @endcan
+
+                        {{-- ✅ Add Item — add-warehouse-item --}}
+                        @can('add-warehouse-item')
+                            <a href="{{ route('cargo-items.create') }}" class="btn btn-primary btn-sm">
+                                <i class="fa fa-plus"></i> Add Item
+                            </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -141,21 +148,24 @@
 </div>
 
 <script>
+// Permissions injected from Blade → used by JS to show/hide action buttons in rows
+window.CARGO_PERMS = {
+    canEdit:   @json(auth()->user()->hasPermission('edit-warehouse-item')),
+    canDelete: @json(auth()->user()->hasPermission('delete-warehouse-item')),
+    canToggle: @json(auth()->user()->hasPermission('edit-warehouse-item')) // toggle = edit
+};
+
 $(document).ready(function () {
     let currentStatus = "{{ $currentPageStatus ?? 'all' }}";
     let currentPage = 1;
     let currentSearch = '';
     let isProcessing = false;
 
-    // Highlight current filter button
     $('#filterButtons .filter-btn').removeClass('active');
     $('#filterButtons .filter-btn[data-status="' + currentStatus + '"]').addClass('active');
 
     loadItems();
 
-    // ============================================
-    // Filter button click
-    // ============================================
     $(document).on('click', '.filter-btn', function () {
         $('.filter-btn').removeClass('active');
         $(this).addClass('active');
@@ -166,9 +176,6 @@ $(document).ready(function () {
         loadItems();
     });
 
-    // ============================================
-    // Search (debounced)
-    // ============================================
     let searchTimer;
     $('#searchInput').on('input', function () {
         clearTimeout(searchTimer);
@@ -180,17 +187,11 @@ $(document).ready(function () {
         }, 350);
     });
 
-    // ============================================
-    // Per page
-    // ============================================
     $('#perPageSelect').on('change', function () {
         currentPage = 1;
         loadItems();
     });
 
-    // ============================================
-    // Load items via AJAX
-    // ============================================
     function loadItems() {
         const perPage = $('#perPageSelect').val();
 
@@ -215,76 +216,80 @@ $(document).ready(function () {
         });
     }
 
-    // ============================================
-    // Render table rows
-    // ============================================
- function renderRows(items) {
-    if (!items || items.length === 0) {
-        $('#tableBody').html('<tr><td colspan="15" class="text-center text-muted">No items found.</td></tr>');
-        return;
-    }
-
-    const statusColors = {
-        'pending': 'secondary',
-        'packed': 'info',
-        'ready_to_ship': 'primary',
-        'shipping_ongoing': 'primary',
-        'arrived_bd': 'success',
-        'waiting_for_customs': 'danger',
-        'ready_to_deliver': 'dark',
-        'delivered': 'success'
-    };
-
-    let html = '';
-
-    items.forEach(function (item) {
-        const color = statusColors[item.status] || 'secondary';
-        const rowClass = item.status === 'packed' ? 'table-primary' : '';
-        const returnedClass = item.is_returned ? 'returned-row' : '';
-        const dateStr = item.date ? item.date.substring(5, 10) : '-';
-        const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
-
-        let titleAttr = '';
-        if (item.is_returned) {
-            const note = (item.return_note || 'No note').replace(/"/g, '&quot;');
-            const rdate = item.return_date || '';
-            titleAttr = 'title="Returned ' + rdate + ' — ' + note + '"';
+    function renderRows(items) {
+        if (!items || items.length === 0) {
+            $('#tableBody').html('<tr><td colspan="15" class="text-center text-muted">No items found.</td></tr>');
+            return;
         }
 
-        html += '<tr data-item-id="' + item.id + '" ' +
-                'class="selectable-row ' + rowClass + ' ' + returnedClass + '" ' +
-                'data-status="' + item.status + '" ' + titleAttr + '>' +
-                '<td>' + item.id + '</td>' +
-                '<td>' + dateStr + '</td>' +
-                '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
-                '<td>' + (item.written_ctn_no ?? '') + '</td>' +
-                '<td>' + (item.tracking_no ?? '') + '</td>' +
-                '<td>' + (item.goods_name_en ?? '') + goodsLocal + '</td>' +
-                '<td>' + (item.pack_no ?? '') + '</td>' +
-                '<td>' + (item.unit_pcs ?? '') + '</td>' +
-                '<td>' + (item.weight_kg ?? '0.000') + '</td>' +
-                '<td>' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
-                '<td>' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
-                '<td>' + (item.shipping_mark ?? '-') + '</td>' +
-                '<td>' + (item.remark ?? '-') + '</td>' +
-                '<td><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
-                    item.status.replace(/_/g, ' ').toUpperCase() +
-                '</span>' +
-                (item.is_returned ? ' <span class="badge badge-warning">RETURNED</span>' : '') +
-                '</td>' +
-                '<td>' +
-                    '<a href="/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ' +
-                    '<button class="btn btn-danger btn-sm delete-btn" data-id="' + item.id + '" title="Delete"><i class="fa fa-trash"></i></button>' +
-                '</td>' +
-                '</tr>';
-    });
+        const statusColors = {
+            'pending': 'secondary',
+            'packed': 'info',
+            'ready_to_ship': 'primary',
+            'shipping_ongoing': 'primary',
+            'arrived_bd': 'success',
+            'waiting_for_customs': 'danger',
+            'ready_to_deliver': 'dark',
+            'delivered': 'success'
+        };
 
-    $('#tableBody').html(html);
-}
+        let html = '';
+        const P = window.CARGO_PERMS;
 
-    // ============================================
-    // Render pagination
-    // ============================================
+        items.forEach(function (item) {
+            const color = statusColors[item.status] || 'secondary';
+            const rowClass = item.status === 'packed' ? 'table-primary' : '';
+            const returnedClass = item.is_returned ? 'returned-row' : '';
+            const dateStr = item.date ? item.date.substring(5, 10) : '-';
+            const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
+
+            let titleAttr = '';
+            if (item.is_returned) {
+                const note = (item.return_note || 'No note').replace(/"/g, '&quot;');
+                const rdate = item.return_date || '';
+                titleAttr = 'title="Returned ' + rdate + ' — ' + note + '"';
+            }
+
+            // Build action buttons based on permissions
+            let actions = '';
+            if (P.canEdit) {
+                actions += '<a href="/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ';
+            }
+            if (P.canDelete) {
+                actions += '<button class="btn btn-danger btn-sm delete-btn" data-id="' + item.id + '" title="Delete"><i class="fa fa-trash"></i></button>';
+            }
+            if (!P.canEdit && !P.canDelete) {
+                actions = '<span class="text-muted">—</span>';
+            }
+
+            html += '<tr data-item-id="' + item.id + '" ' +
+                    'class="selectable-row ' + rowClass + ' ' + returnedClass + '" ' +
+                    'data-status="' + item.status + '" ' + titleAttr + '>' +
+                    '<td>' + item.id + '</td>' +
+                    '<td>' + dateStr + '</td>' +
+                    '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
+                    '<td>' + (item.written_ctn_no ?? '') + '</td>' +
+                    '<td>' + (item.tracking_no ?? '') + '</td>' +
+                    '<td>' + (item.goods_name_en ?? '') + goodsLocal + '</td>' +
+                    '<td>' + (item.pack_no ?? '') + '</td>' +
+                    '<td>' + (item.unit_pcs ?? '') + '</td>' +
+                    '<td>' + (item.weight_kg ?? '0.000') + '</td>' +
+                    '<td>' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
+                    '<td>' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
+                    '<td>' + (item.shipping_mark ?? '-') + '</td>' +
+                    '<td>' + (item.remark ?? '-') + '</td>' +
+                    '<td><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
+                        item.status.replace(/_/g, ' ').toUpperCase() +
+                    '</span>' +
+                    (item.is_returned ? ' <span class="badge badge-warning">RETURNED</span>' : '') +
+                    '</td>' +
+                    '<td>' + actions + '</td>' +
+                    '</tr>';
+        });
+
+        $('#tableBody').html(html);
+    }
+
     function renderPagination(meta) {
         if (!meta || meta.total === 0) {
             $('#paginationInfo').text('');
@@ -298,11 +303,9 @@ $(document).ready(function () {
         const cur = meta.current_page;
         const last = meta.last_page;
 
-        // Prev
         html += '<li class="page-item ' + (cur <= 1 ? 'disabled' : '') + '">' +
                 '<a class="page-link" href="#" data-page="' + (cur - 1) + '">Prev</a></li>';
 
-        // Page numbers (window of 5)
         let start = Math.max(1, cur - 2);
         let end = Math.min(last, cur + 2);
 
@@ -321,7 +324,6 @@ $(document).ready(function () {
             html += '<li class="page-item"><a class="page-link" href="#" data-page="' + last + '">' + last + '</a></li>';
         }
 
-        // Next
         html += '<li class="page-item ' + (cur >= last ? 'disabled' : '') + '">' +
                 '<a class="page-link" href="#" data-page="' + (cur + 1) + '">Next</a></li>';
 
@@ -338,11 +340,10 @@ $(document).ready(function () {
         }
     });
 
-    // ============================================
-    // Row click → toggle Pending ↔ Packed
-    // ============================================
+    // Row click → toggle Pending ↔ Packed (requires edit-warehouse-item)
     $(document).on('click', '#cargoItemsTable tbody tr.selectable-row', function (e) {
         if ($(e.target).closest('a, button, form, input, select').length) return;
+        if (!window.CARGO_PERMS.canToggle) return;   // ✅ permission check
 
         const row = $(this);
         const status = row.data('status');
@@ -380,8 +381,12 @@ $(document).ready(function () {
                     }
                     isProcessing = false;
                 },
-                error: function () {
-                    showToast('Error updating shipment');
+                error: function (xhr) {
+                    if (xhr.status === 403) {
+                        showToast('You do not have permission to toggle status.');
+                    } else {
+                        showToast('Error updating shipment');
+                    }
                     isProcessing = false;
                 }
             });
@@ -406,14 +411,12 @@ $(document).ready(function () {
         });
     }
 
-    // ============================================
-    // Delete
-    // ============================================
+    // Delete (requires delete-warehouse-item)
     $(document).on('click', '.delete-btn', function () {
+        if (!window.CARGO_PERMS.canDelete) return;
         if (!confirm('Are you sure you want to delete this cargo item?')) return;
 
         const id = $(this).data('id');
-        const $btn = $(this);
 
         $.ajax({
             url: '/cargo-items/' + id,
@@ -426,15 +429,16 @@ $(document).ready(function () {
                 showToast('Item deleted');
                 loadItems();
             },
-            error: function () {
-                showToast('Failed to delete item');
+            error: function (xhr) {
+                if (xhr.status === 403) {
+                    showToast('You do not have permission to delete items.');
+                } else {
+                    showToast('Failed to delete item');
+                }
             }
         });
     });
 
-    // ============================================
-    // Toast
-    // ============================================
     function showToast(message) {
         $('#toastMessage').text(message);
         $('#toast').fadeIn();
@@ -454,12 +458,12 @@ $(document).ready(function () {
         text-align: center !important;
     }
     #cargoItemsTable tbody tr.returned-row {
-    background-color: #fff3cd !important;
-    border-left: 4px solid #ffc107 !important;
-}
-#cargoItemsTable tbody tr.returned-row:hover {
-    background-color: #ffe8a1 !important;
-}
+        background-color: #fff3cd !important;
+        border-left: 4px solid #ffc107 !important;
+    }
+    #cargoItemsTable tbody tr.returned-row:hover {
+        background-color: #ffe8a1 !important;
+    }
     .selectable-row { cursor: pointer; }
     .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
     .table-primary { background-color: #007bff !important; color: white; }

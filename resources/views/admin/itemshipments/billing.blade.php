@@ -8,9 +8,13 @@
             <a href="javascript:history.back()" class="btn btn-secondary">
                 <i class="fa fa-arrow-left"></i> Back
             </a>
-            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updatePricesModal">
-                <i class="fa fa-edit"></i> Update Prices
-            </button>
+
+            {{-- ✅ Update Prices — edit-invoices --}}
+            @can('edit-invoices')
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updatePricesModal">
+                    <i class="fa fa-edit"></i> Update Prices
+                </button>
+            @endcan
         </div>
     </div>
 
@@ -161,18 +165,37 @@
                                 <td>
                                     @if($bill['customer_id'])
                                         <div class="d-flex flex-wrap gap-1">
-                                            <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
-                                               class="btn btn-sm btn-info">
-                                               Invoice
-                                            </a>
-                                            <a href="{{ route('payments.create', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
-                                               class="btn btn-sm btn-success">
-                                                <i class="fa fa-money-bill-wave"></i> Receive Payment
-                                            </a>
-                                            <a href="{{ route('payments.history', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
-                                               class="btn btn-sm btn-info">
-                                                <i class="fa fa-history"></i> Payment History
-                                            </a>
+                                            {{-- ✅ Invoice — view-invoices --}}
+                                            @can('view-invoices')
+                                                <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
+                                                   class="btn btn-sm btn-info">
+                                                   Invoice
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Receive Payment — add-payment --}}
+                                            @can('add-payment')
+                                                <a href="{{ route('payments.create', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fa fa-money-bill-wave"></i> Receive Payment
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Payment History — view-payment-history --}}
+                                            @can('view-payment-history')
+                                                <a href="{{ route('payments.history', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
+                                                   class="btn btn-sm btn-info">
+                                                    <i class="fa fa-history"></i> Payment History
+                                                </a>
+                                            @endcan
+
+                                            @cannot('view-invoices')
+                                                @cannot('add-payment')
+                                                    @cannot('view-payment-history')
+                                                        <span class="text-muted">—</span>
+                                                    @endcannot
+                                                @endcannot
+                                            @endcannot
                                         </div>
                                     @else
                                         <span class="text-muted">No customer assigned</span>
@@ -205,7 +228,8 @@
     </div>
 </div>
 
-<!-- Update Prices Modal -->
+{{-- Update Prices Modal — only render if user can edit-invoices --}}
+@can('edit-invoices')
 <div class="modal fade" id="updatePricesModal" tabindex="-1" aria-labelledby="updatePricesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -273,6 +297,7 @@
         </div>
     </div>
 </div>
+@endcan
 
 @endsection
 
@@ -285,7 +310,7 @@
             highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // ---- Price validation ----
+        // ---- Price validation (only if modal inputs exist) ----
         const priceInputs = document.querySelectorAll('input[name*="[price]"], input[name*="[price_per_kg]"]');
 
         priceInputs.forEach(input => {

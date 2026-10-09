@@ -13,7 +13,7 @@
         @if(session($m)) <div class="alert alert-{{ $m === 'error' ? 'danger' : 'success' }}">{{ session($m) }}</div> @endif
     @endforeach
 
-    {{-- 1. Does the stored data match the Excel's own totals? --}}
+    {{-- 1. Check totals against the Excel --}}
     <div class="card shadow mb-4">
         <div class="card-header"><strong>1. Check totals against the Excel</strong></div>
         <div class="card-body p-0">
@@ -88,8 +88,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="card-footer"> {{ $rows->links('pagination::bootstrap-4') 
-}}</div>
+        <div class="card-footer"> {{ $rows->links('pagination::bootstrap-4') }}</div>
     </div>
 
     {{-- 3. Actions --}}
@@ -100,22 +99,41 @@
                 @if($upload->error_rows > 0)
                     <div class="alert alert-danger mb-2">{{ $upload->error_rows }} row(s) have errors. Fix the Excel and upload again.</div>
                 @endif
-                <form method="POST" action="{{ route('legacy.approve', $upload) }}" class="d-inline">@csrf
-                    <button class="btn btn-success" {{ $upload->error_rows > 0 ? 'disabled' : '' }}>Data is correct: Approve &amp; show old report</button>
-                </form>
-                <form method="POST" action="{{ route('legacy.destroy', $upload) }}" class="d-inline" onsubmit="return confirm('Delete this upload?')">
-                    @csrf @method('DELETE') <button class="btn btn-outline-danger">Delete upload</button>
-                </form>
-            @else
-                <a href="{{ route('legacy.report', $upload) }}" class="btn btn-info">Open old report</a>
-                @if($upload->status === 'approved')
-                    <form method="POST" action="{{ route('legacy.import-live', $upload) }}" class="d-inline"
-                          onsubmit="return confirm('Copy into the LIVE customers, shipments, cargo items and payments? This cannot be undone from here.')">
-                        @csrf <button class="btn btn-warning">Import into live tables (optional)</button>
+
+                {{-- ✅ Approve — needs edit-old-data --}}
+                @can('edit-old-data')
+                    <form method="POST" action="{{ route('legacy.approve', $upload) }}" class="d-inline">@csrf
+                        <button class="btn btn-success" {{ $upload->error_rows > 0 ? 'disabled' : '' }}>Data is correct: Approve &amp; show old report</button>
                     </form>
+                @endcan
+
+                {{-- ✅ Delete — needs delete-old-data --}}
+                @can('delete-old-data')
                     <form method="POST" action="{{ route('legacy.destroy', $upload) }}" class="d-inline" onsubmit="return confirm('Delete this upload?')">
                         @csrf @method('DELETE') <button class="btn btn-outline-danger">Delete upload</button>
                     </form>
+                @endcan
+            @else
+                {{-- ✅ Report link — needs view-old-data --}}
+                @can('view-old-data')
+                    <a href="{{ route('legacy.report', $upload) }}" class="btn btn-info">Open old report</a>
+                @endcan
+
+                @if($upload->status === 'approved')
+                    {{-- ✅ Import into live — needs edit-old-data --}}
+                    @can('edit-old-data')
+                        <form method="POST" action="{{ route('legacy.import-live', $upload) }}" class="d-inline"
+                              onsubmit="return confirm('Copy into the LIVE customers, shipments, cargo items and payments? This cannot be undone from here.')">
+                            @csrf <button class="btn btn-warning">Import into live tables (optional)</button>
+                        </form>
+                    @endcan
+
+                    {{-- ✅ Delete — needs delete-old-data --}}
+                    @can('delete-old-data')
+                        <form method="POST" action="{{ route('legacy.destroy', $upload) }}" class="d-inline" onsubmit="return confirm('Delete this upload?')">
+                            @csrf @method('DELETE') <button class="btn btn-outline-danger">Delete upload</button>
+                        </form>
+                    @endcan
                 @else
                     <span class="text-success ml-2">Imported {{ $upload->imported_at->format('d M Y H:i') }}</span>
                 @endif

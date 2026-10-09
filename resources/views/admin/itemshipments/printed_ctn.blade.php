@@ -50,23 +50,42 @@
                 <a href="javascript:history.back()" class="btn btn-secondary">
                     <i class="fa fa-arrow-left"></i> Back
                 </a>
-                <!-- Print Button -->
-                <button type="button" class="btn btn-info" onclick="printCTNTable()">
-                    <i class="fa fa-print"></i> Print
-                </button>
+
+                {{-- ✅ Print button — guarded by print-ctn --}}
+                @can('print-ctn')
+                    <button type="button" class="btn btn-info" onclick="printCTNTable()">
+                        <i class="fa fa-print"></i> Print
+                    </button>
+                @endcan
             </div>
         </div>
 
         <div class="card-body">
 
-            <form action="{{ route('itemshipments.update-ctn', $itemshipment->id) }}" method="POST">
-                @csrf
+            {{-- ✅ Guard entire page with view-ctn --}}
+            @cannot('view-ctn')
+                <div class="alert alert-danger">
+                    You do not have permission to view CTN numbers.
+                </div>
+            @endcannot
+
+            @can('view-ctn')
+
+                {{-- Form is only rendered when user can edit-ctn --}}
+                @can('edit-ctn')
+                    <form action="{{ route('itemshipments.update-ctn', $itemshipment->id) }}" method="POST">
+                        @csrf
+                @endcan
 
                 <div class="d-flex justify-content-between mb-3">
                     <h5>Update Printed CTN Numbers</h5>
-                    <button class="btn btn-success">
-                        <i class="fa fa-save"></i> Save All
-                    </button>
+
+                    {{-- ✅ Save button — only for edit-ctn --}}
+                    @can('edit-ctn')
+                        <button class="btn btn-success">
+                            <i class="fa fa-save"></i> Save All
+                        </button>
+                    @endcan
                 </div>
 
                 @php
@@ -110,11 +129,16 @@
                                     <td>{{ $loop->parent->iteration }}.{{ $loop->iteration }}</td>
                                     <td><strong>{{ $item->printed_ctn_no ?? '-' }}</strong></td>
                                     <td>
-                                        <input type="text"
-                                               name="printed_ctn[{{ $item->id }}]"
-                                               value="{{ $item->printed_ctn_no }}"
-                                               class="form-control form-control-sm"
-                                               placeholder="Enter new CTN (nullable)">
+                                        {{-- ✅ Show editable input only if user can edit-ctn, otherwise show text --}}
+                                        @can('edit-ctn')
+                                            <input type="text"
+                                                   name="printed_ctn[{{ $item->id }}]"
+                                                   value="{{ $item->printed_ctn_no }}"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Enter new CTN (nullable)">
+                                        @else
+                                            {{ $item->printed_ctn_no ?? '-' }}
+                                        @endcan
                                     </td>
                                     <td>{{ $item->written_ctn_no ?? '-' }}</td>
                                     <td>{{ $item->goods_name_en }}</td>
@@ -137,13 +161,20 @@
                     </div>
                 @endif
 
-                <div class="d-flex justify-content-end mt-3">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fa fa-save"></i> Save All Changes
-                    </button>
-                </div>
+                {{-- ✅ Save button (bottom) — only for edit-ctn --}}
+                @can('edit-ctn')
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fa fa-save"></i> Save All Changes
+                        </button>
+                    </div>
+                @endcan
 
-            </form>
+                @can('edit-ctn')
+                    </form>
+                @endcan
+
+            @endcan
 
         </div>
     </div>
@@ -152,7 +183,10 @@
 
 <script>
 function printCTNTable() {
-    var printContents = document.getElementById('ctnTableToPrint').innerHTML;
+    var el = document.getElementById('ctnTableToPrint');
+    if (!el) return;
+
+    var printContents = el.innerHTML;
     var originalContents = document.body.innerHTML;
 
     document.body.innerHTML = printContents;

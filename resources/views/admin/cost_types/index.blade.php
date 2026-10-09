@@ -36,15 +36,29 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="col-sm-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+        </div>
+    @endif
+
     <div class="col-lg-12">
         <div class="card">
 
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Cost Type List</strong>
 
-                <a href="{{ route('cost-types.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> Add Cost Type
-                </a>
+                {{-- ✅ Add Cost Type --}}
+                @can('add-cost-types')
+                    <a href="{{ route('cost-types.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add Cost Type
+                    </a>
+                @endcan
             </div>
 
             <div class="card-body">
@@ -73,32 +87,42 @@
                                 @else
                                     <span class="badge badge-danger">No</span>
                                 @endif
-                            </td>                            
+                            </td>
                             <td>
                                 @if($ct->have_partial_payment)
                                     <span class="badge badge-success">Yes</span>
                                 @else
                                     <span class="badge badge-danger">No</span>
                                 @endif
-                            </td>                            
+                            </td>
                             <td>{{ $ct->description }}</td>
                             <td>
-                                <a href="{{ route('cost-types.edit', $ct->id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fa fa-edit"></i> Edit
-                                </a>
+                                @canany(['edit-cost-types', 'delete-cost-types'])
+                                    {{-- ✅ Edit --}}
+                                    @can('edit-cost-types')
+                                        <a href="{{ route('cost-types.edit', $ct->id) }}" class="btn btn-warning btn-sm">
+                                            <i class="fa fa-edit"></i> Edit
+                                        </a>
+                                    @endcan
 
-                                <form action="{{ route('cost-types.destroy', $ct->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button onclick="return confirm('Are you sure?')" class="btn btn-danger btn-sm">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
+                                    {{-- ✅ Delete --}}
+                                    @can('delete-cost-types')
+                                        <form action="{{ route('cost-types.destroy', $ct->id) }}" method="POST" class="d-inline delete-form">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-danger btn-sm">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endcanany
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted">No Cost Types Found</td>
+                            <td colspan="7" class="text-center text-muted">No Cost Types Found</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -116,8 +140,16 @@ $(document).ready(function() {
     $('#costTypeTable').DataTable({
         "order": [[0, "desc"]],
         "columnDefs": [
-            { "orderable": false, "targets": 4 }
+            { "orderable": false, "targets": 6 }
         ]
+    });
+
+    // Confirm before delete
+    $('.delete-form').on('submit', function (e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this cost type?')) {
+            this.submit();
+        }
     });
 });
 </script>

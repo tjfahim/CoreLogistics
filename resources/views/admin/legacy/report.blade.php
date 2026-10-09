@@ -13,7 +13,9 @@
         </div>
         <div>
             <button onclick="window.print()" class="btn btn-sm btn-secondary">Print</button>
-            <a href="{{ route('legacy.show', $upload) }}" class="btn btn-sm btn-outline-secondary">Review</a>
+            @can('view-old-data')
+                <a href="{{ route('legacy.show', $upload) }}" class="btn btn-sm btn-outline-secondary">Review</a>
+            @endcan
             <a href="{{ route('legacy.index') }}" class="btn btn-sm btn-outline-secondary">All uploads</a>
         </div>
     </div>

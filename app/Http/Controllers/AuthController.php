@@ -19,37 +19,68 @@ class AuthController extends Controller
     return view('auth.register');
     }
     
-    public function login(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|max:255',
-        ]);
+ public function login(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'email'    => 'required|email',
+        'password' => 'required|max:255',
+    ]);
 
-        if ($validator->fails()) {
-            return Redirect::back()->withInput()->withErrors($validator);
-        }
+    if ($validator->fails()) {
+        return Redirect::back()->withInput()->withErrors($validator);
+    }
 
-        $credentials = $request->only('email', 'password');
+    $credentials = $request->only('email', 'password');
 
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-            if ($user->role === 2 && $user->status === 1) {
-                return redirect()->route('admin.dashboard');
-            }else{
-                return Redirect::back()->with('error', 'Your Account is Deactivate');
-            }
-        
-        }
+    if (!Auth::attempt($credentials)) {
+        // figure out which field was wrong
         $user = User::where('email', $request->email)->first();
 
         if ($user) {
-            return redirect()->back()->withInput()->withErrors(['password' => 'Incorrect password']);
-        } else {
-            return redirect()->back()->withInput()->withErrors(['email' => 'Invalid email']);
-            }
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['password' => 'Incorrect password']);
+        }
+
+        return redirect()->back()
+            ->withInput()
+            ->withErrors(['email' => 'Invalid email']);
     }
 
+    /* -------- Logged in successfully -------- */
+    $user = Auth::user();
+
+    // 1) Inactive user
+    if ((int) $user->status !== 1) {
+        Auth::logout();
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Your account is deactivated. Please contact admin.');
+    }
+
+    // 2) Determine if user is an admin-panel user
+    $adminRoleSlugs = ['superadmin', 'admin', 'manager'];
+
+    $isAdminPanel = false;
+
+    if ($user->roleRelation && in_array($user->roleRelation->slug, $adminRoleSlugs, true)) {
+        $isAdminPanel = true;
+    } elseif ((int) $user->role === 2) {
+        // legacy flag: 2 = admin
+        $isAdminPanel = true;
+    }
+
+    if ($isAdminPanel) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    // 3) Non-admin (regular user) — redirect wherever you want
+    //    If you truly only allow admins to log in, logout and show error:
+    Auth::logout();
+    return redirect()->back()
+        ->withInput()
+        ->with('error', 'You do not have access to the admin panel.');
+}
       public function logout(Request $request)
     {
         Auth::logout();

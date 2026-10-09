@@ -25,7 +25,7 @@
 
     <div class="col-lg-12">
         <div class="card">
-            
+
             <div class="card-header d-flex justify-content-between">
                 <strong>Add New Cost Type</strong>
                 <a href="{{ route('cost-types.index') }}" class="btn btn-secondary btn-sm">
@@ -35,54 +35,65 @@
 
             <div class="card-body">
 
-                <form action="{{ route('cost-types.store') }}" method="POST">
-                    @csrf
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Name</label>
-                        <input type="text" name="name"
-                            value="{{ old('name') }}"
-                            class="form-control @error('name') is-invalid @enderror"
-                            placeholder="e.g. Transport Cost">
-
-                        @error('name')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                {{-- ✅ Guard entire form --}}
+                @cannot('add-cost-types')
+                    <div class="alert alert-danger">
+                        You do not have permission to add cost types.
                     </div>
+                @endcannot
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Type</label>
-                        <select name="type" class="form-control">
-                            <option value="fixed">Fixed</option>
-                            <option value="per_kg">Per KG</option>
-                        </select>
-                    </div>
-                  <div class="form-group">
-                        <label class="font-weight-bold">Have Agent</label>
-                        <select name="have_agent" class="form-control">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
+                @can('add-cost-types')
+                    <form action="{{ route('cost-types.store') }}" method="POST">
+                        @csrf
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Have Partial Payment</label>
-                        <select name="have_partial_payment" class="form-control">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="font-weight-bold">Description</label>
-                        <textarea name="description" rows="3"
-                                  class="form-control">{{ old('description') }}</textarea>
-                    </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Name</label>
+                            <input type="text" name="name"
+                                value="{{ old('name') }}"
+                                class="form-control @error('name') is-invalid @enderror"
+                                placeholder="e.g. Transport Cost">
 
-                    <button class="btn btn-primary btn-sm px-3">
-                        <i class="fa fa-save"></i> Save Cost Type
-                    </button>
+                            @error('name')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
 
-                </form>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Type</label>
+                            <select name="type" class="form-control">
+                                <option value="fixed" {{ old('type')=='fixed' ? 'selected' : '' }}>Fixed</option>
+                                <option value="per_kg" {{ old('type')=='per_kg' ? 'selected' : '' }}>Per KG</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Have Agent</label>
+                            <select name="have_agent" class="form-control">
+                                <option value="0" {{ old('have_agent')=='0' ? 'selected' : '' }}>No</option>
+                                <option value="1" {{ old('have_agent')=='1' ? 'selected' : '' }}>Yes</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Have Partial Payment</label>
+                            <select name="have_partial_payment" class="form-control">
+                                <option value="0" {{ old('have_partial_payment')=='0' ? 'selected' : '' }}>No</option>
+                                <option value="1" {{ old('have_partial_payment')=='1' ? 'selected' : '' }}>Yes</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Description</label>
+                            <textarea name="description" rows="3"
+                                      class="form-control">{{ old('description') }}</textarea>
+                        </div>
+
+                        <button class="btn btn-primary btn-sm px-3">
+                            <i class="fa fa-save"></i> Save Cost Type
+                        </button>
+
+                    </form>
+                @endcan
 
             </div>
 

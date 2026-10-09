@@ -41,13 +41,20 @@
                             @endif
                         </strong>
                         <div>
-                            <a href="{{ route('permissions.bulk-store') }}" class="btn btn-outline-primary btn-sm"
-                               data-toggle="modal" data-target="#bulkModal">
-                                <i class="fa fa-layer-group"></i> Bulk Create
-                            </a>
-                            <a href="{{ route('permissions.create') }}" class="btn btn-primary btn-sm">
-                                <i class="fa fa-plus"></i> Add Permission
-                            </a>
+                            {{-- ✅ Bulk Create --}}
+                            @can('bulk-create-permissions')
+                                <a href="#" class="btn btn-outline-primary btn-sm"
+                                   data-toggle="modal" data-target="#bulkModal">
+                                    <i class="fa fa-layer-group"></i> Bulk Create
+                                </a>
+                            @endcan
+
+                            {{-- ✅ Add Permission --}}
+                            @can('create-permissions')
+                                <a href="{{ route('permissions.create') }}" class="btn btn-primary btn-sm">
+                                    <i class="fa fa-plus"></i> Add Permission
+                                </a>
+                            @endcan
                         </div>
                     </div>
                     <div class="card-body">
@@ -55,6 +62,13 @@
                         @if(session('success'))
                             <div class="alert alert-success alert-dismissible fade show">
                                 {{ session('success') }}
+                                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            </div>
+                        @endif
+
+                        @if(session('error'))
+                            <div class="alert alert-danger alert-dismissible fade show">
+                                {{ session('error') }}
                                 <button type="button" class="close" data-dismiss="alert">&times;</button>
                             </div>
                         @endif
@@ -111,22 +125,33 @@
                                     </td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{{ route('permissions.show', $permission->id) }}"
-                                               class="btn btn-info btn-sm" title="View">
-                                                <i class="fa fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('permissions.edit', $permission->id) }}"
-                                               class="btn btn-warning btn-sm" title="Edit">
-                                                <i class="fa fa-edit"></i>
-                                            </a>
-                                            <form action="{{ route('permissions.destroy', $permission->id) }}"
-                                                  method="POST" class="d-inline delete-form">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" title="Delete">
-                                                    <i class="fa fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            {{-- ✅ View --}}
+                                            @can('view-permissions')
+                                                <a href="{{ route('permissions.show', $permission->id) }}"
+                                                   class="btn btn-info btn-sm" title="View">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Edit --}}
+                                            @can('edit-permissions')
+                                                <a href="{{ route('permissions.edit', $permission->id) }}"
+                                                   class="btn btn-warning btn-sm" title="Edit">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Delete --}}
+                                            @can('delete-permissions')
+                                                <form action="{{ route('permissions.destroy', $permission->id) }}"
+                                                      method="POST" class="d-inline delete-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
@@ -148,7 +173,8 @@
     </div>
 </div>
 
-{{-- Bulk Create Modal --}}
+{{-- Bulk Create Modal — only render if user has permission --}}
+@can('bulk-create-permissions')
 <div class="modal fade" id="bulkModal" tabindex="-1">
     <div class="modal-dialog">
         <form action="{{ route('permissions.bulk-store') }}" method="POST">
@@ -194,6 +220,7 @@
         </form>
     </div>
 </div>
+@endcan
 @endsection
 
 @section('scripts')

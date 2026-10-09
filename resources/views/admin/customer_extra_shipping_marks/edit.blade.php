@@ -43,49 +43,58 @@
                     <div class="alert alert-danger">{{ session('error') }}</div>
                 @endif
 
-                <form action="{{ route('customer-extra-shipping-marks.update', $mark->id) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="form-group">
-                        <label class="font-weight-bold">Customer <span class="text-danger">*</span></label>
-                        <select name="customer_id"
-                                id="customerSelect"
-                                class="form-control @error('customer_id') is-invalid @enderror"
-                                style="width: 100%;"
-                                required>
-                            <option value="">-- Select Customer --</option>
-                            @foreach($customers as $c)
-                                <option value="{{ $c->id }}"
-                                    {{ old('customer_id', $mark->customer_id) == $c->id ? 'selected' : '' }}>
-                                    {{ $c->name }} ({{ $c->customer_code }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('customer_id')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                {{-- ✅ Guard entire form --}}
+                @cannot('edit-shipping-mark')
+                    <div class="alert alert-danger">
+                        You do not have permission to edit shipping marks.
                     </div>
+                @endcannot
 
-                    <div class="form-group">
-                        <label class="font-weight-bold">Shipping Mark <span class="text-danger">*</span></label>
-                        <input type="text"
-                               name="shipping_mark"
-                               value="{{ old('shipping_mark', $mark->shipping_mark) }}"
-                               class="form-control @error('shipping_mark') is-invalid @enderror"
-                               required>
-                        @error('shipping_mark')
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
-                    </div>
+                @can('edit-shipping-mark')
+                    <form action="{{ route('customer-extra-shipping-marks.update', $mark->id) }}" method="POST">
+                        @csrf
+                        @method('PUT')
 
-                    <div class="d-flex justify-content-between mt-3">
-                        <button class="btn btn-primary btn-sm px-3">
-                            <i class="fa fa-save"></i> Update Shipping Mark
-                        </button>
-                    </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Customer <span class="text-danger">*</span></label>
+                            <select name="customer_id"
+                                    id="customerSelect"
+                                    class="form-control @error('customer_id') is-invalid @enderror"
+                                    style="width: 100%;"
+                                    required>
+                                <option value="">-- Select Customer --</option>
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}"
+                                        {{ old('customer_id', $mark->customer_id) == $c->id ? 'selected' : '' }}>
+                                        {{ $c->name }} ({{ $c->customer_code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('customer_id')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
 
-                </form>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Shipping Mark <span class="text-danger">*</span></label>
+                            <input type="text"
+                                   name="shipping_mark"
+                                   value="{{ old('shipping_mark', $mark->shipping_mark) }}"
+                                   class="form-control @error('shipping_mark') is-invalid @enderror"
+                                   required>
+                            @error('shipping_mark')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <button class="btn btn-primary btn-sm px-3">
+                                <i class="fa fa-save"></i> Update Shipping Mark
+                            </button>
+                        </div>
+
+                    </form>
+                @endcan
 
             </div>
 

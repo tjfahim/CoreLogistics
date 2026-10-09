@@ -48,14 +48,18 @@
 
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong class="card-title">Extra Shipping Marks List</strong>
-                <a href="{{ route('customer-extra-shipping-marks.create') }}" class="btn btn-primary btn-sm">
-                    <i class="fa fa-plus"></i> Add Shipping Mark
-                </a>
+
+                {{-- ✅ Add Shipping Mark --}}
+                @can('add-shipping-mark')
+                    <a href="{{ route('customer-extra-shipping-marks.create') }}" class="btn btn-primary btn-sm">
+                        <i class="fa fa-plus"></i> Add Shipping Mark
+                    </a>
+                @endcan
             </div>
 
             <div class="card-body">
 
-                <!-- Search bar -->
+                {{-- Search bar --}}
                 <form method="GET" action="{{ route('customer-extra-shipping-marks.index') }}" class="mb-3">
                     <div class="input-group" style="max-width: 500px;">
                         <input type="text"
@@ -100,9 +104,13 @@
                                     <td>{{ $mark->id }}</td>
                                     <td>
                                         @if($mark->customer)
-                                            <a href="{{ route('customers.edit', $mark->customer->id) }}">
+                                            @can('edit-customers')
+                                                <a href="{{ route('customers.edit', $mark->customer->id) }}">
+                                                    {{ $mark->customer->name }}
+                                                </a>
+                                            @else
                                                 {{ $mark->customer->name }}
-                                            </a>
+                                            @endcan
                                         @else
                                             <span class="text-muted">—</span>
                                         @endif
@@ -111,19 +119,29 @@
                                     <td><strong>{{ $mark->shipping_mark }}</strong></td>
                                     <td>{{ $mark->created_at->format('d M Y, h:i A') }}</td>
                                     <td>
-                                        <a href="{{ route('customer-extra-shipping-marks.edit', $mark->id) }}"
-                                           class="btn btn-warning btn-sm">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </a>
-                                        <form action="{{ route('customer-extra-shipping-marks.destroy', $mark->id) }}"
-                                              method="POST" class="d-inline"
-                                              onsubmit="return confirm('Are you sure you want to delete this shipping mark?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-danger btn-sm">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        @canany(['edit-shipping-mark', 'delete-shipping-mark'])
+                                            {{-- ✅ Edit --}}
+                                            @can('edit-shipping-mark')
+                                                <a href="{{ route('customer-extra-shipping-marks.edit', $mark->id) }}"
+                                                   class="btn btn-warning btn-sm">
+                                                    <i class="fa fa-edit"></i> Edit
+                                                </a>
+                                            @endcan
+
+                                            {{-- ✅ Delete --}}
+                                            @can('delete-shipping-mark')
+                                                <form action="{{ route('customer-extra-shipping-marks.destroy', $mark->id) }}"
+                                                      method="POST" class="d-inline delete-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endcan
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endcanany
                                     </td>
                                 </tr>
                             @empty
@@ -151,5 +169,17 @@
     </div>
 
 </div>
+
+<script>
+$(document).ready(function () {
+    // Confirm before delete
+    $('.delete-form').on('submit', function (e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this shipping mark?')) {
+            this.submit();
+        }
+    });
+});
+</script>
 
 @endsection
