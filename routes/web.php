@@ -104,7 +104,7 @@ Route::resource('users', UserController::class);
         ->name('permissions.bulk-store');
 // Existing (keep as is)
 Route::get('cargo-items/pending', [CargoItemController::class, 'pendingItems'])->name('cargo-items.pending');
-Route::get('cargo-items/packed', [CargoItemController::class, 'packedItems'])->name('cargo-items.packed');
+Route::put('cargo-items/{cargoItem}', [CargoItemController::class, 'update'])->name('cargo-items.update');Route::get('cargo-items/packed', [CargoItemController::class, 'packedItems'])->name('cargo-items.packed');
 Route::get('itemsshipments/{itemshipment}/manage-returns',
     [ItemShipmentController::class, 'manageReturns']
 )->name('itemsshipments.manage-returns');
@@ -114,6 +114,7 @@ Route::post('itemsshipments/{itemshipment}/return-items',
 )->name('itemsshipments.return-items');
 // NEW: Bangladesh-side routes
 Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
+Route::get('cargo-items/{cargoItem}/edit', [CargoItemController::class, 'edit'])->name('cargo-items.edit');
 Route::get('cargo-items/bangladesh-warehouse', [CargoItemController::class, 'bangladeshWarehouseItems'])->name('cargo-items.bangladesh-warehouse');
 Route::get('cargo-items/ajax/items', [CargoItemController::class, 'ajaxItems'])->name('cargo-items.ajax-items');
 

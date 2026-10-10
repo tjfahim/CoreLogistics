@@ -1,143 +1,134 @@
+<aside id="left-panel" class="tl-sidebar">
+    <div class="tl-brand">
+        <a href="/admin/dashboard">
+            <img class="tl-logo-full" src="{{ asset('admin/images/logo.png') }}" alt="Logo">
+            <img class="tl-logo-mini" src="{{ asset('admin/images/logo2.png') }}" alt="Logo">
+        </a>
+    </div>
 
-<aside id="left-panel" class="left-panel">
-        <nav class="navbar navbar-expand-sm navbar-default">
+    <div class="tl-scroll">
+        <ul class="tl-nav">
 
-            <div class="navbar-header">
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#main-menu" aria-controls="main-menu" aria-expanded="false" aria-label="Toggle navigation">
-                    <i class="fa fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="/admin/dashboard"><img src="{{ asset('admin/images/logo.png') }}" alt="Logo"></a>
-                <a class="navbar-brand hidden" href="/admin/dashboard"><img src="{{ asset('admin/images/logo2.png') }}" alt="Logo"></a>
-            </div>
-            <div id="main-menu" class="main-menu collapse navbar-collapse">
-                <ul class="nav navbar-nav">
-                    <!-- Dashboard -->
-                    <li class="{{ request()->is('admin/dashboard') || request()->is('/') ? 'active' : '' }}">
-                        <a href="/admin/dashboard"> 
-                            <i class="menu-icon fa fa-dashboard"></i>Dashboard 
-                        </a>
-                    </li>
-                    
-                 
-                    
-                    <!-- Inventory -->
-                                       @can('view-warehouse')
+            {{-- Dashboard --}}
+            <li class="tl-item {{ request()->is('admin/dashboard') || request()->is('/') ? 'active' : '' }}">
+                <a href="/admin/dashboard" title="Dashboard">
+                    <span class="tl-ico"><i class="fa fa-dashboard"></i></span><span class="tl-txt">Dashboard</span>
+                </a>
+            </li>
 
-                    <li class="menu-title">WARE HOUSE</li>
-                    
-                    <li class="{{ request()->routeIs('cargo-items.*') ? 'active' : '' }}">
-                        <a href="{{ route('cargo-items.index') }}">
-                            <i class="menu-icon fa fa-cubes"></i> China Warehouse
-                        </a>
-                    </li>
-                    <li class="{{ request()->routeIs('cargo-items.*') ? 'active' : '' }}">
-                        <a href="{{ route('cargo-items.arrived-bd') }}">
-                            <i class="menu-icon fa fa-cubes"></i> Bd Warehouse
-                        </a>
-                    </li>
-                                     @endcan
+            {{-- Warehouse --}}
+            @can('view-warehouse')
+            <li class="tl-title">Warehouse</li>
+            <li class="tl-item {{ request()->routeIs('cargo-items.*') && !request()->routeIs('cargo-items.arrived-bd') ? 'active' : '' }}">
+                <a href="{{ route('cargo-items.index') }}" title="China Warehouse">
+                    <span class="tl-ico"><i class="fa fa-cubes"></i></span><span class="tl-txt">China Warehouse</span>
+                </a>
+            </li>
+            <li class="tl-item {{ request()->routeIs('cargo-items.arrived-bd') ? 'active' : '' }}">
+                <a href="{{ route('cargo-items.arrived-bd') }}" title="BD Warehouse">
+                    <span class="tl-ico"><i class="fa fa-building"></i></span><span class="tl-txt">BD Warehouse</span>
+                </a>
+            </li>
+            @endcan
 
-                                                           @can('view-shipments')
+            {{-- Operations --}}
+            @can('view-shipments')
+            <li class="tl-title">Operations</li>
+            <li class="tl-item {{ request()->routeIs('itemsshipments.*') ? 'active' : '' }}">
+                <a href="{{ route('itemsshipments.index') }}" title="Shipments">
+                    <span class="tl-ico"><i class="fa fa-ship"></i></span><span class="tl-txt">Shipments</span>
+                </a>
+            </li>
+            @endcan
 
-                    <!-- Operations -->
-                    <li class="menu-title">OPERATIONS</li>
+            {{-- Reports --}}
+            @canany(['view-reports', 'view-legacy-uploads'])
+            <li class="tl-title">Reports</li>
+            @can('view-reports')
+            <li class="tl-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                <a href="{{ route('reports.dashboard') }}" title="Dashboard Reports">
+                    <span class="tl-ico"><i class="fa fa-bar-chart"></i></span><span class="tl-txt">Dashboard Reports</span>
+                </a>
+            </li>
+            @endcan
+            @can('view-legacy-uploads')
+            <li class="tl-item {{ request()->routeIs('legacy.*') ? 'active' : '' }}">
+                <a href="{{ route('legacy.index') }}" title="Legacy Uploads">
+                    <span class="tl-ico"><i class="fa fa-history"></i></span><span class="tl-txt">Legacy Uploads</span>
+                </a>
+            </li>
+            @endcan
+            @endcanany
 
-                    <li class="{{ request()->routeIs('itemsshipments.*') ? 'active' : '' }}">
-                        <a href="{{ route('itemsshipments.index') }}">
-                            <i class="menu-icon fa fa-truck"></i> Shipments
-                        </a>
-                    </li>
-          @endcan
+            {{-- Accounting --}}
+            <li class="tl-title">Accounting</li>
+            <li class="tl-item {{ request()->routeIs('ledger.*') ? 'active' : '' }}">
+                <a href="{{ route('ledger.index') }}" title="Customer Ledger">
+                    <span class="tl-ico"><i class="fa fa-book"></i></span><span class="tl-txt">Customer Ledger</span>
+                </a>
+            </li>
 
-                    <!-- Reports -->
-                    <li class="menu-title">REPORTS</li>
-                    @can('view-reports')
-                    <li class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                        <a href="{{ route('reports.dashboard') }}">
-                            <i class="menu-icon fa fa-truck"></i> Dashboard Reports
-                        </a>
-                    </li>
-                              @endcan
-                    @can('view-legacy-uploads')
+            {{-- Master data --}}
+            @canany(['view-users', 'view-roles', 'view-permissions', 'view-customers', 'view-shipping-mark', 'view-agents', 'view-cost-types'])
+            <li class="tl-title">Master data</li>
+            @endcanany
 
-                    <li class="{{ request()->routeIs('legacy.*') ? 'active' : '' }}">
-                        <a href="{{ route('legacy.index') }}">
-                            <i class="menu-icon fa fa-truck"></i> Legacy Uploads
-                        </a>
-                    </li>
-                              @endcan
+            @can('view-users')
+            <li class="tl-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <a href="{{ route('users.index') }}" title="Admin Users">
+                    <span class="tl-ico"><i class="fa fa-user-circle"></i></span><span class="tl-txt">Admin Users</span>
+                </a>
+            </li>
+            @endcan
 
-                    <!-- Accounting -->
-<li class="menu-title">ACCOUNTING</li>
-<li class="{{ request()->routeIs('ledger.*') ? 'active' : '' }}">
-    <a href="{{ route('ledger.index') }}">
-        <i class="menu-icon fa fa-book"></i> Customer Ledger
-    </a>
-</li>
+            @can('view-roles')
+            <li class="tl-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
+                <a href="{{ route('roles.index') }}" title="Roles">
+                    <span class="tl-ico"><i class="fa fa-shield"></i></span><span class="tl-txt">Roles</span>
+                </a>
+            </li>
+            @endcan
 
-                    
-                       <!-- Master Data -->
-                    <li class="menu-title">MASTER DATA</li>
-                    @can('view-users')
-                    <li class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
-    <a href="{{ route('users.index') }}">
-        <i class="menu-icon fa fa-user-circle"></i> Admin Users
-    </a>
-</li>
-    @endcan
-                    @can('view-roles')
+            @can('view-permissions')
+            <li class="tl-item {{ request()->routeIs('permissions.*') ? 'active' : '' }}">
+                <a href="{{ route('permissions.index') }}" title="Permissions">
+                    <span class="tl-ico"><i class="fa fa-key"></i></span><span class="tl-txt">Permissions</span>
+                </a>
+            </li>
+            @endcan
 
-                    <li class="{{ request()->routeIs('roles.*') ? 'active' : '' }}">
-    <a href="{{ route('roles.index') }}">
-        <i class="menu-icon fa fa-user-circle"></i> Roles
-    </a>
-</li>
-    @endcan
-                    @can('view-permissions')
+            @can('view-customers')
+            <li class="tl-item {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                <a href="{{ route('customers.index') }}" title="Customers">
+                    <span class="tl-ico"><i class="fa fa-users"></i></span><span class="tl-txt">Customers</span>
+                </a>
+            </li>
+            @endcan
 
-                    <li class="{{ request()->routeIs('permissions.*') ? 'active' : '' }}">
-    <a href="{{ route('permissions.index') }}">
-        <i class="menu-icon fa fa-user-circle"></i> Permissions
-    </a>
-</li>
-    @endcan
-                    @can('view-customers')
+            @can('view-shipping-mark')
+            <li class="tl-item {{ request()->routeIs('customer-extra-shipping-marks.*') ? 'active' : '' }}">
+                <a href="{{ route('customer-extra-shipping-marks.index') }}" title="Extra Shipping Marks">
+                    <span class="tl-ico"><i class="fa fa-tags"></i></span><span class="tl-txt">Extra Shipping Marks</span>
+                </a>
+            </li>
+            @endcan
 
-                    <li class="{{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                        <a href="{{ route('customers.index') }}">
-                            <i class="menu-icon fa fa-users"></i> Customers
-                        </a>
-                    </li>
-                        @endcan
+            @can('view-agents')
+            <li class="tl-item {{ request()->routeIs('agents.*') ? 'active' : '' }}">
+                <a href="{{ route('agents.index') }}" title="Agents">
+                    <span class="tl-ico"><i class="fa fa-handshake-o"></i></span><span class="tl-txt">Agents</span>
+                </a>
+            </li>
+            @endcan
 
-                    @can('view-shipping-mark')
-                        
-                
-                  <li class="{{ request()->routeIs('customer-extra-shipping-marks.*') ? 'active' : '' }}">
-    <a href="{{ route('customer-extra-shipping-marks.index') }}">
-        <i class="menu-icon fa fa-tags"></i> Extra Shipping Marks
-    </a>
-</li>
-    @endcan
-@can('view-agents')
-     <li class="{{ request()->routeIs('agents.*') ? 'active' : '' }}">
-                        <a href="{{ route('agents.index') }}">
-                            <i class="menu-icon fa fa-users"></i> Agents
-                        </a>
-                    </li>
-@endcan
-                    
-                   
-                    @can('view-cost-types')
-<li class="{{ request()->routeIs('cost-types.*') ? 'active' : '' }}">
-                        <a href="{{ route('cost-types.index') }}">
-                            <i class="menu-icon fa fa-list-alt"></i> Cost Types
-                        </a>
-                    </li>
-                    @endcan
-                    
-                   
-                </ul>
-            </div>
-        </nav>
-    </aside>
+            @can('view-cost-types')
+            <li class="tl-item {{ request()->routeIs('cost-types.*') ? 'active' : '' }}">
+                <a href="{{ route('cost-types.index') }}" title="Cost Types">
+                    <span class="tl-ico"><i class="fa fa-list-alt"></i></span><span class="tl-txt">Cost Types</span>
+                </a>
+            </li>
+            @endcan
+
+        </ul>
+    </div>
+</aside>

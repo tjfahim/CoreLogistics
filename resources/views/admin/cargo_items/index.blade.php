@@ -6,6 +6,7 @@
         <div class="page-header float-left">
             <div class="page-title">
                 <h1>Warehouse Manage</h1>
+
             </div>
         </div>
     </div>
@@ -253,7 +254,7 @@ $(document).ready(function () {
             // Build action buttons based on permissions
             let actions = '';
             if (P.canEdit) {
-                actions += '<a href="/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ';
+                actions += '<a href="/admin/cargo-items/' + item.id + '/edit" class="btn btn-warning btn-sm" title="Edit"><i class="fa fa-edit"></i></a> ';
             }
             if (P.canDelete) {
                 actions += '<button class="btn btn-danger btn-sm delete-btn" data-id="' + item.id + '" title="Delete"><i class="fa fa-trash"></i></button>';

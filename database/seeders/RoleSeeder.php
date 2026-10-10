@@ -5,21 +5,25 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class RoleSeeder extends Seeder
 {
     /**
-     * Define roles.
+     * Define roles and create one demo user per role.
      *
-     *  - superadmin  => gets ALL permissions
-     *  - admin       => gets all except role/permission management + user delete
-     *  - manager     => gets operational permissions (shipment, warehouse, billing, etc.)
+     *  - superadmin => gets ALL permissions + superadmin@admin.com
+     *  - admin      => gets all except role/permission management + admin@admin.com
+     *  - manager    => gets operational permissions + manager@admin.com
      */
     public function run(): void
     {
-        // ---------- 1. Create roles ----------
+        // ================================================================
+        // 1. Create roles
+        // ================================================================
         $superadmin = Role::updateOrCreate(
             ['slug' => 'superadmin'],
             [
@@ -47,12 +51,16 @@ class RoleSeeder extends Seeder
             ]
         );
 
-        // ---------- 2. Super Admin : ALL permissions ----------
+        // ================================================================
+        // 2. Super Admin : ALL permissions
+        // ================================================================
         $allPermissionIds = Permission::pluck('id')->toArray();
         $superadmin->permissions()->sync($allPermissionIds);
         $this->command->info('Super Admin assigned ' . count($allPermissionIds) . ' permissions.');
 
-        // ---------- 3. Admin : everything EXCEPT role & permission management ----------
+        // ================================================================
+        // 3. Admin : everything EXCEPT role & permission management
+        // ================================================================
         $adminExcludedGroups = [
             'Role Management',
             'Permission Management',
@@ -65,7 +73,9 @@ class RoleSeeder extends Seeder
         $admin->permissions()->sync($adminPermissionIds);
         $this->command->info('Admin assigned ' . count($adminPermissionIds) . ' permissions.');
 
-        // ---------- 4. Manager : operational groups only ----------
+        // ================================================================
+        // 4. Manager : operational groups only
+        // ================================================================
         $managerGroups = [
             'Dashboard',
             'Customer',
@@ -82,7 +92,6 @@ class RoleSeeder extends Seeder
             'Cost Type',
         ];
 
-        // Explicitly EXCLUDE these permission slugs from manager
         $managerExcludedSlugs = [
             'delete-users',
             'create-users',
@@ -104,7 +113,48 @@ class RoleSeeder extends Seeder
         $manager->permissions()->sync($managerPermissionIds);
         $this->command->info('Manager assigned ' . count($managerPermissionIds) . ' permissions.');
 
-        // ---------- 5. Summary ----------
+        // ================================================================
+        // 5. Create one user per role
+        // ================================================================
+        $superadminUser = User::updateOrCreate(
+            ['email' => 'superadmin@admin.com'],
+            [
+                'name'     => 'Super Admin',
+                'email'    => 'superadmin@admin.com',
+                'password' => Hash::make('superadmin@admin.com'),
+                'role'     => 2,                    // legacy admin flag
+                'role_id'  => $superadmin->id,
+                'status'   => 1,
+            ]
+        );
+
+        $adminUser = User::updateOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
+                'name'     => 'Admin User',
+                'email'    => 'admin@admin.com',
+                'password' => Hash::make('admin@admin.com'),
+                'role'     => 2,                    // legacy admin flag
+                'role_id'  => $admin->id,
+                'status'   => 1,
+            ]
+        );
+
+        $managerUser = User::updateOrCreate(
+            ['email' => 'manager@admin.com'],
+            [
+                'name'     => 'Manager',
+                'email'    => 'manager@admin.com',
+                'password' => Hash::make('manager@admin.com'),
+                'role'     => 1,                    // legacy regular-user flag
+                'role_id'  => $manager->id,
+                'status'   => 1,
+            ]
+        );
+
+        // ================================================================
+        // 6. Summary
+        // ================================================================
         $this->command->info('');
         $this->command->info('=== Roles Seeded ===');
         $this->command->table(
@@ -115,5 +165,19 @@ class RoleSeeder extends Seeder
                 ['Manager',     $manager->slug,     'Active', $manager->permissions()->count()],
             ]
         );
+
+        $this->command->info('');
+        $this->command->info('=== Users Seeded ===');
+        $this->command->table(
+            ['Name', 'Email', 'Password', 'Role', 'Status'],
+            [
+                ['Super Admin', 'superadmin@admin.com', 'superadmin@admin.com', 'Super Admin', 'Active'],
+                ['Admin User',  'admin@admin.com',       'admin@admin.com',       'Admin',       'Active'],
+                ['Manager',     'manager@admin.com',     'manager@admin.com',     'Manager',     'Active'],
+            ]
+        );
+
+        $this->command->info('');
+        $this->command->info('✅ 3 roles + 3 users seeded successfully.');
     }
 }
