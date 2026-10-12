@@ -279,7 +279,81 @@ public function update(Request $request, ItemsShipment $itemshipment)
             ], 500);
         }
     }
+    public function bulkUnpackItems(Request $request)
+{
+    try {
+        $request->validate([
+            'shipment_id' => 'required|exists:items_shipments,id',
+            'item_ids'    => 'required|array|min:1',
+            'item_ids.*'  => 'integer|exists:cargo_items,id',
+        ]);
 
+        $shipment = ItemsShipment::findOrFail($request->shipment_id);
+        $itemIds  = $request->item_ids;
+
+        // Which of these are actually in this shipment?
+        $inShipment = $shipment->cargoItems()
+            ->whereIn('cargo_item_id', $itemIds)
+            ->pluck('cargo_item_id')
+            ->all();
+
+        if (!empty($inShipment)) {
+            $shipment->cargoItems()->detach($inShipment);
+            CargoItem::whereIn('id', $inShipment)->update(['status' => 'pending']);
+        }
+
+        return response()->json([
+            'success' => true,
+            'removed' => count($inShipment),
+            'skipped' => count($itemIds) - count($inShipment),
+            'message' => count($inShipment) . ' item(s) marked as pending.',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+public function bulkToggleItems(Request $request)
+{
+    try {
+        $request->validate([
+            'shipment_id' => 'required|exists:items_shipments,id',
+            'item_ids'    => 'required|array|min:1',
+            'item_ids.*'  => 'integer|exists:cargo_items,id',
+        ]);
+
+        $shipment = ItemsShipment::findOrFail($request->shipment_id);
+        $itemIds  = $request->item_ids;
+
+        // Which of these are already in the shipment?
+        $alreadyIn = $shipment->cargoItems()
+            ->whereIn('cargo_item_id', $itemIds)
+            ->pluck('cargo_item_id')
+            ->all();
+
+        $toAttach = array_values(array_diff($itemIds, $alreadyIn));
+
+        if (!empty($toAttach)) {
+            // Attach new ones (avoid duplicate pivot rows)
+            $shipment->cargoItems()->syncWithoutDetaching($toAttach);
+            $this->syncItemsStatus($toAttach, $shipment->status);
+        }
+
+        return response()->json([
+            'success' => true,
+            'added'   => count($toAttach),
+            'skipped' => count($alreadyIn),
+            'message' => count($toAttach) . ' item(s) marked as packed.',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
     public function toggleItem(Request $request)
     {
         try {

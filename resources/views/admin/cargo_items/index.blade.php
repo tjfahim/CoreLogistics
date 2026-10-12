@@ -92,12 +92,58 @@
                         <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search tracking, goods, CTN...">
                     </div>
                     <div class="col-md-6 text-right">
-                        <select id="perPageSelect" class="form-control form-control-sm d-inline-block" style="width: auto;">
+                        <select id="perPageSelect" class="form-control form-control-sm d-inline-block " style="width: auto;">
                             <option value="25">25 per page</option>
-                            <option value="50" selected>50 per page</option>
-                            <option value="100">100 per page</option>
-                            <option value="250">250 per page</option>
+                            <option value="100" selected>100 per page</option>
+                            <option value="200">200 per page</option>
+                            <option value="500">500 per page</option>
+                            <option value="1000">1000 per page</option>
+                            <option value="2000">2000 per page</option>
                         </select>
+                    </div>
+                </div>
+
+                {{-- ✅ BULK SELECTION CONTROLS --}}
+                <div class="row mt-2">
+                    <div class="col-md-12 d-flex flex-wrap align-items-center">
+                        @can('edit-warehouse-item')
+                            <div class="input-group input-group-sm mr-2 mb-1" style="max-width: 280px;">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Select</span>
+                                </div>
+                                <input type="number" min="1" id="bulkCount" class="form-control"
+                                       placeholder="e.g. 500" value="500">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-outline-primary" id="btnSelectN">By Number</button>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm mr-2 mb-1" id="btnSelectAllPending">
+                                <i class="fa fa-check-square"></i> All Pending
+                            </button>
+
+                            <button type="button" class="btn btn-outline-info btn-sm mr-2 mb-1" id="btnSelectAllPacked">
+                                <i class="fa fa-check-square"></i> All Packed
+                            </button>
+
+                            <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnClearSelection">
+                                <i class="fa fa-times"></i> Clear
+                            </button>
+
+                            <button type="button" class="btn btn-success btn-sm mr-2 mb-1" id="btnMarkPacked" disabled>
+                                <i class="fa fa-box"></i> Mark as Packed
+                                (<span id="selectedCount">0</span>)
+                            </button>
+
+                            <button type="button" class="btn btn-secondary btn-sm mr-2 mb-1" id="btnMarkPending" disabled>
+                                <i class="fa fa-undo"></i> Mark as Pending
+                                (<span id="selectedCount2">0</span>)
+                            </button>
+                        @endcan
+
+                        <small class="text-muted ml-2 mb-1">
+                            Bulk mark only affects items on the current page.
+                        </small>
                     </div>
                 </div>
 
@@ -114,6 +160,9 @@
                     <table id="cargoItemsTable" class="table table-striped table-bordered table-hover">
                         <thead class="thead-dark">
                             <tr>
+                                <th style="width:40px;">
+                                    <input type="checkbox" id="checkAllVisible" title="Select all visible">
+                                </th>
                                 <th>ID</th>
                                 <th>Date</th>
                                 <th>Printed CTN NO.</th>
@@ -132,7 +181,7 @@
                             </tr>
                         </thead>
                         <tbody id="tableBody">
-                            <tr><td colspan="15" class="text-center">Loading...</td></tr>
+                            <tr><td colspan="16" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -196,7 +245,7 @@ $(document).ready(function () {
     function loadItems() {
         const perPage = $('#perPageSelect').val();
 
-        $('#tableBody').html('<tr><td colspan="15" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
+        $('#tableBody').html('<tr><td colspan="16" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
 
         $.ajax({
             url: '{{ route("cargo-items.ajax-items") }}',
@@ -212,14 +261,14 @@ $(document).ready(function () {
                 renderPagination(res.meta);
             },
             error: function () {
-                $('#tableBody').html('<tr><td colspan="15" class="text-center text-danger">Failed to load items.</td></tr>');
+                $('#tableBody').html('<tr><td colspan="16" class="text-center text-danger">Failed to load items.</td></tr>');
             }
         });
     }
 
     function renderRows(items) {
         if (!items || items.length === 0) {
-            $('#tableBody').html('<tr><td colspan="15" class="text-center text-muted">No items found.</td></tr>');
+            $('#tableBody').html('<tr><td colspan="16" class="text-center text-muted">No items found.</td></tr>');
             return;
         }
 
@@ -263,9 +312,16 @@ $(document).ready(function () {
                 actions = '<span class="text-muted">—</span>';
             }
 
+            // Pending AND packed rows are selectable (for either direction)
+            const canSelect = P.canToggle && ['pending', 'packed'].includes(item.status);
+            const checkboxCell = canSelect
+                ? '<td class="bulk-check-cell"><input type="checkbox" class="row-check" data-id="' + item.id + '" data-status="' + item.status + '"></td>'
+                : '<td class="text-muted">—</td>';
+
             html += '<tr data-item-id="' + item.id + '" ' +
                     'class="selectable-row ' + rowClass + ' ' + returnedClass + '" ' +
                     'data-status="' + item.status + '" ' + titleAttr + '>' +
+                    checkboxCell +
                     '<td>' + item.id + '</td>' +
                     '<td>' + dateStr + '</td>' +
                     '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
@@ -289,6 +345,9 @@ $(document).ready(function () {
         });
 
         $('#tableBody').html(html);
+
+        // reset bulk UI whenever rows change
+        clearAllChecks();
     }
 
     function renderPagination(meta) {
@@ -344,7 +403,7 @@ $(document).ready(function () {
     // Row click → toggle Pending ↔ Packed (requires edit-warehouse-item)
     $(document).on('click', '#cargoItemsTable tbody tr.selectable-row', function (e) {
         if ($(e.target).closest('a, button, form, input, select').length) return;
-        if (!window.CARGO_PERMS.canToggle) return;   // ✅ permission check
+        if (!window.CARGO_PERMS.canToggle) return;
 
         const row = $(this);
         const status = row.data('status');
@@ -440,6 +499,146 @@ $(document).ready(function () {
         });
     });
 
+    /* ============================================================
+     *  BULK SELECTION & MARK-AS-PACKED / MARK-AS-PENDING
+     * ============================================================ */
+    const $bulkPackBtn    = $('#btnMarkPacked');
+    const $bulkPendingBtn = $('#btnMarkPending');
+    const $checkAllVis    = $('#checkAllVisible');
+
+    function updateSelectionCount() {
+        const n = $('.row-check:checked').length;
+        $('#selectedCount').text(n);
+        $('#selectedCount2').text(n);
+        $bulkPackBtn.prop('disabled', n === 0);
+        $bulkPendingBtn.prop('disabled', n === 0);
+    }
+
+    function clearAllChecks() {
+        $('.row-check').prop('checked', false);
+        $checkAllVis.prop('checked', false);
+        updateSelectionCount();
+    }
+
+    // 1) Select N pending items on the current page
+    $('#btnSelectN').on('click', function () {
+        const n = parseInt($('#bulkCount').val(), 10);
+        if (!n || n < 1) return;
+
+        let picked = 0;
+        $('.row-check').each(function () {
+            const $cb = $(this);
+            const isPending = $cb.closest('tr').data('status') === 'pending';
+            if (picked < n && isPending) {
+                $cb.prop('checked', true);
+                picked++;
+            } else {
+                $cb.prop('checked', false);
+            }
+        });
+
+        updateSelectionCount();
+        showToast(picked + ' item(s) selected.');
+    });
+
+    // 2) Select all pending on the current page
+    $('#btnSelectAllPending').on('click', function () {
+        $('.row-check').each(function () {
+            const isPending = $(this).closest('tr').data('status') === 'pending';
+            $(this).prop('checked', isPending);
+        });
+        updateSelectionCount();
+    });
+
+    // 2b) Select all packed on the current page
+    $('#btnSelectAllPacked').on('click', function () {
+        $('.row-check').each(function () {
+            const isPacked = $(this).closest('tr').data('status') === 'packed';
+            $(this).prop('checked', isPacked);
+        });
+        updateSelectionCount();
+    });
+
+    // 3) Clear all
+    $('#btnClearSelection').on('click', clearAllChecks);
+
+    // 4) Header "select all visible"
+    $checkAllVis.on('change', function () {
+        const on = $(this).is(':checked');
+        $('.row-check').prop('checked', on);
+        updateSelectionCount();
+    });
+
+    // 5) Any individual checkbox change
+    $(document).on('change', '.row-check', updateSelectionCount);
+
+    /* ---- shared bulk submit ---- */
+    function bulkSetStatus(mode) {
+        // mode: 'pack' | 'unpack'
+        const $btn = mode === 'pack' ? $bulkPackBtn : $bulkPendingBtn;
+        const originalHtml = $btn.html();
+
+        // Only send IDs that make sense for the direction
+        const ids = $('.row-check:checked').filter(function () {
+            const st = $(this).data('status');
+            return mode === 'pack' ? st === 'pending' : st === 'packed';
+        }).map(function () { return $(this).data('id'); }).get();
+
+        if (ids.length === 0) {
+            showToast('No ' + (mode === 'pack' ? 'pending' : 'packed') + ' items selected.');
+            return;
+        }
+
+        const verb = mode === 'pack' ? 'Mark' : 'Revert';
+        if (!confirm(verb + ' ' + ids.length + ' item(s) as ' + (mode === 'pack' ? 'packed' : 'pending') + '?')) return;
+
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Working...');
+
+        getOrCreateDraftShipment().then(function (shipment) {
+            const url = mode === 'pack'
+                ? '{{ route("itemsshipments.bulk-toggle-items") }}'
+                : '{{ route("itemsshipments.bulk-unpack-items") }}';
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    shipment_id: shipment.id,
+                    item_ids: ids
+                },
+                success: function (res) {
+                    if (res.success) {
+                        showToast(res.message || (ids.length + ' item(s) updated.'));
+                        loadItems();
+                    } else {
+                        showToast(res.message || 'Bulk update failed.');
+                    }
+                },
+                error: function (xhr) {
+                    if (xhr.status === 403) {
+                        showToast('You do not have permission to update items.');
+                    } else {
+                        showToast('Bulk update failed.');
+                    }
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html(originalHtml);
+                    updateSelectionCount();
+                }
+            });
+        }).catch(function () {
+            showToast('Error creating shipment.');
+            $btn.prop('disabled', false).html(originalHtml);
+        });
+    }
+
+    // 6) Mark as packed (bulk)
+    $bulkPackBtn.on('click', function () { bulkSetStatus('pack'); });
+
+    // 7) Mark as pending (bulk)
+    $bulkPendingBtn.on('click', function () { bulkSetStatus('unpack'); });
+
     function showToast(message) {
         $('#toastMessage').text(message);
         $('#toast').fadeIn();
@@ -473,5 +672,11 @@ $(document).ready(function () {
     .table td:last-child { cursor: default; }
     .toast { border-radius: 5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
     .table-primary .status-badge { color: #000; }
+
+    /* Bulk selection */
+    .bulk-check-cell { text-align: center; }
+    .row-check { cursor: pointer; transform: scale(1.15); }
+    #btnMarkPacked:disabled,
+    #btnMarkPending:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
 @endsection

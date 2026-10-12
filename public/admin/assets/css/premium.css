@@ -131,7 +131,7 @@ a { transition: color .15s; }
 .btn-secondary { background: #eef1f7 !important; border-color: #eef1f7 !important; color: var(--ink) !important; }
 .btn-warning { background: #fdf1d9 !important; border-color: #fdf1d9 !important; color: #a16800 !important; }
 
-.form-control, .form-select, .custom-select { border: 1px solid #d9e0ee; border-radius: 10px; padding: 9px 13px; font-size: 14px; color: var(--ink); background-color: #fff; box-shadow: none; }
+.form-control, .form-select, .custom-select { border: 1px solid #d9e0ee; border-radius: 10px; padding: 0px 13px; font-size: 14px; color: var(--ink); background-color: #fff; box-shadow: none; }
 .form-control:focus, .form-select:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(47, 91, 234, .14); }
 label { font-weight: 600; font-size: 13.5px; color: var(--ink); }
 .select2-container--bootstrap-5 .select2-selection, .select2-container--default .select2-selection--single { border-radius: 10px !important; border-color: #d9e0ee !important; min-height: 40px; }

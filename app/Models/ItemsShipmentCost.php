@@ -9,22 +9,35 @@ class ItemsShipmentCost extends Model
 {
     use HasFactory;
 
+    // key stored in DB => label shown in UI
+    public const CURRENCIES = [
+        'bdt'   => 'BDT',
+        'usd'   => 'USD',
+        'rmb'   => 'RMB',
+        'dinar' => 'Dinar',
+    ];
+
     protected $fillable = [
         'items_shipment_id',
         'cost_type_id',
+        'currency',
+        'exchange_rate_bdt',
         'agent_id',
         'description',
         'rate_per_kg',
         'total_weight',
-        'amount',
-        'paid_amount',
-        'due_amount',
+        'amount',            // amount in the selected currency
+        'final_bdt_cost',    // amount * exchange_rate_bdt  (this is what paid/due are based on)
+        'paid_amount',       // BDT
+        'due_amount',        // BDT
         'status',
         'cost_date'
     ];
 
     protected $casts = [
-        'cost_date' => 'date',
+        'cost_date'         => 'date',
+        'exchange_rate_bdt' => 'decimal:4',
+        'final_bdt_cost'    => 'decimal:2',
     ];
 
     public function itemsShipment()
@@ -47,14 +60,26 @@ class ItemsShipmentCost extends Model
         return $this->hasMany(ItemsShipmentPayment::class);
     }
 
-    // Update payment status when payment is made
+    public function attachments()
+    {
+        return $this->hasMany(ItemsShipmentCostAttachment::class, 'items_shipment_cost_id');
+    }
+
+    public function getCurrencyLabelAttribute()
+    {
+        return self::CURRENCIES[$this->currency] ?? strtoupper((string) $this->currency);
+    }
+
+    // Update payment status when payment is made (payments are always in BDT)
     public function updatePaymentStatus()
     {
-        $totalPaid = $this->payments->sum('amount');
-        $this->paid_amount = $totalPaid;
-        $this->due_amount = $this->amount - $totalPaid;
+        $totalBdt  = (float) ($this->final_bdt_cost ?? $this->amount);
+        $totalPaid = (float) $this->payments()->sum('amount'); // fresh query, no stale relation
 
-        if ($totalPaid >= $this->amount) {
+        $this->paid_amount = $totalPaid;
+        $this->due_amount  = $totalBdt - $totalPaid;
+
+        if ($totalPaid >= $totalBdt) {
             $this->status = 'paid';
         } elseif ($totalPaid > 0) {
             $this->status = 'partial';

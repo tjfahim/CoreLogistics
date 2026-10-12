@@ -8,7 +8,29 @@
 
     <div class="tl-scroll">
         <ul class="tl-nav">
+<li class="tl-item">
+    <a class="nav-link" href="{{ route('warehouse-bills.index') }}">
+        <i class="fa fa-cubes"></i> Warehouse Bill
+    </a>
+</li>
 
+<li class="tl-item">
+    <a class="nav-link" href="{{ route('offices.index') }}">
+        <i class="fa fa-building"></i> Offices
+    </a>
+</li>
+
+<li class="tl-item">
+    <a class="nav-link" href="{{ route('employees.index') }}">
+        <i class="fa fa-users"></i> Employees
+    </a>
+</li>
+
+<li class="tl-item">
+    <a class="nav-link" href="{{ route('office-bills.index') }}">
+        <i class="fa fa-file-invoice-dollar"></i> Office Bills
+    </a>
+</li>
             {{-- Dashboard --}}
             <li class="tl-item {{ request()->is('admin/dashboard') || request()->is('/') ? 'active' : '' }}">
                 <a href="/admin/dashboard" title="Dashboard">

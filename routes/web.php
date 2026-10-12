@@ -10,10 +10,13 @@ use App\Http\Controllers\CostTypeController;
 use App\Http\Controllers\CustomerBillController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerExtraShippingMarkController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ItemShipmentController;
 use App\Http\Controllers\ItemShipmentCostController;
 use App\Http\Controllers\LedgerController;
 use App\Http\Controllers\LegacyUploadController;
+use App\Http\Controllers\OfficeBillController;
+use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
@@ -22,6 +25,7 @@ use App\Http\Controllers\ShipmentCostController;
 use App\Http\Controllers\ShipmentPaymentController;
 use App\Http\Controllers\ShipmentReportController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WarehouseBillController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -141,13 +145,17 @@ Route::resource('cargo-items', CargoItemController::class);
 ]);
     Route::get('shipment-items', [ItemShipmentController::class, 'getShipmentItems'])->name('shipment.items');
     Route::post('/itemsshipments/get-or-create-draft', [ItemShipmentController::class, 'getOrCreateDraft'])->name('itemsshipments.get-or-create-draft');
-
+Route::post('itemsshipments/bulk-unpack-items', [ItemShipmentController::class, 'bulkUnpackItems'])
+    ->name('itemsshipments.bulk-unpack-items');
 Route::post('/itemsshipments/toggle-item', [ItemShipmentController::class, 'toggleItem'])->name('itemsshipments.toggle-item');
-
+Route::post('itemsshipments/bulk-toggle-items', [ItemShipmentController::class, 'bulkToggleItems'])
+    ->name('itemsshipments.bulk-toggle-items');
 // Routes for item shipment costs
 Route::get('itemshipments/{itemShipmentId}/costs', [ItemShipmentCostController::class, 'show'])->name('itemshipments.costs.show');
 Route::post('itemshipments/{itemShipmentId}/costs', [ItemShipmentCostController::class, 'store'])->name('itemshipments.costs.store');
 Route::post('itemshipments/costs/{costId}/payments', [ItemShipmentCostController::class, 'addPayment'])->name('itemshipments.costs.payments.store');
+Route::post('itemshipments/costs/{costId}/attachments', [ItemShipmentCostController::class, 'addAttachments'])->name('itemshipments.costs.attachments.store');
+Route::delete('itemshipments/attachments/{attachmentId}', [ItemShipmentCostController::class, 'destroyAttachment'])->name('itemshipments.attachments.destroy');
 Route::delete('itemshipments/costs/{costId}', [ItemShipmentCostController::class, 'destroyCost'])->name('itemshipments.costs.destroy');
 Route::delete('itemshipments/payments/{paymentId}', [ItemShipmentCostController::class, 'destroyPayment'])->name('itemshipments.payments.destroy');
 Route::get('itemshipments/{itemShipmentId}/financial-summary', [ItemShipmentCostController::class, 'getFinancialSummary'])->name('itemshipments.financial-summary');
@@ -162,6 +170,19 @@ Route::post('/itemshipments/{itemshipment}/update-ctn',
 
 
 
+Route::resource('offices', OfficeController::class);
+Route::resource('employees', EmployeeController::class);
+Route::resource('office-bills', OfficeBillController::class)
+     ->parameters(['office-bills' => 'office_bill']);
+Route::resource('warehouse-bills', WarehouseBillController::class)
+     ->only(['index', 'store', 'destroy'])
+     ->parameters(['warehouse-bills' => 'warehouse_bill']);
+
+Route::get('warehouse-bills/summary', [WarehouseBillController::class, 'summary'])
+     ->name('warehouse-bills.summary');
+Route::post('warehouse-bills/monthly-summary',
+    [WarehouseBillController::class, 'saveMonthlySummary'])
+    ->name('warehouse-bills.monthly-summary');
 
  Route::get('itemshipments/{itemshipment}/customer-assignment', [CustomerController::class, 'showProductAssignment'])
         ->name('itemshipments.customer.assignment');

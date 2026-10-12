@@ -112,13 +112,13 @@
                     </div>
                     <div class="row mt-2">
                         <div class="col-md-4">
-                            <strong>Total Cost:</strong> {{ number_format($itemShipment->total_cost, 0) }}
+                            <strong>Total Cost (BDT):</strong> {{ number_format($itemShipment->total_cost, 0) }}
                         </div>
                         <div class="col-md-4">
-                            <strong>Total Paid:</strong> {{ number_format($itemShipment->total_paid, 0) }}
+                            <strong>Total Paid (BDT):</strong> {{ number_format($itemShipment->total_paid, 0) }}
                         </div>
                         <div class="col-md-4">
-                            <strong>Total Due:</strong> {{ number_format($itemShipment->total_due, 0) }}
+                            <strong>Total Due (BDT):</strong> {{ number_format($itemShipment->total_due, 0) }}
                         </div>
                     </div>
                 </div>
@@ -135,7 +135,8 @@
                     <strong>Add New Cost</strong>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('itemshipments.costs.store', $itemShipment->id) }}" method="POST">
+                    {{-- enctype is required for file upload --}}
+                    <form action="{{ route('itemshipments.costs.store', $itemShipment->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
 
                         <div class="form-group">
@@ -172,10 +173,44 @@
                             @enderror
                         </div>
 
+                        {{-- NEW: Currency + Exchange rate --}}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="currency">Currency <span class="text-danger">*</span></label>
+                                    <select name="currency" id="currency"
+                                            class="form-control @error('currency') is-invalid @enderror" required>
+                                        @foreach($currencies as $key => $label)
+                                            <option value="{{ $key }}" {{ old('currency', 'bdt') === $key ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('currency')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="exchange_rate_bdt">
+                                        Exchange Rate <small class="text-muted" id="rate_hint">(BDT)</small>
+                                    </label>
+                                    <input type="number" step="0.0001" min="0" name="exchange_rate_bdt" id="exchange_rate_bdt"
+                                           value="{{ old('exchange_rate_bdt', 1) }}"
+                                           class="form-control @error('exchange_rate_bdt') is-invalid @enderror">
+                                    @error('exchange_rate_bdt')
+                                        <small class="text-danger d-block">{{ $message }}</small>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row" id="rate_row" style="display:none;">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label>Rate per KG</label>
+                                    <label>Rate per KG <small class="text-muted currency-label"></small></label>
                                     <input type="number" step="0.01" name="rate_per_kg" id="rate_per_kg"
                                            value="{{ old('rate_per_kg') }}"
                                            class="form-control @error('rate_per_kg') is-invalid @enderror">
@@ -199,13 +234,20 @@
                         </div>
 
                         <div class="form-group" id="amount_row">
-                            <label>Amount <span class="text-danger">*</span></label>
+                            <label>Amount <small class="text-muted currency-label"></small> <span class="text-danger">*</span></label>
                             <input type="number" step="0.01" name="amount" id="amount"
                                    value="{{ old('amount') }}"
                                    class="form-control @error('amount') is-invalid @enderror" required>
                             @error('amount')
                                 <small class="text-danger d-block">{{ $message }}</small>
                             @enderror
+                        </div>
+
+                        {{-- NEW: Final BDT cost preview (server recalculates on save) --}}
+                        <div class="form-group">
+                            <label>Final Cost (BDT)</label>
+                            <input type="text" id="final_bdt_preview" class="form-control font-weight-bold" readonly value="0.00">
+                            <small class="text-muted">Amount × Exchange rate</small>
                         </div>
 
                         <div class="form-group">
@@ -226,6 +268,23 @@
                             @error('cost_date')
                                 <small class="text-danger d-block">{{ $message }}</small>
                             @enderror
+                        </div>
+
+                        {{-- NEW: Required attachments (multiple) --}}
+                        <div class="form-group">
+                            <label for="attachments">Attachments (Image / PDF) <span class="text-danger">*</span></label>
+                            <input type="file" name="attachments[]" id="attachments" multiple required
+                                   accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
+                                   class="form-control-file @error('attachments') is-invalid @enderror @error('attachments.*') is-invalid @enderror">
+                            <small class="text-muted d-block">You can select multiple files. JPG, PNG, WEBP, PDF — max 10 MB each.</small>
+                            @error('attachments')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
+                            @foreach($errors->get('attachments.*') as $messages)
+                                @foreach($messages as $message)
+                                    <small class="text-danger d-block">{{ $message }}</small>
+                                @endforeach
+                            @endforeach
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-block">
@@ -249,16 +308,18 @@
                 <div class="card-body">
                     @if($itemShipment->costs->count() > 0)
                         <div class="table-responsive">
-                            <table class="table table-striped table-bordered">
+                            <table class="table table-striped table-bordered table-sm">
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>Cost Type</th>
                                         <th>Agent</th>
                                         <th>Amount</th>
-                                        <th>Paid</th>
-                                        <th>Due</th>
+                                        <th>Final (BDT)</th>
+                                        <th>Paid (BDT)</th>
+                                        <th>Due (BDT)</th>
                                         <th>Status</th>
                                         <th>Date</th>
+                                        <th>Files</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -267,7 +328,16 @@
                                     <tr>
                                         <td>{{ $cost->costType->name }}</td>
                                         <td>{{ $cost->agent ? $cost->agent->name : 'N/A' }}</td>
-                                        <td>{{ number_format($cost->amount, 0) }}</td>
+                                        <td>
+                                            {{ number_format($cost->amount, 2) }}
+                                            <span class="badge badge-light border">{{ $cost->currency_label }}</span>
+                                        </td>
+                                        <td>
+                                            {{ number_format($cost->final_bdt_cost, 0) }}
+                                            @if($cost->currency !== 'bdt')
+                                                <br><small class="text-muted">@ {{ rtrim(rtrim(number_format($cost->exchange_rate_bdt, 4), '0'), '.') }}</small>
+                                            @endif
+                                        </td>
                                         <td>{{ number_format($cost->paid_amount, 0) }}</td>
                                         <td>{{ number_format($cost->due_amount, 0) }}</td>
                                         <td>
@@ -276,6 +346,13 @@
                                             </span>
                                         </td>
                                         <td>{{ \Carbon\Carbon::parse($cost->cost_date)->format('M d, Y') }}</td>
+                                        <td>
+                                            {{-- Attachments (view for everyone who can see this page) --}}
+                                            <button type="button" class="btn btn-info btn-sm"
+                                                    data-toggle="modal" data-target="#filesModal{{ $cost->id }}">
+                                                <i class="fa fa-paperclip"></i> {{ $cost->attachments->count() }}
+                                            </button>
+                                        </td>
                                         <td>
                                             {{-- ✅ Pay button (add-shipment-cost used as "add payment") --}}
                                             @can('add-shipment-cost')
@@ -305,6 +382,81 @@
                                         </td>
                                     </tr>
 
+                                    <!-- Attachments Modal -->
+                                    <div class="modal fade" id="filesModal{{ $cost->id }}" tabindex="-1" role="dialog">
+                                        <div class="modal-dialog modal-lg" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Attachments - {{ $cost->costType->name }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    @if($cost->attachments->count() > 0)
+                                                        <ul class="list-group mb-3">
+                                                            @foreach($cost->attachments as $attachment)
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                    <div class="d-flex align-items-center">
+                                                                        @if($attachment->is_image)
+                                                                            <a href="{{ $attachment->url }}" target="_blank">
+                                                                                <img src="{{ $attachment->url }}" alt="{{ $attachment->original_name }}"
+                                                                                     style="height:50px;width:50px;object-fit:cover;" class="mr-3 border rounded">
+                                                                            </a>
+                                                                        @else
+                                                                            <span class="badge badge-danger mr-3 p-2">PDF</span>
+                                                                        @endif
+                                                                        <div>
+                                                                            <a href="{{ $attachment->url }}" target="_blank">{{ $attachment->original_name }}</a>
+                                                                            <br><small class="text-muted">{{ $attachment->size_kb }} KB</small>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    @can('delete-shipment-cost')
+                                                                        @if($cost->attachments->count() > 1)
+                                                                            <form action="{{ route('itemshipments.attachments.destroy', $attachment->id) }}"
+                                                                                  method="POST" class="d-inline delete-attachment-form">
+                                                                                @csrf
+                                                                                @method('DELETE')
+                                                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                                                    <i class="fa fa-trash"></i>
+                                                                                </button>
+                                                                            </form>
+                                                                        @else
+                                                                            <small class="text-muted">required</small>
+                                                                        @endif
+                                                                    @endcan
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    @else
+                                                        <div class="alert alert-warning">No attachments uploaded for this cost.</div>
+                                                    @endif
+
+                                                    {{-- Upload more files --}}
+                                                    @can('add-shipment-cost')
+                                                        <form action="{{ route('itemshipments.costs.attachments.store', $cost->id) }}"
+                                                              method="POST" enctype="multipart/form-data">
+                                                            @csrf
+                                                            <div class="form-group mb-2">
+                                                                <label for="more_files{{ $cost->id }}">Add more files</label>
+                                                                <input type="file" name="attachments[]" id="more_files{{ $cost->id }}"
+                                                                       multiple required class="form-control-file"
+                                                                       accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf">
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                                <i class="fa fa-upload"></i> Upload
+                                                            </button>
+                                                        </form>
+                                                    @endcan
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Payment Modal -->
                                     @can('add-shipment-cost')
                                     <div class="modal fade" id="paymentModal{{ $cost->id }}" tabindex="-1" role="dialog">
@@ -320,11 +472,19 @@
                                                     @csrf
                                                     <div class="modal-body">
                                                         <div class="form-group">
-                                                            <label>Due Amount: {{ number_format($cost->due_amount, 0) }}</label>
+                                                            <label>
+                                                                Due Amount (BDT): {{ number_format($cost->due_amount, 0) }}
+                                                                @if($cost->currency !== 'bdt')
+                                                                    <br><small class="text-muted">
+                                                                        Original: {{ number_format($cost->amount, 2) }} {{ $cost->currency_label }}
+                                                                        @ {{ rtrim(rtrim(number_format($cost->exchange_rate_bdt, 4), '0'), '.') }}
+                                                                    </small>
+                                                                @endif
+                                                            </label>
                                                         </div>
 
                                                         <div class="form-group">
-                                                            <label for="amount{{ $cost->id }}">Payment Amount <span class="text-danger">*</span></label>
+                                                            <label for="amount{{ $cost->id }}">Payment Amount (BDT) <span class="text-danger">*</span></label>
                                                             <input type="number"
                                                                    step="0.01"
                                                                    name="amount"
@@ -408,7 +568,7 @@
                             <thead class="thead-dark">
                                 <tr>
                                     <th>Cost Type</th>
-                                    <th>Amount</th>
+                                    <th>Amount (BDT)</th>
                                     <th>Method</th>
                                     <th>Reference</th>
                                     <th>Paid By</th>
@@ -463,9 +623,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const rateField        = document.getElementById("rate_row");
     const amountField      = document.getElementById("amount_row");
 
-    const amountInput = document.getElementById("amount");
-    const rateInput   = document.getElementById("rate_per_kg");
-    const weightInput = document.getElementById("total_weight");
+    const amountInput   = document.getElementById("amount");
+    const rateInput     = document.getElementById("rate_per_kg");
+    const weightInput   = document.getElementById("total_weight");
+
+    // NEW
+    const currencySelect = document.getElementById("currency");
+    const exRateInput    = document.getElementById("exchange_rate_bdt");
+    const finalPreview   = document.getElementById("final_bdt_preview");
+    const rateHint       = document.getElementById("rate_hint");
+    const currencyLabels = document.querySelectorAll(".currency-label");
 
     const costTypes = @json($costTypes);
 
@@ -504,6 +671,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // NEW: currency change -> lock rate to 1 for BDT, update labels
+    function updateCurrencyUI() {
+        const cur = currencySelect.value;
+        const label = currencySelect.options[currencySelect.selectedIndex].text;
+
+        if (cur === "bdt") {
+            exRateInput.value = "1";
+            exRateInput.readOnly = true;
+            exRateInput.required = false;
+            rateHint.textContent = "(BDT)";
+        } else {
+            if (exRateInput.readOnly) exRateInput.value = ""; // coming from BDT: clear the locked 1
+            exRateInput.readOnly = false;
+            exRateInput.required = true;
+            rateHint.textContent = "(1 " + label + " = ? BDT)";
+        }
+
+        currencyLabels.forEach(el => el.textContent = "(" + label + ")");
+        updateFinalCost();
+    }
+
+    // NEW: amount × rate preview (server recalculates on save)
+    function updateFinalCost() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const rate   = currencySelect.value === "bdt" ? 1 : (parseFloat(exRateInput.value) || 0);
+        finalPreview.value = (amount * rate).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
     function calculateAmount() {
         const selectedId = costTypeDropdown.value;
         const selectedType = costTypes.find(ct => ct.id == selectedId);
@@ -515,21 +713,31 @@ document.addEventListener("DOMContentLoaded", function () {
         if (rate > 0 && weight > 0) {
             amountInput.value = (rate * weight).toFixed(2);
         }
+        updateFinalCost();
     }
 
     costTypeDropdown.addEventListener("change", updateFormUI);
     rateInput.addEventListener("input", calculateAmount);
     weightInput.addEventListener("input", calculateAmount);
+    amountInput.addEventListener("input", updateFinalCost);
+    exRateInput.addEventListener("input", updateFinalCost);
+    currencySelect.addEventListener("change", updateCurrencyUI);
 
     updateFormUI();
+
+    // initial state (keeps old() value if validation failed)
+    const oldRate = exRateInput.value;
+    updateCurrencyUI();
+    if (currencySelect.value !== "bdt" && oldRate) exRateInput.value = oldRate;
+    updateFinalCost();
 });
 
-// Confirm before delete (cost & payment)
+// Confirm before delete (cost, payment, attachment)
 document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll('.delete-cost-form').forEach(function (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
-            if (confirm('Are you sure you want to delete this cost?')) {
+            if (confirm('Are you sure you want to delete this cost? Its payments and attachments will be deleted too.')) {
                 this.submit();
             }
         });
@@ -539,6 +747,15 @@ document.addEventListener("DOMContentLoaded", function () {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (confirm('Are you sure you want to delete this payment?')) {
+                this.submit();
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-attachment-form').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (confirm('Are you sure you want to delete this attachment?')) {
                 this.submit();
             }
         });
