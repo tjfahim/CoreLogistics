@@ -4,195 +4,200 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CustomerPayment;
-use App\Models\CargoItem;
-use App\Models\CustomerPaymentItem;
+use App\Models\CustomerPaymentAllocation;
 use App\Models\ItemsShipment;
+use App\Services\CustomerLedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class PaymentController extends Controller
 {
-    // Show payment form for a specific shipment
+    public function __construct(private CustomerLedgerService $ledger)
+    {
+    }
+
+    /**
+     * OLD entry point (billing page links here). Now it just opens the
+     * new receive-payment form with this shipment pre-filled.
+     */
     public function create(Customer $customer, ItemsShipment $itemshipment)
     {
-        $items = $customer->cargoItems()
-            ->where(function($query) {
-                $query->whereNotNull('price')
-                      ->orWhereNotNull('price_per_kg');
-            })
-            ->whereNull('paid_at') // Only unpaid items
-            ->whereHas('itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->get();
-        // Calculate total bill from ALL items in THIS shipment (paid + unpaid)
-        $allItems = $customer->cargoItems()
-            ->where(function($query) {
-                $query->whereNotNull('price')
-                      ->orWhereNotNull('price_per_kg');
-            })
-            ->whereHas('itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->get();
-        
-        $totalAmount = $allItems->sum(function($item) {
-            return $item->total_price ?? 0;
-        });
-        
-        // Calculate total paid for THIS shipment
-        $totalPaid = CustomerPayment::where('customer_id', $customer->id)
-            ->whereHas('paymentItems.cargoItem.itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->sum('amount');
-        
-        $totalDue = $totalAmount - $totalPaid;
-        
-        // Add shipment info to the view
-        return view('admin.payments.create', compact(
-            'customer',
-            'itemshipment',
-            'items',
-            'totalAmount',
-            'totalPaid',
-            'totalDue'
-        ));
-    }
-    
-    // Process payment for a specific shipment
-    public function store(Request $request, Customer $customer, ItemsShipment $itemshipment)
-    {
-        $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|string|in:cash,bank_transfer,cheque,card',
-            'payment_date' => 'required|date',
-            'reference_no' => 'nullable|string|max:100',
-            'notes' => 'nullable|string',
-            'selected_items' => 'required|array|min:1',
-            'selected_items.*' => 'exists:cargo_items,id'
+        return redirect()->route('payments.receive', [
+            'customer' => $customer->id,
+            'shipment' => $itemshipment->id,
+            'return'   => 'billing',
         ]);
-        
-        // Verify selected items belong to this shipment
-        $selectedItems = CargoItem::whereIn('id', $request->selected_items)
-            ->whereNull('paid_at')
-            ->whereHas('itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->get();
-            
-        if ($selectedItems->count() !== count($request->selected_items)) {
-            return redirect()->back()
-                ->with('error', 'Some selected items do not belong to this shipment or are already paid!')
-                ->withInput();
+    }
+
+    /**
+     * Receive-payment form: one amount, split manually across the customer's due shipments.
+     * Optional ?shipment=ID pre-fills that shipment's full due.
+     */
+    public function receive(Request $request, Customer $customer)
+    {
+        $bills    = $this->ledger->shipmentBills($customer);
+        $dueBills = $bills->filter(fn ($b) => $b['due'] > 0)->values();
+        $totals   = $this->ledger->totals($bills);
+
+        $preselect = (int) $request->query('shipment');
+        $return    = $request->query('return');
+
+        return view('admin.payments.receive', compact('customer', 'dueBills', 'totals', 'preselect', 'return'));
+    }
+
+    /**
+     * Save one receipt + its allocations (all-or-nothing).
+     */
+    public function storeReceipt(Request $request, Customer $customer)
+    {
+        abort_unless(Gate::allows('add-payment'), 403);
+
+        $request->validate([
+            'amount'         => 'required|numeric|min:1',
+            'payment_method' => 'required|string|in:cash,bank_transfer,cheque,card',
+            'payment_date'   => 'required|date',
+            'reference_no'   => 'nullable|string|max:100',
+            'notes'          => 'nullable|string',
+            'allocations'    => 'required|array',
+            'allocations.*'  => 'nullable|numeric|min:0',
+        ]);
+
+        $allocations = collect($request->input('allocations', []))
+            ->map(fn ($v) => round((float) $v, 2))
+            ->filter(fn ($v) => $v > 0);
+
+        if ($allocations->isEmpty()) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Allocate the payment to at least one shipment.');
         }
-        
-        // Calculate totals for THIS shipment
-        $allItems = $customer->cargoItems()
-            ->where(function($query) {
-                $query->whereNotNull('price')
-                      ->orWhereNotNull('price_per_kg');
-            })
-            ->whereHas('itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->get();
-        
-        $totalAmount = $allItems->sum(function($item) {
-            return $item->total_price ?? 0;
-        });
-        
-        $totalPaid = CustomerPayment::where('customer_id', $customer->id)
-            ->whereHas('paymentItems.cargoItem.itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->sum('amount');
-        
-        $totalDue = $totalAmount - $totalPaid;
-        
-        // Calculate selected items total
-        $selectedTotal = $selectedItems->sum('total_price');
-        
-        if ($request->amount != $selectedTotal) {
-            return redirect()->back()
-                ->with('error', 'Payment amount must match selected items total!')
-                ->withInput();
-        }
-        
-        if ($request->amount > $totalDue) {
-            return redirect()->back()
-                ->with('error', 'Payment amount cannot exceed total due amount!')
-                ->withInput();
-        }
-        
+
         try {
-            DB::transaction(function () use ($request, $customer, $itemshipment, $totalDue, $selectedItems) {
-                // Create payment record
-                $payment = CustomerPayment::create([
-                    'customer_id' => $customer->id,
-                    'itemshipment_id' => $itemshipment->id, // Add shipment reference
-                    'amount' => $request->amount,
-                    'payment_method' => $request->payment_method,
-                    'payment_date' => $request->payment_date,
-                    'reference_no' => $request->reference_no,
-                    'notes' => $request->notes,
-                    'remaining_due' => $totalDue - $request->amount
-                ]);
-                
-                foreach ($selectedItems as $item) {
-                    CustomerPaymentItem::create([
-                        'customer_payment_id' => $payment->id,
-                        'cargo_item_id' => $item->id,
-                        'amount' => $item->total_price
-                    ]);
-                    
-                     $item->paid_at = now();
-    $item->save();
+            $payment = DB::transaction(function () use ($request, $customer, $allocations) {
+                // serialize concurrent payments for the same customer
+                Customer::whereKey($customer->id)->lockForUpdate()->first();
+
+                $bills = $this->ledger->shipmentBills($customer)
+                    ->keyBy(fn ($b) => $b['shipment']->id);
+
+                foreach ($allocations as $shipmentId => $amt) {
+                    $bill = $bills->get((int) $shipmentId);
+
+                    if (!$bill) {
+                        throw new \Exception("Shipment #{$shipmentId} does not belong to this customer.");
+                    }
+                    if ($amt > $bill['due'] + 0.004) {
+                        throw new \Exception(
+                            "Allocation for {$bill['shipment']->shipment_name} (" . number_format($amt, 2) .
+                            ") is more than its due (" . number_format($bill['due'], 2) . ")."
+                        );
+                    }
                 }
+
+                $allocatedTotal = round((float) $allocations->sum(), 2);
+
+                if (abs($allocatedTotal - round((float) $request->amount, 2)) > 0.009) {
+                    throw new \Exception('Allocated total (' . number_format($allocatedTotal, 2) .
+                        ') must equal the received amount (' . number_format((float) $request->amount, 2) . ').');
+                }
+
+                $dueBefore = (float) $bills->sum('due');
+
+                $payment = CustomerPayment::create([
+                    'customer_id'     => $customer->id,
+                    'itemshipment_id' => $allocations->count() === 1 ? (int) $allocations->keys()->first() : null,
+                    'amount'          => $allocatedTotal,
+                    'payment_method'  => $request->payment_method,
+                    'payment_date'    => $request->payment_date,
+                    'reference_no'    => $request->reference_no,
+                    'notes'           => $request->notes,
+                    'remaining_due'   => max($dueBefore - $allocatedTotal, 0),
+                ]);
+
+                foreach ($allocations as $shipmentId => $amt) {
+                    CustomerPaymentAllocation::create([
+                        'customer_payment_id' => $payment->id,
+                        'itemshipment_id'     => (int) $shipmentId,
+                        'amount'              => $amt,
+                    ]);
+                }
+
+                return $payment;
             });
-            
-            // Redirect back to the shipment bill page
-            return redirect()->back()->with('success', 'Payment processed successfully!');
-                
+
+            $message = 'Payment of ' . number_format($payment->amount, 2) . ' tk received and allocated to ' .
+                $allocations->count() . ' shipment(s).';
+
+            if ($request->input('return') === 'billing' && $request->filled('shipment')) {
+                return redirect()->route('shipments.billing', (int) $request->input('shipment'))
+                    ->with('success', $message);
+            }
+
+            return redirect()->route('ledger.customer', $customer->id)->with('success', $message);
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error processing payment: ' . $e->getMessage())
-                ->withInput();
+            return redirect()->back()->withInput()
+                ->with('error', 'Error processing payment: ' . $e->getMessage());
         }
     }
-    
-    // Show payment history for a specific shipment
+
+    /**
+     * Delete a whole receipt (all its allocations). Needs the "delete-payment" permission.
+     */
+    public function destroy(CustomerPayment $payment)
+    {
+        abort_unless(Gate::allows('delete-payment'), 403);
+
+        try {
+            DB::transaction(function () use ($payment) {
+                // legacy item-level payments: release the items again
+                foreach ($payment->paymentItems()->with('cargoItem')->get() as $paymentItem) {
+                    if ($paymentItem->cargoItem) {
+                        $paymentItem->cargoItem->paid_at = null;
+                        $paymentItem->cargoItem->save();
+                    }
+                }
+
+                $payment->paymentItems()->delete();
+                $payment->allocations()->delete();
+                $payment->delete();
+            });
+
+            return redirect()->back()->with('success', 'Payment deleted. Shipment dues were recalculated.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error deleting payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Payment history of one customer for one shipment (allocation based).
+     */
     public function history(Customer $customer, ItemsShipment $itemshipment)
     {
-        // Get payments for THIS shipment
-        $payments = CustomerPayment::where('customer_id', $customer->id)
-            ->where('itemshipment_id', $itemshipment->id) // Filter by shipment
-            ->with(['paymentItems.cargoItem'])
-            ->orderBy('payment_date', 'desc')
-            ->get();
-        
-        // Get all items in THIS shipment
-        $items = $customer->cargoItems()
-            ->where(function($query) {
-                $query->whereNotNull('price')
-                      ->orWhereNotNull('price_per_kg');
-            })
-            ->whereHas('itemshipments', function ($q) use ($itemshipment) {
-                $q->where('items_shipments.id', $itemshipment->id);
-            })
-            ->get();
-        
-        $totalAmount = $items->sum(function($item) {
-            return $item->total_price ?? 0;
-        });
-        
-        $totalPaid = $payments->sum('amount');
-        $totalDue = $totalAmount - $totalPaid;
-        
+        $bill        = $this->ledger->shipmentBills($customer)->firstWhere('shipment.id', $itemshipment->id);
+        $totalAmount = $bill['billed'] ?? 0;
+
+        $allocations = CustomerPaymentAllocation::with(['payment.allocations.itemshipment', 'payment.paymentItems.cargoItem'])
+            ->where('itemshipment_id', $itemshipment->id)
+            ->whereHas('payment', fn ($q) => $q->where('customer_id', $customer->id))
+            ->get()
+            ->sort(fn ($a, $b) => [$a->payment->payment_date, $a->id] <=> [$b->payment->payment_date, $b->id])
+            ->values();
+
+        // running remaining due for THIS shipment after each payment
+        $running = 0;
+        foreach ($allocations as $alloc) {
+            $running += (float) $alloc->amount;
+            $alloc->setAttribute('remaining_after', max($totalAmount - $running, 0));
+        }
+
+        $allocations = $allocations->reverse()->values(); // newest first
+        $totalPaid   = (float) $allocations->sum('amount');
+        $totalDue    = max($totalAmount - $totalPaid, 0);
+
         return view('admin.payments.history', compact(
             'customer',
             'itemshipment',
-            'payments',
+            'allocations',
             'totalAmount',
             'totalPaid',
             'totalDue'

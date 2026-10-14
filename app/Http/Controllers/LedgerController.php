@@ -4,20 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CustomerPayment;
-use App\Models\ItemsShipment;
+use App\Models\CustomerPaymentAllocation;
+use App\Services\CustomerLedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class LedgerController extends Controller
 {
+    public function __construct(private CustomerLedgerService $ledger)
+    {
+    }
+
     /**
      * Ledger index — every customer with billed/paid/due summary.
+     * (same row keys as before, so the index blade keeps working)
      */
     public function index(Request $request)
     {
         $search = $request->input('search');
 
-        $customers = Customer::query()
+        $customers = Customer::with('cargoItems.itemshipments')
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('name', 'like', "%{$search}%")
@@ -28,40 +34,43 @@ class LedgerController extends Controller
             })
             ->get();
 
-        $ledgerRows = $customers->map(function ($customer) {
-            $pricedItems = $customer->cargoItems()
-                ->where(function ($q) {
-                    $q->whereNotNull('price')->orWhereNotNull('price_per_kg');
-                })
-                ->get();
+        // one query for all paid totals, one for last payment dates
+        $paidByCustomer = CustomerPaymentAllocation::query()
+            ->join('customer_payments', 'customer_payments.id', '=', 'customer_payment_allocations.customer_payment_id')
+            ->selectRaw('customer_payments.customer_id as cid, SUM(customer_payment_allocations.amount) as total')
+            ->groupBy('customer_payments.customer_id')
+            ->pluck('total', 'cid');
 
-            $totalBilled = $pricedItems->sum('total_price');
-            $totalPaid   = CustomerPayment::where('customer_id', $customer->id)->sum('amount');
-            $totalDue    = max($totalBilled - $totalPaid, 0);
+        $lastPayments = CustomerPayment::selectRaw('customer_id, MAX(payment_date) as last_date')
+            ->groupBy('customer_id')
+            ->pluck('last_date', 'customer_id');
 
-            $lastPayment = CustomerPayment::where('customer_id', $customer->id)
-                ->orderByDesc('payment_date')
-                ->first();
+        $ledgerRows = $customers->map(function ($customer) use ($paidByCustomer, $lastPayments) {
+            $billed      = 0;
+            $shipmentIds = [];
 
-            $shipmentCount = $customer->cargoItems()
-                ->with('itemshipments')
-                ->get()
-                ->pluck('itemshipments')
-                ->flatten()
-                ->pluck('id')
-                ->unique()
-                ->count();
+            foreach ($customer->cargoItems as $item) {
+                foreach ($item->itemshipments as $shipment) {
+                    $shipmentIds[$shipment->id] = true;
+                    if ($item->hasPrice()) {
+                        $billed += (float) ($item->total_price ?? 0);
+                    }
+                }
+            }
+
+            $paid = (float) ($paidByCustomer[$customer->id] ?? 0);
+            $due  = max($billed - $paid, 0);
 
             return [
                 'customer'          => $customer,
-                'total_billed'      => $totalBilled,
-                'total_paid'        => $totalPaid,
-                'total_due'         => $totalDue,
-                'shipment_count'    => $shipmentCount,
-                'last_payment_date' => $lastPayment?->payment_date,
-                'status'            => $totalBilled == 0
+                'total_billed'      => $billed,
+                'total_paid'        => $paid,
+                'total_due'         => $due,
+                'shipment_count'    => count($shipmentIds),
+                'last_payment_date' => $lastPayments[$customer->id] ?? null,
+                'status'            => $billed == 0
                     ? 'no-billing'
-                    : ($totalDue <= 0 ? 'clear' : 'due'),
+                    : ($due <= 0 ? 'clear' : 'due'),
             ];
         });
 
@@ -75,87 +84,60 @@ class LedgerController extends Controller
     }
 
     /**
-     * Full ledger detail for a single customer: shipments, statement, payment history.
+     * Full ledger for one customer: shipments (with items modal), statement, payment history.
      */
     public function customer(Customer $customer)
     {
         $customer->load('extraShippingMarks');
 
-        $shipmentIds = $customer->cargoItems()
-            ->with('itemshipments')
-            ->get()
-            ->pluck('itemshipments')
-            ->flatten()
-            ->pluck('id')
-            ->unique();
+        $shipmentSummaries = $this->ledger->shipmentBills($customer);
+        $totals            = $this->ledger->totals($shipmentSummaries);
 
-        $shipments = ItemsShipment::whereIn('id', $shipmentIds)
-            ->orderBy('shipment_date')
+        $totalBilled = $totals['billed'];
+        $totalPaid   = $totals['paid'];
+        $totalDue    = $totals['due'];
+
+        $payments = CustomerPayment::where('customer_id', $customer->id)
+            ->with(['allocations.itemshipment', 'paymentItems'])
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
             ->get();
 
+        // ---------- Statement of account ----------
         $ledgerEntries = collect();
-        $shipmentSummaries = [];
 
-        foreach ($shipments as $shipment) {
-            $items = $customer->cargoItems()
-                ->whereHas('itemshipments', function ($q) use ($shipment) {
-                    $q->where('items_shipments.id', $shipment->id);
-                })
-                ->get();
-
-            $pricedItems   = $items->filter(fn ($i) => $i->hasPrice());
-            $shipmentTotal = $pricedItems->sum('total_price');
-
-            $shipmentPaid = CustomerPayment::where('customer_id', $customer->id)
-                ->whereHas('paymentItems.cargoItem.itemshipments', function ($q) use ($shipment) {
-                    $q->where('items_shipments.id', $shipment->id);
-                })
-                ->sum('amount');
-
-            $shipmentSummaries[] = [
-                'shipment'     => $shipment,
-                'total_items'  => $items->count(),
-                'priced_items' => $pricedItems->count(),
-                'total_weight' => $items->sum('weight_kg'),
-                'total_amount' => $shipmentTotal,
-                'paid_amount'  => $shipmentPaid,
-                'due_amount'   => max($shipmentTotal - $shipmentPaid, 0),
-                'items'        => $items,
-            ];
-
-            if ($shipmentTotal > 0) {
+        foreach ($shipmentSummaries as $s) {
+            if ($s['billed'] > 0) {
                 $ledgerEntries->push([
-                    'date'        => $shipment->shipment_date ?? $shipment->created_at,
+                    'date'        => $s['shipment']->shipment_date ?? $s['shipment']->created_at,
                     'type'        => 'debit',
-                    'description' => 'Billed — Shipment: ' . $shipment->shipment_name,
-                    'reference'   => $shipment->shipment_name,
-                    'amount'      => $shipmentTotal,
-                    'shipment_id' => $shipment->id,
+                    'description' => 'Billed — Shipment: ' . $s['shipment']->shipment_name,
+                    'details'     => $s['priced_items'] . ' priced item(s)',
+                    'reference'   => $s['shipment']->shipment_name,
+                    'amount'      => $s['billed'],
                 ]);
             }
         }
 
-        // Separate, detailed payment history (not merged into the statement)
-        $payments = CustomerPayment::where('customer_id', $customer->id)
-            ->with(['itemshipment', 'paymentItems.cargoItem'])
-            ->orderByDesc('payment_date')
-            ->get();
-
         foreach ($payments as $payment) {
+            $breakdown = $payment->allocations
+                ->map(fn ($a) => ($a->itemshipment->shipment_name ?? ('#' . $a->itemshipment_id)) . ': ' . number_format($a->amount, 0))
+                ->implode(' | ');
+
             $ledgerEntries->push([
                 'date'        => $payment->payment_date,
                 'type'        => 'credit',
-                'description' => 'Payment Received'
-                    . ($payment->itemshipment ? ' — ' . $payment->itemshipment->shipment_name : '')
-                    . ($payment->reference_no ? ' (Ref: ' . $payment->reference_no . ')' : ''),
-                'reference'      => $payment->reference_no,
-                'amount'         => $payment->amount,
-                'payment_method' => $payment->payment_method,
-                'payment_id'     => $payment->id,
+                'description' => 'Payment Received' . ($payment->reference_no ? ' (Ref: ' . $payment->reference_no . ')' : ''),
+                'details'     => $breakdown,
+                'reference'   => $payment->reference_no,
+                'amount'      => $payment->amount,
             ]);
         }
 
-        $ledgerEntries = $ledgerEntries->sortBy(fn ($e) => Carbon::parse($e['date']))->values();
+        // by date; on the same day bills come before payments
+        $ledgerEntries = $ledgerEntries
+            ->sortBy(fn ($e) => Carbon::parse($e['date'])->format('Y-m-d') . ($e['type'] === 'debit' ? '0' : '1'))
+            ->values();
 
         $balance = 0;
         $ledgerEntries = $ledgerEntries->map(function ($entry) use (&$balance) {
@@ -164,16 +146,12 @@ class LedgerController extends Controller
             return $entry;
         });
 
-        $totalBilled = collect($shipmentSummaries)->sum('total_amount');
-        $totalPaid   = collect($shipmentSummaries)->sum('paid_amount');
-        $totalDue    = max($totalBilled - $totalPaid, 0);
-
         return view('admin.ledger.show', compact(
             'customer',
-            'shipments',
             'shipmentSummaries',
             'ledgerEntries',
             'payments',
+            'totals',
             'totalBilled',
             'totalPaid',
             'totalDue'

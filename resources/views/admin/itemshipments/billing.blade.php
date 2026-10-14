@@ -163,6 +163,9 @@
                                     @endif
                                 </td>
                                 <td>
+                                    <a href="{{ route('ledger.customer', $bill['customer_id']) }}" class="btn btn-sm btn-secondary">
+    <i class="fa fa-book"></i> Ledger
+</a>
                                     @if($bill['customer_id'])
                                         <div class="d-flex flex-wrap gap-1">
                                             {{-- ✅ Invoice — view-invoices --}}

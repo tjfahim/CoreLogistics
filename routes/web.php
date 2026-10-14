@@ -234,17 +234,19 @@ Route::delete('customer-extra-shipping-marks/inline-destroy/{id}', [CustomerExtr
         [CustomerBillController::class, 'updateItemPrices'])
         ->name('shipments.update-prices');
         
-    Route::get('/customers/{customer}/shipment/{itemshipment}/payment', 
-        [PaymentController::class, 'create'])
-        ->name('payments.create');
 
-    Route::post('/customers/{customer}/shipment/{itemshipment}/payment', 
-        [PaymentController::class, 'store'])
-        ->name('payments.store');
 
-    Route::get('/customers/{customer}/shipment/{itemshipment}/payment-history', 
-        [PaymentController::class, 'history'])
-        ->name('payments.history');
+// old link from billing page -> redirects to the new form (keeps old buttons working)
+Route::get('/customers/{customer}/shipment/{itemshipment}/payment', [PaymentController::class, 'create'])->name('payments.create');
+
+// NEW: receive one amount and split it across shipments
+Route::get('/customers/{customer}/receive-payment', [PaymentController::class, 'receive'])->name('payments.receive');
+Route::post('/customers/{customer}/receive-payment', [PaymentController::class, 'storeReceipt'])->name('payments.receive.store');
+
+// NEW: delete a whole receipt (permission: delete-payment)
+Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+
+Route::get('/customers/{customer}/shipment/{itemshipment}/payment-history', [PaymentController::class, 'history'])->name('payments.history');
 
 
         Route::prefix('ledger')->name('ledger.')->group(function () {

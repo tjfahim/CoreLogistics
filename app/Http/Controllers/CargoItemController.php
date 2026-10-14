@@ -238,7 +238,19 @@ foreach ($validated['items'] as $index => $itemData) {
     public function import(Request $request)
     {
         $request->validate([
-            'file'  => ['required', 'file', 'mimes:xlsx,xls'],
+            // Check the extension, not the sniffed MIME type: some valid .xlsx files
+            // (e.g. saved by WPS / older Excel / exported tools) are detected as
+            // application/octet-stream and would fail the `mimes` rule.
+            'file'  => [
+                'required',
+                'file',
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    if (!in_array($ext, ['xlsx', 'xls'], true)) {
+                        $fail('The file must be an Excel file (.xlsx or .xls).');
+                    }
+                },
+            ],
             'title' => ['nullable', 'string', 'max:255'],
             'note'  => ['nullable', 'string', 'max:1000'],
         ]);
@@ -259,16 +271,13 @@ foreach ($validated['items'] as $index => $itemData) {
         ]);
 
         // Parse file for preview
-        $importedData = Excel::toArray(new CargoItemsImport, $uploadedFile);
-        $importedData = $importedData[0] ?? [];
+        try {
+            $transformedItems = $this->parseExcel($uploadedFile);
+        } catch (\RuntimeException $e) {
+            Storage::disk('local')->delete($filePath);
+            $excelFile->delete();
 
-        array_shift($importedData); // remove header
-
-        $transformedItems = [];
-        foreach ($importedData as $row) {
-            if ($this->isValidRow($row)) {
-                $transformedItems[] = $this->transformRow($row);
-            }
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         // Detect duplicates
@@ -529,16 +538,11 @@ private function rowExistsInDatabase($item)
 
         // Parse the file to show data
         $fullPath = Storage::disk('local')->path($file->file_path);
-        $importedData = Excel::toArray(new CargoItemsImport, $fullPath);
-        $importedData = $importedData[0] ?? [];
 
-        array_shift($importedData);
-
-        $transformedItems = [];
-        foreach ($importedData as $row) {
-            if ($this->isValidRow($row)) {
-                $transformedItems[] = $this->transformRow($row);
-            }
+        try {
+            $transformedItems = $this->parseExcel($fullPath);
+        } catch (\RuntimeException $e) {
+            return redirect()->route('cargo-items.files.index')->with('error', $e->getMessage());
         }
 
         return view('admin.cargo_items.files_view', compact('file', 'transformedItems'));
@@ -570,71 +574,232 @@ private function rowExistsInDatabase($item)
     // HELPERS (existing)
     // ============================================
 
-    private function isValidRow($row)
+    /**
+     * Header aliases (normalised) => internal field.
+     * The packing list has a "totals" row above the real header row, so the
+     * header row is detected by looking for the Tracking + Goods_Name columns.
+     */
+    private const EXCEL_COLUMNS = [
+        'received_date'  => ['received_date', 'goods_received', 'date'],
+        'printed_ctn_no' => ['printed_ctn_no', 'printed_ctn'],
+        'written_ctn_no' => ['written_ctn_no', 'written_ctn'],
+        'receipt_no'     => ['receipt_no', 'receipt'],
+        'tracking'       => ['tracking', 'trackings', 'tracking_no'],
+        'goods_name'     => ['goods_name', 'goodsname'],
+        'goods_name_local' => ['品名', 'goods_name_local'],
+        'pack_no'        => ['pack_no', 'pack'],
+        'unit_pcs'       => ['unit_pcs', 'unit_pc', 'pcs'],
+        'weight_kg'      => ['weight_kg', 'weight'],
+        'length_cm'      => ['l_cm', 'l', 'length_cm', 'length'],
+        'width_cm'       => ['w_cm', 'w', 'width_cm', 'width'],
+        'height_cm'      => ['h_cm', 'h', 'height_cm', 'height'],
+        'cbm'            => ['cbm'],
+        'shipping_mark'  => ['shipping_mark', 'shippingmark'],
+        'remark'         => ['remark', 'remark_for_liquidbattery_or_powder'],
+        'copy'           => ['copy', 'copy_or_no'],
+        'warehouse'      => ['warehouse', 'ware_house'],
+    ];
+
+    /**
+     * Read the first sheet into a plain 0-indexed array, safely.
+     *
+     * WPS/Excel files often style whole columns (e.g. <col min="18" max="16377" style=..>).
+     * PhpSpreadsheet then creates a cell for every one of those ~16,000 columns on every
+     * row, which exhausts memory. So we read data only (no styles), skip empty cells,
+     * only load columns A-Z / the first 20,000 rows, and only the first sheet.
+     *
+     * @param  \Illuminate\Http\UploadedFile|string  $source
+     */
+    private function readSheetRows($source): array
     {
-        return !empty($row['trackings']) && !empty($row['goods_name']);
+        $path = is_string($source) ? $source : $source->getRealPath();
+
+        $filter = new class implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter {
+            public function readCell($columnAddress, $row, $worksheetName = ''): bool
+            {
+                return $row <= 20000
+                    && \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($columnAddress) <= 26;
+            }
+        };
+
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true);
+        $reader->setReadEmptyCells(false);
+        $reader->setReadFilter($filter);
+
+        $sheetNames = $reader->listWorksheetNames($path);
+        if (!empty($sheetNames)) {
+            $reader->setLoadSheetsOnly([$sheetNames[0]]);
+        }
+
+        $spreadsheet = $reader->load($path);
+        $rows = $spreadsheet->getSheet(0)->toArray(null, false, false, false);
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        return $rows;
     }
 
-  private function transformRow($row)
-{
-    $date = null;
-    if (!empty($row['goods_received']) && $row['goods_received'] !== 'Date (MM.DD)') {
-        $dateParts = explode('.', $row['goods_received']);
-        if (count($dateParts) === 2) {
-            $currentYear = date('Y');
-            $date = $currentYear . '-' . str_pad($dateParts[0], 2, '0', STR_PAD_LEFT) . '-' . str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
-            if (!strtotime($date)) {
-                $date = null;
+    /**
+     * Read the first sheet and return items ready for CargoItem::create().
+     *
+     * @param  \Illuminate\Http\UploadedFile|string  $source
+     * @throws \RuntimeException when the header row cannot be found
+     */
+    private function parseExcel($source): array
+    {
+        $rows = $this->readSheetRows($source);
+
+        $normalize = function ($v) {
+            $v = mb_strtolower(trim((string) $v));
+            return preg_replace('/[\s\-]+/u', '_', $v);
+        };
+
+        // Find the header row (within the first 10 rows) and map columns
+        $headerIndex = null;
+        $map = [];
+        foreach (array_slice($rows, 0, 10, true) as $i => $row) {
+            $headers = array_map($normalize, array_values($row));
+            $found = [];
+            foreach (self::EXCEL_COLUMNS as $field => $aliases) {
+                foreach ($headers as $col => $h) {
+                    if ($h !== '' && in_array($h, $aliases, true)) {
+                        $found[$field] = $col;
+                        break;
+                    }
+                }
+            }
+            if (isset($found['tracking'], $found['goods_name'])) {
+                $headerIndex = $i;
+                $map = $found;
+                break;
             }
         }
-    }
 
-    $cbm = $this->calculateCBM($row);
-
-    $copyOrNo = strtolower(trim((string)($row['copy_or_no'] ?? '')));
-    $isCopy = in_array($copyOrNo, ['yes', 'copy', 'true', '1', 'y']);
-
-    // Helper to trim safely (handles null)
-    $clean = function ($value) {
-        if ($value === null) return null;
-        $trimmed = trim((string)$value);
-        return $trimmed === '' ? null : $trimmed;
-    };
-
-    return [
-        'date'             => $date,
-        'goods_received'   => !empty($row['goods_received']) && is_numeric(str_replace('.', '', $row['goods_received'])) ? 1 : 0,
-        'printed_ctn_no'   => $clean($row['printed_ctn_no'] ?? null),
-        'written_ctn_no'   => $clean($row['written_ctn_no'] ?? null),
-        'tracking_no'      => $clean($row['trackings'] ?? null),       // ← trimmed!
-        'goods_name_en'    => $clean($row['goods_name'] ?? null),
-        'goods_name_local' => $clean($row[''] ?? null),
-        'pack_no'          => intval($row['pack_no'] ?? 0),
-        'unit_pcs'         => intval($row['unit_pcs'] ?? 0),
-        'weight_kg'        => floatval($row['weight_kg'] ?? 0),
-        'length_cm'        => floatval($row['size'] ?? 0),
-        'width_cm'         => floatval($row['10'] ?? 0),
-        'height_cm'        => floatval($row['11'] ?? 0),
-        'cbm'              => $cbm,
-        'shipping_mark'    => $clean($row['shipping_mark'] ?? null),
-        'remark'           => $clean($row['remark_for_liquidbattery_or_powder'] ?? null),
-        'warehouse'        => $clean($row['ware_house'] ?? null),
-        'is_copy'          => $isCopy,
-    ];
-}
-
-    private function calculateCBM($row)
-    {
-        if (is_numeric($row['cbm'])) {
-            return floatval($row['cbm']);
+        if ($headerIndex === null) {
+            throw new \RuntimeException(
+                'Could not find the header row. The sheet must have "Tracking" and "Goods_Name" columns.'
+            );
         }
 
-        $length = floatval($row['size'] ?? 0);
-        $width = floatval($row['10'] ?? 0);
-        $height = floatval($row['11'] ?? 0);
+        $items = [];
+        foreach (array_slice($rows, $headerIndex + 1) as $row) {
+            $row = array_values($row);
+            $get = fn (string $field) => isset($map[$field]) ? ($row[$map[$field]] ?? null) : null;
+
+            if ($this->cellText($get('tracking')) === null || $this->cellText($get('goods_name')) === null) {
+                continue; // empty / incomplete row
+            }
+
+            $items[] = $this->transformRow($get);
+        }
+
+        return $items;
+    }
+
+    /** Cell -> trimmed string or null (also fixes big numbers like 7.7E+14). */
+    private function cellText($value): ?string
+    {
+        if ($value === null) return null;
+        if (is_float($value) && floor($value) == $value && abs($value) < 1e15) {
+            $value = sprintf('%.0f', $value);
+        }
+        $value = trim((string) $value);
+        return $value === '' ? null : $value;
+    }
+
+    /** "10.09" / 10.09 / "5.12 " (MM.DD) or an Excel serial -> Y-m-d or null */
+    private function parseReceivedDate($value): ?string
+    {
+        if ($value === null || $value === '') return null;
+
+        // Excel date serial
+        if (is_numeric($value) && (float) $value > 100) {
+            try {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        // MM.DD typed as a number loses its trailing zero only for 2 decimals max
+        $text = is_float($value) ? sprintf('%.2f', $value) : trim((string) $value);
+        $parts = explode('.', $text);
+        if (count($parts) !== 2 || !ctype_digit($parts[0]) || !ctype_digit($parts[1])) {
+            return null;
+        }
+
+        $month = (int) $parts[0];
+        $day   = (int) $parts[1];
+        $year  = (int) date('Y');
+
+        if (!checkdate($month, $day, $year)) return null;
+
+        // The sheet has no year: a date more than a month ahead must be last year's
+        if (strtotime(sprintf('%04d-%02d-%02d', $year, $month, $day)) > strtotime('+31 days')) {
+            $year--;
+            if (!checkdate($month, $day, $year)) return null;
+        }
+
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
+    }
+
+    /** "2-1" -> 2, "10-6" -> 10, 3 -> 3 */
+    private function leadingInt($value): int
+    {
+        return preg_match('/^\s*(\d+)/', (string) $value, $m) ? (int) $m[1] : 0;
+    }
+
+    private function transformRow(callable $get): array
+    {
+        $date = $this->parseReceivedDate($get('received_date'));
+
+        $length = (float) $get('length_cm');
+        $width  = (float) $get('width_cm');
+        $height = (float) $get('height_cm');
+        $cbm    = $this->calculateCBM($get('cbm'), $length, $width, $height);
+
+        $copyText = strtolower((string) $this->cellText($get('copy')));
+        $isCopy   = in_array($copyText, ['yes', 'copy', 'true', '1', 'y'], true);
+
+        $remark = $this->cellText($get('remark'));
+        // Anything else typed in the Copy column (e.g. "battery") is really a remark
+        if ($copyText !== '' && !$isCopy && !in_array($copyText, ['no', 'n', 'false', '0'], true)) {
+            $remark = trim(($remark ? $remark . ' / ' : '') . $this->cellText($get('copy')));
+        }
+
+        return [
+            'date'             => $date,
+            'goods_received'   => $date ? 1 : 0,
+            'receipt_no'       => $this->cellText($get('receipt_no')),
+            'printed_ctn_no'   => $this->cellText($get('printed_ctn_no')),
+            'written_ctn_no'   => $this->cellText($get('written_ctn_no')),
+            'tracking_no'      => $this->cellText($get('tracking')),
+            'goods_name_en'    => $this->cellText($get('goods_name')),
+            'goods_name_local' => $this->cellText($get('goods_name_local')),
+            'pack_no'          => $this->leadingInt($get('pack_no')),
+            'unit_pcs'         => $this->leadingInt($get('unit_pcs')),
+            'weight_kg'        => (float) $get('weight_kg'),
+            'length_cm'        => $length,
+            'width_cm'         => $width,
+            'height_cm'        => $height,
+            'cbm'              => $cbm,
+            'shipping_mark'    => $this->cellText($get('shipping_mark')),
+            'remark'           => $remark,
+            'warehouse'        => $this->cellText($get('warehouse')),
+            'is_copy'          => $isCopy,
+        ];
+    }
+
+    private function calculateCBM($cbmCell, float $length, float $width, float $height): float
+    {
+        if (is_numeric($cbmCell) && (float) $cbmCell > 0) {
+            return (float) $cbmCell;
+        }
 
         if ($length > 0 && $width > 0 && $height > 0) {
-            return ($length * $width * $height) / 1000000;
+            return round(($length * $width * $height) / 1000000, 6);
         }
 
         return 0;

@@ -11,6 +11,7 @@ class CargoItem extends Model
 
     protected $fillable = [
         'goods_received',
+        'receipt_no',
         'printed_ctn_no',
         'written_ctn_no',
         'tracking_no',

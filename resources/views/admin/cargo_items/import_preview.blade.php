@@ -60,42 +60,63 @@
                     @else
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                             <table class="table table-bordered table-sm table-striped mb-0">
-                                <thead class="thead-light" style="position: sticky; top: 0;">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Row #</th>
-                                        <th>Date</th>
-                                        <th>Tracking No.</th>
-                                        <th>Goods Name (EN)</th>
-                                        <th>Printed CTN</th>
-                                        <th>Written CTN</th>
-                                        <th>Pack No.</th>
-                                        <th>Unit Pcs</th>
-                                        <th>Weight</th>
-                                        <th>CBM</th>
-                                        <th>Shipping Mark</th>
-                                        <th>Warehouse</th>
-                                    </tr>
-                                </thead>
+                                <thead class="thead-dark" style="position: sticky; top: 0; z-index: 1;">
+            <tr>
+                <th>#</th>
+                <th>Received Date</th>
+                <th>Receipt No.</th>
+                <th>Printed CTN</th>
+                <th>Written CTN</th>
+                <th>Tracking No.</th>
+                <th>Goods Name (EN)</th>
+                <th>品名 (Local)</th>
+                <th>Pack No.</th>
+                <th>Unit Pcs</th>
+                <th>Weight (kg)</th>
+                <th>L (cm)</th>
+                <th>W (cm)</th>
+                <th>H (cm)</th>
+                <th>CBM</th>
+                <th>Shipping Mark</th>
+                <th>Warehouse</th>
+                <th>Remark</th>
+                <th>Copy</th>
+                <th>Status</th>
+            </tr>
+        </thead>
                                 <tbody>
-                                    @foreach($uniqueItems as $i => $item)
-                                        <tr>
-                                            <td>{{ $i + 1 }}</td>
-                                            <td><span class="badge badge-secondary">{{ $item['_row'] }}</span></td>
-                                            <td>{{ $item['date'] ?? '—' }}</td>
-                                            <td>{{ $item['tracking_no'] }}</td>
-                                            <td>{{ $item['goods_name_en'] }}</td>
-                                            <td>{{ $item['printed_ctn_no'] }}</td>
-                                            <td>{{ $item['written_ctn_no'] }}</td>
-                                            <td>{{ $item['pack_no'] }}</td>
-                                            <td>{{ $item['unit_pcs'] }}</td>
-                                            <td>{{ $item['weight_kg'] }}</td>
-                                            <td>{{ $item['cbm'] }}</td>
-                                            <td>{{ $item['shipping_mark'] }}</td>
-                                            <td>{{ $item['warehouse'] }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
+            @foreach ($items as $i => $item)
+                @php $dupReason = $dupReasons[$i + 1] ?? null; @endphp
+                <tr class="{{ $dupReason ? 'table-warning' : '' }}">
+                    <td>{{ $i + 1 }}</td>
+                    <td>{{ $item['date'] ?? '' }}</td>
+                    <td>{{ $item['receipt_no'] ?? '' }}</td>
+                    <td>{{ $item['printed_ctn_no'] ?? '' }}</td>
+                    <td>{{ $item['written_ctn_no'] ?? '' }}</td>
+                    <td>{{ $item['tracking_no'] ?? '' }}</td>
+                    <td>{{ $item['goods_name_en'] ?? '' }}</td>
+                    <td>{{ $item['goods_name_local'] ?? '' }}</td>
+                    <td>{{ $item['pack_no'] ?? '' }}</td>
+                    <td>{{ $item['unit_pcs'] ?? '' }}</td>
+                    <td>{{ $item['weight_kg'] ?? '' }}</td>
+                    <td>{{ $item['length_cm'] ?? '' }}</td>
+                    <td>{{ $item['width_cm'] ?? '' }}</td>
+                    <td>{{ $item['height_cm'] ?? '' }}</td>
+                    <td>{{ isset($item['cbm']) ? number_format((float) $item['cbm'], 4) : '' }}</td>
+                    <td>{{ $item['shipping_mark'] ?? '' }}</td>
+                    <td>{{ $item['warehouse'] ?? '' }}</td>
+                    <td>{{ $item['remark'] ?? '' }}</td>
+                    <td class="text-center">{{ !empty($item['is_copy']) ? 'YES' : 'NO' }}</td>
+                    <td>
+                        @if ($dupReason)
+                            <span class="badge badge-warning">{{ $dupReason }}</span>
+                        @else
+                            <span class="badge badge-success">New</span>
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
                             </table>
                         </div>
                     @endif

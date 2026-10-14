@@ -82,17 +82,21 @@ class Customer extends Model
             ->sum(DB::raw('COALESCE(price, price_per_kg * weight_kg)'));
     }
 
-    public function getTotalPaidAttribute()
-    {
-        return $this->cargoItems()
-            ->where(function ($query) {
-                $query->whereNotNull('price')
-                      ->orWhereNotNull('price_per_kg');
-            })
-            ->whereNotNull('paid_at')
-            ->sum(DB::raw('COALESCE(price, price_per_kg * weight_kg)'));
-    }
 
+public function payments()
+{
+    return $this->hasMany(CustomerPayment::class);
+}
+
+public function allocations()
+{
+    return $this->hasManyThrough(CustomerPaymentAllocation::class, CustomerPayment::class, 'customer_id', 'customer_payment_id');
+}
+
+public function getTotalPaidAttribute()
+{
+    return (float) $this->allocations()->sum('customer_payment_allocations.amount');
+}
     public function getTotalDueAttribute()
     {
         return $this->total_bill - $this->total_paid;
