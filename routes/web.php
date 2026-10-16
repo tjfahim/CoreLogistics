@@ -17,6 +17,9 @@ use App\Http\Controllers\LedgerController;
 use App\Http\Controllers\LegacyUploadController;
 use App\Http\Controllers\OfficeBillController;
 use App\Http\Controllers\OfficeController;
+use App\Http\Controllers\OldCustomerController;
+use App\Http\Controllers\OldPaymentAndReceiveController;
+use App\Http\Controllers\OldShipmentController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
@@ -159,6 +162,22 @@ Route::delete('itemshipments/attachments/{attachmentId}', [ItemShipmentCostContr
 Route::delete('itemshipments/costs/{costId}', [ItemShipmentCostController::class, 'destroyCost'])->name('itemshipments.costs.destroy');
 Route::delete('itemshipments/payments/{paymentId}', [ItemShipmentCostController::class, 'destroyPayment'])->name('itemshipments.payments.destroy');
 Route::get('itemshipments/{itemShipmentId}/financial-summary', [ItemShipmentCostController::class, 'getFinancialSummary'])->name('itemshipments.financial-summary');
+
+Route::resource('old-shipments', OldShipmentController::class)
+    ->parameters(['old-shipments' => 'old_shipment']);
+
+Route::resource('old-customers', OldCustomerController::class)
+    ->parameters(['old-customers' => 'old_customer']);
+
+// Monthly report (keep this BEFORE the old-payments resource)
+Route::get('old-payments-report', [OldPaymentAndReceiveController::class, 'report'])
+    ->name('old-payments.report');
+
+Route::resource('old-payments', OldPaymentAndReceiveController::class)
+    ->except(['show'])
+    ->parameters(['old-payments' => 'old_payment']);
+
+
 
 Route::get('itemshipments/{itemshipment}/edit-prices', [ItemShipmentCostController::class, 'pricepage'])->name('itemshipments.edit-prices');
 Route::post('itemshipments/{itemshipment}/update-prices', [ItemShipmentCostController::class, 'updatePrices'])->name('itemshipments.update-prices');
