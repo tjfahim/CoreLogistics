@@ -108,6 +108,7 @@
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>Date</th>
+                                        <th>Receipt No.</th>
                                         <th>Printed CTN</th>
                                         <th>Written CTN</th>
                                         <th>Tracking No.</th>
@@ -130,6 +131,7 @@
                                 <tbody id="items-body">
                                     <tr>
                                         <td><input type="date" name="items[0][date]" value="{{ now()->format('Y-m-d') }}" class="form-control form-control-sm"></td>
+                                        <td><input type="text" name="items[0][receipt_no]" class="form-control form-control-sm" style="min-width:110px"></td>
                                         <td><input type="text" name="items[0][printed_ctn_no]" class="form-control form-control-sm"></td>
                                         <td><input type="text" name="items[0][written_ctn_no]" class="form-control form-control-sm"></td>
                                         <td><input type="text" name="items[0][tracking_no]" class="form-control form-control-sm" required></td>
@@ -181,6 +183,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><input type="date" name="items[${rowIndex}][date]" value="{{ now()->format('Y-m-d') }}"  class="form-control form-control-sm"></td>
+                <td><input type="text" name="items[${rowIndex}][receipt_no]" class="form-control form-control-sm" style="min-width:110px"></td>
                 <td><input type="text" name="items[${rowIndex}][printed_ctn_no]" class="form-control form-control-sm"></td>
                 <td><input type="text" name="items[${rowIndex}][written_ctn_no]" class="form-control form-control-sm"></td>
                 <td><input type="text" name="items[${rowIndex}][tracking_no]" class="form-control form-control-sm" required></td>

@@ -75,7 +75,8 @@ public function ajaxItems(Request $request)
             $q->where('tracking_no', 'like', "%{$search}%")
               ->orWhere('goods_name_en', 'like', "%{$search}%")
               ->orWhere('printed_ctn_no', 'like', "%{$search}%")
-              ->orWhere('written_ctn_no', 'like', "%{$search}%");
+              ->orWhere('written_ctn_no', 'like', "%{$search}%")
+              ->orWhere('receipt_no', 'like', "%{$search}%");
         });
     }
 
@@ -114,6 +115,7 @@ public function ajaxItems(Request $request)
             'items.*.goods_received'  => ['nullable', 'integer', 'min:0'],
             'items.*.printed_ctn_no'  => ['nullable', 'string', 'max:50'],
             'items.*.written_ctn_no'  => ['nullable', 'string', 'max:50'],
+            'items.*.receipt_no'      => ['nullable', 'string', 'max:50'],
             'items.*.tracking_no'     => ['required', 'string', 'max:100'],
             'items.*.goods_name_en'   => ['required', 'string', 'max:255'],
             'items.*.goods_name_local'=> ['nullable', 'string', 'max:255'],
@@ -193,6 +195,7 @@ foreach ($validated['items'] as $index => $itemData) {
             'goods_received'   => ['nullable', 'integer', 'min:0'],
             'printed_ctn_no'   => ['nullable', 'string', 'max:50'],
             'written_ctn_no'   => ['nullable', 'string', 'max:50'],
+            'receipt_no'       => ['nullable', 'string', 'max:50'],
             'tracking_no'      => ['required', 'string', 'max:100'],
             'goods_name_en'    => ['required', 'string', 'max:255'],
             'goods_name_local' => ['nullable', 'string', 'max:255'],
@@ -820,8 +823,9 @@ private function rowExistsInDatabase($item)
             'tracking_no' => 'required|string',
         ]);
 
-        $item = CargoItem::where('tracking_no', $request->tracking_no)->first();
-
+$item = CargoItem::where('tracking_no', $request->tracking_no)
+    ->orWhere('receipt_no', $request->tracking_no)
+    ->first();
         if (!$item) {
             return redirect()->route('cargo-items.tracking-search')
                 ->with('error', 'No item found with Tracking No: ' . $request->tracking_no);

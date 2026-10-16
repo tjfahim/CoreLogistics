@@ -158,6 +158,10 @@
                 <div class="label-box">Pack Number</div>
                 <div class="value-box">{{ $item->pack_no }}</div>
             </div>
+            <div class="col-md-6">
+                <div class="label-box">Receipt Number</div>
+                <div class="value-box">{{ $item->receipt_no }}</div>
+            </div>
 
             <div class="col-md-6">
                 <div class="label-box">Weight</div>

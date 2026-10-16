@@ -22,8 +22,8 @@ return new class extends Migration
             $table->string('goods_name_en')->nullable();
             $table->string('goods_name_local')->nullable();
 
-            $table->unsignedInteger('pack_no')->nullable(0);
-            $table->unsignedInteger('unit_pcs')->nullable(0);
+            $table->unsignedInteger('pack_no')->default(0);
+            $table->unsignedInteger('unit_pcs')->default(0);
 
             $table->decimal('weight_kg', 10, 3);
 

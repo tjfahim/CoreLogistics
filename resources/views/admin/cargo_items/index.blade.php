@@ -89,7 +89,7 @@
 
                 <div class="row mt-2">
                     <div class="col-md-6">
-                        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search tracking, goods, CTN...">
+                        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search receipt no, tracking, goods, CTN...">
                     </div>
                     <div class="col-md-6 text-right">
                         <select id="perPageSelect" class="form-control form-control-sm d-inline-block " style="width: auto;">
@@ -165,6 +165,7 @@
                                 </th>
                                 <th>ID</th>
                                 <th>Date</th>
+                                <th>Receipt NO.</th>
                                 <th>Printed CTN NO.</th>
                                 <th>Written CTN NO.</th>
                                 <th>Trackings</th>
@@ -181,7 +182,7 @@
                             </tr>
                         </thead>
                         <tbody id="tableBody">
-                            <tr><td colspan="16" class="text-center">Loading...</td></tr>
+                            <tr><td colspan="17" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -245,7 +246,7 @@ $(document).ready(function () {
     function loadItems() {
         const perPage = $('#perPageSelect').val();
 
-        $('#tableBody').html('<tr><td colspan="16" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
+        $('#tableBody').html('<tr><td colspan="17" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
 
         $.ajax({
             url: '{{ route("cargo-items.ajax-items") }}',
@@ -261,14 +262,14 @@ $(document).ready(function () {
                 renderPagination(res.meta);
             },
             error: function () {
-                $('#tableBody').html('<tr><td colspan="16" class="text-center text-danger">Failed to load items.</td></tr>');
+                $('#tableBody').html('<tr><td colspan="17" class="text-center text-danger">Failed to load items.</td></tr>');
             }
         });
     }
 
     function renderRows(items) {
         if (!items || items.length === 0) {
-            $('#tableBody').html('<tr><td colspan="16" class="text-center text-muted">No items found.</td></tr>');
+            $('#tableBody').html('<tr><td colspan="17" class="text-center text-muted">No items found.</td></tr>');
             return;
         }
 
@@ -324,6 +325,7 @@ $(document).ready(function () {
                     checkboxCell +
                     '<td>' + item.id + '</td>' +
                     '<td>' + dateStr + '</td>' +
+                    '<td>' + (item.receipt_no ? '<strong>' + item.receipt_no + '</strong>' : '') + '</td>' +
                     '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
                     '<td>' + (item.written_ctn_no ?? '') + '</td>' +
                     '<td>' + (item.tracking_no ?? '') + '</td>' +

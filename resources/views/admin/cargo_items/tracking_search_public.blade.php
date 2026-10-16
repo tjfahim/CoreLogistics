@@ -284,7 +284,7 @@
                 @csrf
                 
                 <label class="form-label">
-                    <i class="fas fa-barcode"></i> Tracking Number
+                    <i class="fas fa-barcode"></i> Tracking Number/Receipt Number
                 </label>
                 
                 <div class="input-group">

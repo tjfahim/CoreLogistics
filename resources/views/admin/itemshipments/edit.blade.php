@@ -123,8 +123,8 @@
                                             'draft'               => 'Draft',
                                             'pending'             => 'Shipment Ongoing',
                                             'shipped'             => 'Shipped',
-                                            'arrived_bd'          => 'Arrived BD',
                                             'waiting_for_customs' => 'Waiting for Customs',
+                                            'arrived_bd'          => 'Arrived BD',
                                             'delivered'           => 'Delivered',
                                             'cancelled'           => 'Cancelled',
                                         ];

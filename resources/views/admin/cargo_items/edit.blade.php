@@ -60,6 +60,17 @@
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="form-group">
+                                    <label class="font-weight-bold">Receipt No.</label>
+                                    <input type="text" name="receipt_no"
+                                           value="{{ old('receipt_no', $cargoItem->receipt_no) }}"
+                                           class="form-control @error('receipt_no') is-invalid @enderror"
+                                           placeholder="e.g. 1024">
+                                    @error('receipt_no') <small class="text-danger">{{ $message }}</small> @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-group">
                                     <label class="font-weight-bold">Date</label>
                                     <input type="date" name="date"
                                            value="{{ old('date', optional($cargoItem->date)->format('Y-m-d')) }}"
