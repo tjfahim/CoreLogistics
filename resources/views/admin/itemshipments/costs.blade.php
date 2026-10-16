@@ -583,7 +583,12 @@
                                     <td>{{ number_format($payment->amount, 0) }}</td>
                                     <td>{{ ucfirst($payment->payment_method) }}</td>
                                     <td>{{ $payment->reference_no ?? 'N/A' }}</td>
-                                    <td>{{ $payment->paid_by ?? 'N/A' }}</td>
+                                    <td>
+                                        {{ $payment->paid_by ?? optional($payment->user)->name ?? 'N/A' }}
+                                        @if($payment->shipment_bill_payment_id)
+                                            <br><a href="{{ route('shipment-bills.show', $payment->shipment_bill_payment_id) }}"><small>voucher #{{ $payment->shipment_bill_payment_id }}</small></a>
+                                        @endif
+                                    </td>
                                     <td>{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</td>
                                     <td>
                                         {{-- ✅ Delete payment (uses delete-shipment-cost) --}}

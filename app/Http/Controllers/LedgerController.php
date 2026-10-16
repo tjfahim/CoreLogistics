@@ -98,7 +98,7 @@ class LedgerController extends Controller
         $totalDue    = $totals['due'];
 
         $payments = CustomerPayment::where('customer_id', $customer->id)
-            ->with(['allocations.itemshipment', 'paymentItems'])
+            ->with(['user', 'allocations.itemshipment', 'paymentItems'])
             ->orderByDesc('payment_date')
             ->orderByDesc('id')
             ->get();

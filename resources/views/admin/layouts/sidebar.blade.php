@@ -93,7 +93,14 @@
 
             {{-- Accounting --}}
             <li class="tl-title">Accounting</li>
-            <li class="tl-item {{ request()->routeIs('ledger.*') ? 'active' : '' }}">
+            @can('view-shipment-cost')
+            <li class="tl-item {{ request()->routeIs('shipment-bills.*') || request()->routeIs('itemshipments.costs.*') || request()->routeIs('shipments.billing') ? 'active' : '' }}">
+                <a href="{{ route('shipment-bills.index') }}" title="Shipment Billing">
+                    <span class="tl-ico"><i class="fa fa-money"></i></span><span class="tl-txt">Shipment Billing</span>
+                </a>
+            </li>
+            @endcan
+            <li class="tl-item {{ request()->routeIs('ledger.*') || request()->routeIs('payments.*') ? 'active' : '' }}">
                 <a href="{{ route('ledger.index') }}" title="Customer Ledger">
                     <span class="tl-ico"><i class="fa fa-book"></i></span><span class="tl-txt">Customer Ledger</span>
                 </a>

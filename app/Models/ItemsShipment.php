@@ -37,7 +37,8 @@ class ItemsShipment extends Model
     // Calculate total cost attributes
     public function getTotalCostAttribute()
     {
-        return $this->costs->sum('amount');
+        // BDT value (amount * exchange rate); old rows without it fall back to amount
+        return $this->costs->sum(fn ($c) => (float) ($c->final_bdt_cost ?: $c->amount));
     }
 
     public function getTotalPaidAttribute()
@@ -69,17 +70,17 @@ class ItemsShipment extends Model
     // Cost statistics by status
     public function getPendingCostsAttribute()
     {
-        return $this->costs->where('status', 'pending')->sum('amount');
+        return $this->costs->where('status', 'pending')->sum(fn ($c) => (float) ($c->final_bdt_cost ?: $c->amount));
     }
 
     public function getPartialCostsAttribute()
     {
-        return $this->costs->where('status', 'partial')->sum('amount');
+        return $this->costs->where('status', 'partial')->sum(fn ($c) => (float) ($c->final_bdt_cost ?: $c->amount));
     }
 
     public function getPaidCostsAttribute()
     {
-        return $this->costs->where('status', 'paid')->sum('amount');
+        return $this->costs->where('status', 'paid')->sum(fn ($c) => (float) ($c->final_bdt_cost ?: $c->amount));
     }
 
     public static function generateShipmentName()

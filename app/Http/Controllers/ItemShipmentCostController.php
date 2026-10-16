@@ -9,6 +9,7 @@ use App\Models\ItemsShipmentCostAttachment;
 use App\Models\ItemsShipmentPayment;
 use App\Models\CostType;
 use App\Models\Agent;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -172,7 +173,7 @@ class ItemShipmentCostController extends Controller
     public function addPayment(Request $request, $costId)
     {
         $request->validate([
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
             'payment_method' => 'required|string',
             'reference_no' => 'nullable|string',
@@ -182,7 +183,7 @@ class ItemShipmentCostController extends Controller
 
         try {
             DB::transaction(function () use ($request, $costId) {
-                $itemShipmentCost = ItemsShipmentCost::findOrFail($costId);
+                $itemShipmentCost = ItemsShipmentCost::lockForUpdate()->findOrFail($costId);
 
                 // Check if payment amount exceeds due amount
                 if ($request->amount > $itemShipmentCost->due_amount) {
@@ -197,32 +198,17 @@ class ItemShipmentCostController extends Controller
                     'payment_method' => $request->payment_method,
                     'reference_no' => $request->reference_no,
                     'notes' => $request->notes,
-                    'paid_by' => $request->paid_by
+                    'paid_by' => $request->paid_by ?: optional(Auth::user())->name,
+                    'user_id' => Auth::id(),
                 ]);
 
                 // Update cost status using the model method
                 $itemShipmentCost->updatePaymentStatus();
-
-                // Update shipment status if all costs are paid
-                $this->updateItemShipmentStatus($itemShipmentCost->items_shipment_id);
             });
 
             return redirect()->back()->with('success', 'Payment added successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error adding payment: ' . $e->getMessage());
-        }
-    }
-
-    // Update item shipment status based on costs
-    private function updateItemShipmentStatus($itemShipmentId)
-    {
-        $itemShipment = ItemsShipment::with('costs')->find($itemShipmentId);
-        $allCostsPaid = $itemShipment->costs->every(function ($cost) {
-            return $cost->status === 'paid';
-        });
-
-        if ($allCostsPaid && $itemShipment->status !== 'completed') {
-            $itemShipment->update(['status' => 'completed']);
         }
     }
 

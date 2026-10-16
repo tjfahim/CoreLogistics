@@ -8,6 +8,7 @@ use App\Models\CustomerPaymentAllocation;
 use App\Models\ItemsShipment;
 use App\Services\CustomerLedgerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -105,6 +106,7 @@ class PaymentController extends Controller
 
                 $payment = CustomerPayment::create([
                     'customer_id'     => $customer->id,
+                    'user_id'         => Auth::id(),
                     'itemshipment_id' => $allocations->count() === 1 ? (int) $allocations->keys()->first() : null,
                     'amount'          => $allocatedTotal,
                     'payment_method'  => $request->payment_method,
@@ -176,7 +178,7 @@ class PaymentController extends Controller
         $bill        = $this->ledger->shipmentBills($customer)->firstWhere('shipment.id', $itemshipment->id);
         $totalAmount = $bill['billed'] ?? 0;
 
-        $allocations = CustomerPaymentAllocation::with(['payment.allocations.itemshipment', 'payment.paymentItems.cargoItem'])
+        $allocations = CustomerPaymentAllocation::with(['payment.user', 'payment.allocations.itemshipment', 'payment.paymentItems.cargoItem'])
             ->where('itemshipment_id', $itemshipment->id)
             ->whereHas('payment', fn ($q) => $q->where('customer_id', $customer->id))
             ->get()

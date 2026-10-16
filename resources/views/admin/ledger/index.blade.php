@@ -98,6 +98,13 @@
                                         <a href="{{ route('ledger.customer', $row['customer']->id) }}" class="btn btn-sm btn-info">
                                             <i class="fa fa-book"></i> View Ledger
                                         </a>
+                                        @can('add-payment')
+                                            @if($row['total_due'] > 0)
+                                                <a href="{{ route('payments.receive', $row['customer']->id) }}" class="btn btn-sm btn-success">
+                                                    <i class="fa fa-money"></i> Receive
+                                                </a>
+                                            @endif
+                                        @endcan
                                     </td>
                                 </tr>
                             @empty

@@ -94,6 +94,8 @@ class AuthServiceProvider extends ServiceProvider
             'add-shipment-cost',
             'edit-shipment-cost',
             'delete-shipment-cost',
+            'add-bill-payment',      // pay one or many shipment costs in one voucher
+            'delete-bill-payment',
 
             // -------- Carton (CTN) --------
             'view-ctn',

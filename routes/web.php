@@ -26,6 +26,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\ShipmentCostController;
 use App\Http\Controllers\ShipmentPaymentController;
+use App\Http\Controllers\ShipmentBillController;
 use App\Http\Controllers\ShipmentReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarehouseBillController;
@@ -267,6 +268,13 @@ Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->nam
 
 Route::get('/customers/{customer}/shipment/{itemshipment}/payment-history', [PaymentController::class, 'history'])->name('payments.history');
 
+
+        // ---- Accounting: Shipment Billing (what we owe per shipment; one voucher can pay many shipments) ----
+Route::get('shipment-bills', [ShipmentBillController::class, 'index'])->name('shipment-bills.index');
+Route::get('shipment-bills/pay', [ShipmentBillController::class, 'create'])->name('shipment-bills.create');
+Route::post('shipment-bills/pay', [ShipmentBillController::class, 'store'])->name('shipment-bills.store');
+Route::get('shipment-bills/{voucher}', [ShipmentBillController::class, 'show'])->name('shipment-bills.show');
+Route::delete('shipment-bills/{voucher}', [ShipmentBillController::class, 'destroy'])->name('shipment-bills.destroy');
 
         Route::prefix('ledger')->name('ledger.')->group(function () {
     Route::get('/', [LedgerController::class, 'index'])->name('index');

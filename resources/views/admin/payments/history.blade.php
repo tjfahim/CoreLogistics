@@ -71,6 +71,7 @@
                             <th>Method</th>
                             <th>Reference No</th>
                             <th>Shipment Due After</th>
+                            <th>Received By</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -99,6 +100,7 @@
                                 @endif
                             </td>
                             <td class="text-danger">{{ number_format($alloc->remaining_after, 0) }}</td>
+                            <td>{{ optional($payment->user)->name ?? '—' }}</td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-info" onclick="openModal('paymentDetails{{ $alloc->id }}')">
                                     <i class="fa fa-eye"></i>
@@ -120,7 +122,7 @@
                         <tr>
                             <td colspan="2"><strong>TOTALS</strong></td>
                             <td><strong>{{ number_format($totalPaid, 0) }} tk</strong></td>
-                            <td colspan="5"></td>
+                            <td colspan="6"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -218,6 +220,7 @@
                                 <tr><th>Payment Total:</th><td class="text-success fw-bold font-weight-bold">{{ number_format($payment->amount, 0) }} tk</td></tr>
                                 <tr><th>Method:</th><td><span class="badge badge-{{ $color }} bg-{{ $color }}">{{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}</span></td></tr>
                                 <tr><th>Reference No:</th><td>{{ $payment->reference_no ?: 'N/A' }}</td></tr>
+                                <tr><th>Received By:</th><td>{{ optional($payment->user)->name ?? '—' }}</td></tr>
                                 <tr><th>Notes:</th><td>{{ $payment->notes ?: 'No notes' }}</td></tr>
                             </table>
                         </div>

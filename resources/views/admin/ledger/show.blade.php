@@ -202,7 +202,7 @@
                                 <th class="text-right text-end">Tk {{ number_format($totalBilled, 2) }}</th>
                                 <th class="text-right text-end text-success">Tk {{ number_format($totalPaid, 2) }}</th>
                                 <th class="text-right text-end text-danger">Tk {{ number_format($totalDue, 2) }}</th>
-                                <th colspan="2"></th>
+                                <th colspan="3"></th>
                             </tr>
                         </tfoot>
                         @endif
@@ -276,7 +276,7 @@
                                 <th>Date</th><th>Method</th><th>Reference</th>
                                 <th>Split Across Shipments</th>
                                 <th class="text-right text-end">Amount</th>
-                                <th>Notes</th><th>Action</th>
+                                <th>Received By</th><th>Notes</th><th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -304,6 +304,7 @@
                                         @endif
                                     </td>
                                     <td class="text-right text-end"><strong>Tk {{ number_format($payment->amount, 2) }}</strong></td>
+                                    <td>{{ optional($payment->user)->name ?? '—' }}</td>
                                     <td>{{ $payment->notes ?? '—' }}</td>
                                     <td>
                                         @can('delete-payment')
@@ -319,7 +320,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="text-center">No payments recorded yet.</td></tr>
+                                <tr><td colspan="8" class="text-center">No payments recorded yet.</td></tr>
                             @endforelse
                         </tbody>
                         @if($payments->count() > 0)

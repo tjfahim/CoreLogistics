@@ -13,6 +13,7 @@ class CustomerPayment extends Model
     // How it is split between shipments lives in allocations().
     protected $fillable = [
         'customer_id',
+        'user_id',           // system user who received / saved the payment
         'itemshipment_id',   // only filled when the receipt went to exactly one shipment (legacy / convenience)
         'amount',
         'payment_method',
@@ -30,6 +31,11 @@ class CustomerPayment extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function itemshipment()

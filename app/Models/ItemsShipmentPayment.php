@@ -16,7 +16,9 @@ class ItemsShipmentPayment extends Model
         'payment_method',
         'reference_no',
         'notes',
-        'paid_by'
+        'paid_by',
+        'user_id',                  // system user who saved this payment
+        'shipment_bill_payment_id', // voucher (multi-shipment payment) this line belongs to
     ];
 
     protected $casts = [
@@ -28,7 +30,17 @@ class ItemsShipmentPayment extends Model
         return $this->belongsTo(ItemsShipmentCost::class);
     }
 
-    // Automatically update parent cost status when payment is saved
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function voucher()
+    {
+        return $this->belongsTo(ShipmentBillPayment::class, 'shipment_bill_payment_id');
+    }
+
+    // Keep the parent cost (and its voucher total) in sync
     protected static function booted()
     {
         static::saved(function ($payment) {
@@ -36,7 +48,14 @@ class ItemsShipmentPayment extends Model
         });
 
         static::deleted(function ($payment) {
-            $payment->itemsShipmentCost->updatePaymentStatus();
+            if ($payment->itemsShipmentCost) {
+                $payment->itemsShipmentCost->updatePaymentStatus();
+            }
+
+            // a single line removed from a voucher -> shrink the voucher (or drop it when empty)
+            if ($payment->shipment_bill_payment_id) {
+                ShipmentBillPayment::find($payment->shipment_bill_payment_id)?->syncTotal();
+            }
         });
     }
 }

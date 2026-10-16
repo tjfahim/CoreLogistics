@@ -79,21 +79,13 @@
                             <td>{{ $shipment->created_at->format('Y-m-d') }}</td>
                             <td>
                                 @canany([
-                                    'view-shipment-cost',
                                     'view-ctn',
                                     'view-price',
                                     'edit-shipments',
                                     'view-returns',
-                                    'view-invoices',
                                     'view-shipments',
                                     'delete-shipments'
                                 ])
-                                    {{-- ✅ Costs --}}
-                                    @can('view-shipment-cost')
-                                        <a href="{{ route('itemshipments.costs.show', $shipment->id) }}" class="btn btn-primary btn-sm">
-                                            <i class="fa fa-dollar-sign"></i> Costs
-                                        </a>
-                                    @endcan
 
                                     {{-- ✅ CTN --}}
                                     @can('view-ctn')
@@ -120,13 +112,6 @@
                                     @can('view-returns')
                                         <a href="{{ route('itemsshipments.manage-returns', $shipment->id) }}" class="btn btn-warning btn-sm">
                                             Returns
-                                        </a>
-                                    @endcan
-
-                                    {{-- ✅ Billing --}}
-                                    @can('view-invoices')
-                                        <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-sm btn-success">
-                                            <i class="fa fa-file-invoice-dollar"></i> Billing
                                         </a>
                                     @endcan
 

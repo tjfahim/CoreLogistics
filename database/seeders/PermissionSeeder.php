@@ -83,6 +83,8 @@ class PermissionSeeder extends Seeder
             'Add Shipment Cost',
             'Edit Shipment Cost',
             'Delete Shipment Cost',
+            'Add Bill Payment',
+            'Delete Bill Payment',
         ],
 
         // ---------- CTN (Carton) ----------
