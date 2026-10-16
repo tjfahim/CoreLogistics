@@ -163,6 +163,17 @@ class PermissionSeeder extends Seeder
             'Delete Old Data',
             'Manage Old Data',
         ],
+
+        // ---------- Customer Notification ----------
+        'Customer Notification' => [
+            'View Notifications',
+            'Manage Notifications',
+        ],
+
+        // ---------- Office & Expense ----------
+        'Office Expense' => [
+            'View Office Expense',
+        ],
     ];
 
     public function run(): void

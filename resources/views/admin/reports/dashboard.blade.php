@@ -1,151 +1,44 @@
 @extends('admin.layouts.master')
-
 @section('main_content')
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="h2">Shipment Reports Dashboard</h1>
-            <p class="lead">Overview of all shipments and their financial status</p>
-        </div>
+@include('admin.partials.pd-styles')
+<div class="rp">
+    <div class="rp-head">
+        <div><h1>Reports</h1><p class="sub">Every report is built from live shipment bills, cost lines and payments. Each one has Excel and Print.</p></div>
+    </div>
+    @include('admin.partials.rp-nav')
+
+    <div class="rp-kpis">
+        <div class="rp-kpi"><div class="l">Billed (this year)</div><div class="v">{{ number_format($sum['billed'],2) }}</div></div>
+        <div class="rp-kpi teal"><div class="l">Received</div><div class="v">{{ number_format($sum['received'],2) }}</div></div>
+        <div class="rp-kpi amber"><div class="l">Shipment cost</div><div class="v">{{ number_format($sum['cost'],2) }}</div></div>
+        <div class="rp-kpi violet"><div class="l">Profit</div><div class="v {{ $sum['profit']<0?'neg':'' }}">{{ number_format($sum['profit'],2) }}</div></div>
+        <div class="rp-kpi coral"><div class="l">Receivable now</div><div class="v">{{ number_format($sum['receivable'],2) }}</div></div>
+        <div class="rp-kpi coral"><div class="l">Payable now</div><div class="v">{{ number_format($sum['payable'],2) }}</div></div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Shipments</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalShipments }}</div>
-                        </div>
-                       
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Total Cost</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalCost, 0) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Paid</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalPaid, 0) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Total Due</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($totalDue, 0) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="rp-grid2">
+        @php $cards = [
+            ['reports.summary','fa-pie-chart','Business Summary','Company result for any period: billed, received, cost, profit, cost by type/agent, top customers.'],
+            ['reports.period','fa-calendar','Month / Date wise','Month-wise or day-wise from date to date with every receipt and supplier payment.'],
+            ['reports.shipments','fa-ship','Shipment Report','One shipment or many together: cost lines, customers, profit, cost type matrix.'],
+            ['reports.customers','fa-users','Customer Report','Opening, billed, received and closing due for each customer.'],
+        ]; @endphp
+        @foreach($cards as [$r,$ic,$t,$d])
+            <a class="rp-card" href="{{ route($r) }}" style="text-decoration:none;color:inherit;display:block">
+                <div class="ttl"><i class="fa {{ $ic }}"></i> {{ $t }}</div><div class="hint" style="margin:6px 0 0">{{ $d }}</div>
+            </a>
+        @endforeach
+        @can('view-office-expense')
+            <a class="rp-card" href="{{ route('reports.office') }}" style="text-decoration:none;color:inherit;display:block">
+                <div class="ttl"><i class="fa fa-building"></i> Office Expense</div><div class="hint" style="margin:6px 0 0">Office bills, warehouse bills and salaries. Completely separate from shipment accounting.</div>
+            </a>
+        @endcan
+        <a class="rp-card" href="{{ route('ledger.index') }}" style="text-decoration:none;color:inherit;display:block">
+            <div class="ttl"><i class="fa fa-book"></i> Customer Ledger</div><div class="hint" style="margin:6px 0 0">Statement per customer with running balance.</div>
+        </a>
+        <a class="rp-card" href="{{ route('shipment-bills.ledger') }}" style="text-decoration:none;color:inherit;display:block">
+            <div class="ttl"><i class="fa fa-book"></i> Shipment Bill Ledger</div><div class="hint" style="margin:6px 0 0">What we owe agents/suppliers, with payments and balance.</div>
+        </a>
     </div>
-
-    <!-- Shipments Table -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">All Shipments</h6>
-       
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="shipmentsTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>Shipment Name</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Total Cost</th>
-                            <th>Paid Amount</th>
-                            <th>Due Amount</th>
-                            <th>Items Count</th>
-                            <th>Total Weight (kg)</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($shipments as $shipment)
-                        <tr>
-                            <td>{{ $shipment->shipment_name }}</td>
-                            <td>{{ $shipment->shipment_date }}</td>
-                            <td>
-                                <span class="badge badge-{{ $shipment->status === 'active' ? 'success' : 'info' }}">
-                                    {{ ucfirst($shipment->status) }}
-                                </span>
-                            </td>
-                            <td>{{ number_format($shipment->total_cost, 0) }}</td>
-                            <td>{{ number_format($shipment->total_paid, 0) }}</td>
-                            <td>
-                                @if($shipment->total_due > 0)
-                                    <span class="text-danger">{{ number_format($shipment->total_due, 0) }}</span>
-                                @else
-                                    <span class="text-success">0.00</span>
-                                @endif
-                            </td>
-                            <td>{{ $shipment->total_items }}</td>
-                            <td>{{ number_format($shipment->total_weight, 0) }} kg</td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('reports.single', $shipment->id) }}" 
-                                       class="btn btn-sm btn-info" title="View Report">
-                                         Report
-                                    </a>
-                                    <a href="{{ route('reports.download.pdf', ['single', $shipment->id]) }}" 
-                                       class="btn btn-sm btn-secondary" title="Download PDF">
-                                        PDF
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-3">
-                {{ $shipments->links('pagination::bootstrap-4') }}
-            </div>
-        </div>
-    </div>
-
-    
 </div>
 @endsection
-
-

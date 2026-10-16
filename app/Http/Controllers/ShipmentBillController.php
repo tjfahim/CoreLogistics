@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SheetsExport;
 use App\Models\Agent;
 use App\Models\CostType;
 use App\Models\ItemsShipment;
@@ -11,7 +12,9 @@ use App\Models\ShipmentBillPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\AccountingService;
 use Illuminate\Support\Facades\Gate;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Accounting -> Shipment Billing (what WE owe: freight, CNF, tax, warehouse ... per shipment).
@@ -77,7 +80,115 @@ class ShipmentBillController extends Controller
             ->limit(50)
             ->get();
 
+        if ($request->boolean('export')) {
+            return $this->exportIndex($shipments, $grand, $vouchers);
+        }
+
         return view('admin.billing.index', compact('shipments', 'grand', 'vouchers', 'onlyDue'));
+    }
+
+    /**
+     * Shipment bill ledger (what we owe): every bill and every payment with a running balance.
+     * Filters: shipment(s), agent, cost type, date range.
+     */
+    public function ledger(Request $request, AccountingService $acc)
+    {
+        abort_unless(Gate::allows('view-shipment-cost'), 403);
+
+        $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date']);
+
+        $filters = [
+            'shipment_ids' => array_map('intval', (array) $request->input('shipment_ids', [])),
+            'agent_id'     => $request->integer('agent_id') ?: null,
+            'cost_type_id' => $request->integer('cost_type_id') ?: null,
+            'from'         => $request->input('from'),
+            'to'           => $request->input('to'),
+        ];
+
+        $led = $acc->payableLedger($filters);
+
+        if ($request->boolean('export')) {
+            return $this->exportLedger($led, $filters);
+        }
+
+        $shipments = ItemsShipment::orderByDesc('shipment_date')->orderByDesc('id')->get(['id', 'shipment_name', 'shipment_date']);
+        $agents    = Agent::orderBy('name')->get(['id', 'name']);
+        $costTypes = CostType::orderBy('name')->get(['id', 'name']);
+        $methods   = self::METHODS;
+
+        return view('admin.billing.ledger', compact('led', 'filters', 'shipments', 'agents', 'costTypes', 'methods'));
+    }
+
+    private function exportLedger(array $led, array $f)
+    {
+        $period = ($f['from'] || $f['to']) ? (($f['from'] ?: 'start') . ' to ' . ($f['to'] ?: 'today')) : 'All time';
+        $method = fn ($m) => $m ? (self::METHODS[$m] ?? ucfirst($m)) : '';
+
+        $ledger = [
+            'title'    => 'Bill Ledger',
+            'heading'  => 'Shipment Bill Ledger (payable)',
+            'subtitle' => 'Period: ' . $period . '  |  Opening ' . number_format($led['opening'], 2) . '  |  Closing (we owe) ' . number_format($led['closing'], 2),
+            'headings' => ['Date', 'Document', 'Shipment', 'Agent / Payee', 'Description', 'Details', 'Method', 'Reference', 'Entered by', 'Bill (we owe)', 'Payment', 'Balance (we owe)'],
+            'rows'     => array_merge(
+                [['', '', '', '', 'Opening balance', '', '', '', '', '', '', $led['opening']]],
+                $led['entries']->map(fn ($e) => [
+                    $e['date'], $e['doc'], $e['shipment'], $e['party'], $e['desc'], $e['detail'], $method($e['method']),
+                    $e['reference'], $e['user'], $e['bill'] ?: '', $e['paid'] ?: '', $e['balance'],
+                ])->all()
+            ),
+            'totals'   => ['', '', '', '', 'TOTAL / CLOSING', '', '', '', '', $led['bills'], $led['paid'], $led['closing']],
+            'money'    => [9, 10, 11],
+        ];
+
+        $byShip = [
+            'title'    => 'By Shipment',
+            'heading'  => 'Bill position by shipment',
+            'headings' => ['Shipment', 'Shipment date', 'Cost lines', 'Total bill', 'Paid', 'Due'],
+            'rows'     => $led['by_shipment']->map(fn ($r) => [$r['name'], $r['date'], $r['lines'], $r['bill'], $r['paid'], $r['due']])->all(),
+            'totals'   => ['TOTAL', '', $led['by_shipment']->sum('lines'), $led['total_bill'], $led['total_paid'], $led['total_due']],
+            'money'    => [3, 4, 5], 'int' => [2],
+        ];
+
+        $byAgent = [
+            'title'    => 'By Agent',
+            'heading'  => 'Bill position by agent / payee',
+            'headings' => ['Agent', 'Cost lines', 'Total bill', 'Paid', 'Due'],
+            'rows'     => $led['by_agent']->map(fn ($r) => [$r['name'], $r['lines'], $r['bill'], $r['paid'], $r['due']])->all(),
+            'totals'   => ['TOTAL', $led['by_agent']->sum('lines'), $led['total_bill'], $led['total_paid'], $led['total_due']],
+            'money'    => [2, 3, 4], 'int' => [1],
+        ];
+
+        return Excel::download(new SheetsExport([$ledger, $byShip, $byAgent]), 'shipment-bill-ledger-' . date('Y-m-d') . '.xlsx');
+    }
+
+    private function exportIndex($shipments, array $grand, $vouchers)
+    {
+        $ship = [
+            'title'    => 'Shipment Bills',
+            'heading'  => 'Shipment Billing - cost, paid and due per shipment',
+            'headings' => ['Shipment', 'Date', 'Status', 'Cost lines', 'Unpaid lines', 'Total cost (BDT)', 'Paid', 'Due'],
+            'rows'     => $shipments->map(fn ($s) => [
+                $s->shipment_name, optional($s->shipment_date)->format('Y-m-d'), ucfirst($s->status),
+                $s->bill['lines'], $s->bill['due_lines'], $s->bill['total_cost'], $s->bill['total_paid'], $s->bill['total_due'],
+            ])->all(),
+            'totals'   => ['TOTAL', '', '', $shipments->sum(fn ($s) => $s->bill['lines']), $shipments->sum(fn ($s) => $s->bill['due_lines']),
+                           $grand['cost'], $grand['paid'], $grand['due']],
+            'money'    => [5, 6, 7], 'int' => [3, 4],
+        ];
+
+        $vch = [
+            'title'    => 'Vouchers',
+            'heading'  => 'Payment vouchers (latest 50)',
+            'headings' => ['Voucher', 'Date', 'Method', 'Reference', 'Paid to', 'Lines', 'Amount', 'Saved by'],
+            'rows'     => $vouchers->map(fn ($v) => [
+                $v->voucher_no, optional($v->payment_date)->format('Y-m-d'), self::METHODS[$v->payment_method] ?? $v->payment_method,
+                $v->reference_no, optional($v->agent)->name, $v->payments_count, (float) $v->amount, optional($v->user)->name,
+            ])->all(),
+            'totals'   => ['TOTAL', '', '', '', '', $vouchers->sum('payments_count'), (float) $vouchers->sum('amount'), ''],
+            'money'    => [6], 'int' => [5],
+        ];
+
+        return Excel::download(new SheetsExport([$ship, $vch]), 'shipment-billing-' . date('Y-m-d') . '.xlsx');
     }
 
     /** Pay form: choose cost lines of many shipments, one amount, split manually or auto. */

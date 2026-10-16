@@ -90,6 +90,8 @@ class RoleSeeder extends Seeder
             'Shipping Mark',
             'Agents',
             'Cost Type',
+            'Customer Notification',
+            'Office Expense',
         ];
 
         $managerExcludedSlugs = [

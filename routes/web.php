@@ -27,7 +27,7 @@ use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\ShipmentCostController;
 use App\Http\Controllers\ShipmentPaymentController;
 use App\Http\Controllers\ShipmentBillController;
-use App\Http\Controllers\ShipmentReportController;
+use App\Http\Controllers\ReceiptNotificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarehouseBillController;
 use Illuminate\Support\Facades\Artisan;
@@ -271,6 +271,7 @@ Route::get('/customers/{customer}/shipment/{itemshipment}/payment-history', [Pay
 
         // ---- Accounting: Shipment Billing (what we owe per shipment; one voucher can pay many shipments) ----
 Route::get('shipment-bills', [ShipmentBillController::class, 'index'])->name('shipment-bills.index');
+Route::get('shipment-bills/ledger', [ShipmentBillController::class, 'ledger'])->name('shipment-bills.ledger');
 Route::get('shipment-bills/pay', [ShipmentBillController::class, 'create'])->name('shipment-bills.create');
 Route::post('shipment-bills/pay', [ShipmentBillController::class, 'store'])->name('shipment-bills.store');
 Route::get('shipment-bills/{voucher}', [ShipmentBillController::class, 'show'])->name('shipment-bills.show');
@@ -284,12 +285,19 @@ Route::delete('shipment-bills/{voucher}', [ShipmentBillController::class, 'destr
 
 
 Route::prefix('reports')->group(function () {
-    Route::get('/dashboard', [ShipmentReportController::class, 'dashboard'])->name('reports.dashboard');
-    Route::get('/shipment/{id}', [ShipmentReportController::class, 'singleShipmentReport'])->name('reports.single');
-  
+    Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
+    Route::get('/summary', [ReportController::class, 'summary'])->name('reports.summary');
+    Route::get('/period', [ReportController::class, 'period'])->name('reports.period');
+    Route::get('/shipments', [ReportController::class, 'shipments'])->name('reports.shipments');
+    Route::get('/customers', [ReportController::class, 'customers'])->name('reports.customers');
+    Route::get('/office', [ReportController::class, 'office'])->name('reports.office');
+    Route::get('/shipment/{id}', [ReportController::class, 'single'])->name('reports.single');
+});
 
-    Route::get('/download/{type}/{id?}', [ShipmentReportController::class, 'downloadPdf'])->name('reports.download.pdf');
-    Route::get('/export/{type}/{id?}', [ShipmentReportController::class, 'exportExcel'])->name('reports.export.excel');
+Route::prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [ReceiptNotificationController::class, 'index'])->name('index');
+    Route::post('/toggle', [ReceiptNotificationController::class, 'toggle'])->name('toggle');
+    Route::post('/bulk', [ReceiptNotificationController::class, 'bulk'])->name('bulk');
 });
 
 

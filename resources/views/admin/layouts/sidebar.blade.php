@@ -29,11 +29,6 @@
                     <span class="tl-ico"><i class="fa fa-building"></i></span><span class="tl-txt">BD Warehouse</span>
                 </a>
             </li>
-            <li class="tl-item {{ request()->routeIs('warehouse-bills.*') ? 'active' : '' }}">
-                <a href="{{ route('warehouse-bills.index') }}" title="Warehouse Bill">
-                    <span class="tl-ico"><i class="fa fa-file-text-o"></i></span><span class="tl-txt">Warehouse Bill</span>
-                </a>
-            </li>
             @endcan
 
             {{-- Operations --}}
@@ -45,84 +40,93 @@
                 </a>
             </li>
 
-            {{-- Old Shipments (dropdown) --}}
-            @php
-                $oldOpen = request()->routeIs('old-shipments.*', 'old-customers.*', 'old-payments.*');
-            @endphp
-            <li class="tl-item tl-has-sub {{ $oldOpen ? 'active open' : '' }}">
-                <a href="#" class="tl-toggle" title="Old Shipments" aria-expanded="{{ $oldOpen ? 'true' : 'false' }}">
-                    <span class="tl-ico"><i class="fa fa-history"></i></span>
-                    <span class="tl-txt">Old Shipments</span>
-                    <span class="tl-caret"><i class="fa fa-angle-down"></i></span>
-                </a>
-                <ul class="tl-sub">
-                    <li class="{{ request()->routeIs('old-shipments.*') ? 'active' : '' }}">
-                        <a href="{{ route('old-shipments.index') }}"><i class="fa fa-list"></i> Shipments</a>
-                    </li>
-                    <li class="{{ request()->routeIs('old-customers.*') ? 'active' : '' }}">
-                        <a href="{{ route('old-customers.index') }}"><i class="fa fa-users"></i> Customers</a>
-                    </li>
-                    <li class="{{ request()->routeIs('old-payments.*') && !request()->routeIs('old-payments.report') ? 'active' : '' }}">
-                        <a href="{{ route('old-payments.index') }}"><i class="fa fa-money"></i> Payments &amp; Collections</a>
-                    </li>
-                    <li class="{{ request()->routeIs('old-payments.report') ? 'active' : '' }}">
-                        <a href="{{ route('old-payments.report') }}"><i class="fa fa-bar-chart"></i> Monthly Report</a>
-                    </li>
-                </ul>
-            </li>
-            @endcan
-
-            {{-- Reports --}}
-            @canany(['view-reports', 'view-legacy-uploads'])
-            <li class="tl-title">Reports</li>
-            @can('view-reports')
-            <li class="tl-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                <a href="{{ route('reports.dashboard') }}" title="Dashboard Reports">
-                    <span class="tl-ico"><i class="fa fa-bar-chart"></i></span><span class="tl-txt">Dashboard Reports</span>
+            @can('view-notifications')
+            <li class="tl-item {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
+                <a href="{{ route('notifications.index') }}" title="Customer Notifications">
+                    <span class="tl-ico"><i class="fa fa-bell"></i></span><span class="tl-txt">Customer Notifications</span>
                 </a>
             </li>
             @endcan
-            @can('view-legacy-uploads')
-            <li class="tl-item {{ request()->routeIs('legacy.*') ? 'active' : '' }}">
-                <a href="{{ route('legacy.index') }}" title="Legacy Uploads">
-                    <span class="tl-ico"><i class="fa fa-upload"></i></span><span class="tl-txt">Legacy Uploads</span>
-                </a>
-            </li>
             @endcan
-            @endcanany
 
             {{-- Accounting --}}
             <li class="tl-title">Accounting</li>
             @can('view-shipment-cost')
-            <li class="tl-item {{ request()->routeIs('shipment-bills.*') || request()->routeIs('itemshipments.costs.*') || request()->routeIs('shipments.billing') ? 'active' : '' }}">
+            <li class="tl-item {{ request()->routeIs('shipment-bills.*') && !request()->routeIs('shipment-bills.ledger') || request()->routeIs('itemshipments.costs.*') || request()->routeIs('shipments.billing') ? 'active' : '' }}">
                 <a href="{{ route('shipment-bills.index') }}" title="Shipment Billing">
                     <span class="tl-ico"><i class="fa fa-money"></i></span><span class="tl-txt">Shipment Billing</span>
+                </a>
+            </li>
+            <li class="tl-item {{ request()->routeIs('shipment-bills.ledger') ? 'active' : '' }}">
+                <a href="{{ route('shipment-bills.ledger') }}" title="Shipment Bill Ledger">
+                    <span class="tl-ico"><i class="fa fa-book"></i></span><span class="tl-txt">Shipment Bill Ledger</span>
                 </a>
             </li>
             @endcan
             <li class="tl-item {{ request()->routeIs('ledger.*') || request()->routeIs('payments.*') ? 'active' : '' }}">
                 <a href="{{ route('ledger.index') }}" title="Customer Ledger">
-                    <span class="tl-ico"><i class="fa fa-book"></i></span><span class="tl-txt">Customer Ledger</span>
-                </a>
-            </li>
-            <li class="tl-item {{ request()->routeIs('office-bills.*') ? 'active' : '' }}">
-                <a href="{{ route('office-bills.index') }}" title="Office Bills">
-                    <span class="tl-ico"><i class="fa fa-file-text"></i></span><span class="tl-txt">Office Bills</span>
+                    <span class="tl-ico"><i class="fa fa-address-book-o"></i></span><span class="tl-txt">Customer Ledger</span>
                 </a>
             </li>
 
-            {{-- Organization --}}
-            <li class="tl-title">Organization</li>
-            <li class="tl-item {{ request()->routeIs('offices.*') ? 'active' : '' }}">
-                <a href="{{ route('offices.index') }}" title="Offices">
-                    <span class="tl-ico"><i class="fa fa-building-o"></i></span><span class="tl-txt">Offices</span>
+            {{-- Reports (dropdown) --}}
+            @can('shipment-report')
+            @php $repOpen = request()->routeIs('reports.*'); @endphp
+            <li class="tl-item tl-has-sub {{ $repOpen ? 'active open' : '' }}">
+                <a href="#" class="tl-toggle" title="Reports" aria-expanded="{{ $repOpen ? 'true' : 'false' }}">
+                    <span class="tl-ico"><i class="fa fa-bar-chart"></i></span>
+                    <span class="tl-txt">Reports</span>
+                    <span class="tl-caret"><i class="fa fa-angle-down"></i></span>
                 </a>
+                <ul class="tl-sub">
+                    <li class="{{ request()->routeIs('reports.dashboard') ? 'active' : '' }}"><a href="{{ route('reports.dashboard') }}"><i class="fa fa-th-large"></i> Reports Home</a></li>
+                    <li class="{{ request()->routeIs('reports.summary') ? 'active' : '' }}"><a href="{{ route('reports.summary') }}"><i class="fa fa-pie-chart"></i> Business Summary</a></li>
+                    <li class="{{ request()->routeIs('reports.period') ? 'active' : '' }}"><a href="{{ route('reports.period') }}"><i class="fa fa-calendar"></i> Month / Date wise</a></li>
+                    <li class="{{ request()->routeIs('reports.shipments') ? 'active' : '' }}"><a href="{{ route('reports.shipments') }}"><i class="fa fa-ship"></i> Shipment Report</a></li>
+                    <li class="{{ request()->routeIs('reports.customers') ? 'active' : '' }}"><a href="{{ route('reports.customers') }}"><i class="fa fa-users"></i> Customer Report</a></li>
+                </ul>
             </li>
-            <li class="tl-item {{ request()->routeIs('employees.*') ? 'active' : '' }}">
-                <a href="{{ route('employees.index') }}" title="Employees">
-                    <span class="tl-ico"><i class="fa fa-id-badge"></i></span><span class="tl-txt">Employees</span>
+            @endcan
+
+            {{-- Old Data (completely separate) --}}
+            @can('view-old-data')
+            <li class="tl-title">Old Data</li>
+            @php $oldOpen = request()->routeIs('old-shipments.*', 'old-customers.*', 'old-payments.*', 'legacy.*'); @endphp
+            <li class="tl-item tl-has-sub {{ $oldOpen ? 'active open' : '' }}">
+                <a href="#" class="tl-toggle" title="Old Data" aria-expanded="{{ $oldOpen ? 'true' : 'false' }}">
+                    <span class="tl-ico"><i class="fa fa-history"></i></span>
+                    <span class="tl-txt">Old Data</span>
+                    <span class="tl-caret"><i class="fa fa-angle-down"></i></span>
                 </a>
+                <ul class="tl-sub">
+                    <li class="{{ request()->routeIs('old-shipments.*') ? 'active' : '' }}"><a href="{{ route('old-shipments.index') }}"><i class="fa fa-list"></i> Old Shipments</a></li>
+                    <li class="{{ request()->routeIs('old-customers.*') ? 'active' : '' }}"><a href="{{ route('old-customers.index') }}"><i class="fa fa-users"></i> Old Customers</a></li>
+                    <li class="{{ request()->routeIs('old-payments.*') && !request()->routeIs('old-payments.report') ? 'active' : '' }}"><a href="{{ route('old-payments.index') }}"><i class="fa fa-money"></i> Payments &amp; Collections</a></li>
+                    <li class="{{ request()->routeIs('old-payments.report') ? 'active' : '' }}"><a href="{{ route('old-payments.report') }}"><i class="fa fa-bar-chart"></i> Monthly Report</a></li>
+           
+                </ul>
             </li>
+            @endcan
+
+            {{-- Office & Expense (completely separate) --}}
+            @can('view-office-expense')
+            <li class="tl-title">Office &amp; Expense</li>
+            @php $offOpen = request()->routeIs('offices.*', 'employees.*', 'office-bills.*', 'warehouse-bills.*', 'reports.office'); @endphp
+            <li class="tl-item tl-has-sub {{ $offOpen ? 'active open' : '' }}">
+                <a href="#" class="tl-toggle" title="Office &amp; Expense" aria-expanded="{{ $offOpen ? 'true' : 'false' }}">
+                    <span class="tl-ico"><i class="fa fa-building-o"></i></span>
+                    <span class="tl-txt">Office &amp; Expense</span>
+                    <span class="tl-caret"><i class="fa fa-angle-down"></i></span>
+                </a>
+                <ul class="tl-sub">
+                    <li class="{{ request()->routeIs('offices.*') ? 'active' : '' }}"><a href="{{ route('offices.index') }}"><i class="fa fa-building-o"></i> Offices</a></li>
+                    <li class="{{ request()->routeIs('employees.*') ? 'active' : '' }}"><a href="{{ route('employees.index') }}"><i class="fa fa-id-badge"></i> Employees</a></li>
+                    <li class="{{ request()->routeIs('office-bills.*') ? 'active' : '' }}"><a href="{{ route('office-bills.index') }}"><i class="fa fa-file-text"></i> Office Bills</a></li>
+                    <li class="{{ request()->routeIs('warehouse-bills.*') ? 'active' : '' }}"><a href="{{ route('warehouse-bills.index') }}"><i class="fa fa-file-text-o"></i> Warehouse Bills</a></li>
+                    <li class="{{ request()->routeIs('reports.office') ? 'active' : '' }}"><a href="{{ route('reports.office') }}"><i class="fa fa-bar-chart"></i> Expense Report</a></li>
+                </ul>
+            </li>
+            @endcan
 
             {{-- Master data --}}
             @canany(['view-users', 'view-roles', 'view-permissions', 'view-customers', 'view-shipping-mark', 'view-agents', 'view-cost-types'])
@@ -191,21 +195,47 @@
 
 {{-- Dropdown styles (move into your sidebar CSS file if you prefer) --}}
 <style>
-    .tl-sidebar .tl-has-sub > .tl-toggle { position: relative; cursor: pointer; }
-    .tl-sidebar .tl-caret { margin-left: auto; transition: transform .2s ease; }
-    .tl-sidebar .tl-has-sub.open > .tl-toggle .tl-caret { transform: rotate(180deg); }
-    .tl-sidebar .tl-sub {
-        list-style: none; margin: 0; padding: 0;
-        max-height: 0; overflow: hidden; transition: max-height .25s ease;
+    /* Tweak these 4 values to match your sidebar theme */
+    #left-panel {
+        --tl-sub-bg: rgba(0,0,0,.20);
+        --tl-sub-color: rgba(255,255,255,.75);
+        --tl-sub-hover-bg: rgba(255,255,255,.08);
+        --tl-sub-accent: #4da3ff;
     }
-    .tl-sidebar .tl-has-sub.open > .tl-sub { max-height: 400px; }
-    .tl-sidebar .tl-sub li a {
-        display: block; padding: 8px 16px 8px 52px; font-size: 13px;
-        color: inherit; text-decoration: none; opacity: .85;
+
+    /* Parent row */
+    #left-panel .tl-nav .tl-has-sub { display: block; }
+    #left-panel .tl-nav .tl-has-sub > .tl-toggle {
+        display: flex; align-items: center; cursor: pointer; position: relative;
     }
-    .tl-sidebar .tl-sub li a i { width: 16px; margin-right: 6px; text-align: center; }
-    .tl-sidebar .tl-sub li a:hover,
-    .tl-sidebar .tl-sub li.active > a { opacity: 1; background: rgba(255,255,255,.08); }
+    #left-panel .tl-nav .tl-has-sub > .tl-toggle .tl-txt { flex: 1; }
+    #left-panel .tl-nav .tl-has-sub > .tl-toggle .tl-caret {
+        display: inline-flex; margin-left: auto; font-size: 16px; transition: transform .2s ease;
+    }
+    #left-panel .tl-nav .tl-has-sub.open > .tl-toggle .tl-caret { transform: rotate(180deg); }
+
+    /* Sub menu */
+    #left-panel .tl-nav .tl-has-sub > .tl-sub {
+        display: block; list-style: none; margin: 0; padding: 0;
+        max-height: 0; overflow: hidden; background: var(--tl-sub-bg);
+        transition: max-height .25s ease;
+    }
+    #left-panel .tl-nav .tl-has-sub.open > .tl-sub { max-height: 800px; }
+
+    #left-panel .tl-nav .tl-sub > li { display: block; margin: 0; padding: 0; list-style: none; background: none; }
+    #left-panel .tl-nav .tl-sub > li > a {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 16px 9px 54px; font-size: 13px; line-height: 1.4;
+        color: var(--tl-sub-color); text-decoration: none;
+        border-left: 3px solid transparent; background: none;
+        transition: background .15s ease, color .15s ease;
+    }
+    #left-panel .tl-nav .tl-sub > li > a i { width: 16px; text-align: center; font-size: 13px; opacity: .8; }
+    #left-panel .tl-nav .tl-sub > li > a:hover { background: var(--tl-sub-hover-bg); color: #fff; }
+    #left-panel .tl-nav .tl-sub > li.active > a {
+        background: var(--tl-sub-hover-bg); color: #fff;
+        border-left-color: var(--tl-sub-accent); font-weight: 600;
+    }
 </style>
 
 {{-- Dropdown toggle (no Bootstrap dependency) --}}

@@ -155,6 +155,13 @@ class AuthServiceProvider extends ServiceProvider
             'edit-old-data',
             'delete-old-data',
             'manage-old-data',
+
+            // -------- Customer Notification --------
+            'view-notifications',
+            'manage-notifications',
+
+            // -------- Office & Expense (separate from shipments) --------
+            'view-office-expense',
         ];
 
         foreach ($permissions as $permission) {

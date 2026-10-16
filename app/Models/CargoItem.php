@@ -9,6 +9,18 @@ class CargoItem extends Model
 {
     use HasFactory;
 
+    /** Warehouse -> delivery flow, in order. key = cargo_items.status, value = label. */
+    public const STATUS_FLOW = [
+        'pending'             => 'Received (China)',
+        'packed'              => 'Packed',
+        'ready_to_ship'       => 'Ready to Ship',
+        'shipping_ongoing'    => 'Shipping Ongoing',
+        'arrived_bd'          => 'Arrived in BD',
+        'waiting_for_customs' => 'Waiting for Customs',
+        'ready_to_deliver'    => 'Ready to Deliver',
+        'delivered'           => 'Delivered',
+    ];
+
     protected $fillable = [
         'goods_received',
         'receipt_no',

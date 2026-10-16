@@ -55,6 +55,8 @@
                     @else
                         <a href="{{ route('shipment-bills.index', ['only_due' => 1]) }}" class="btn btn-sm btn-outline-danger">Only with due</a>
                     @endif
+                    <a href="{{ route('shipment-bills.ledger') }}" class="btn btn-sm btn-info"><i class="fa fa-book"></i> Bill Ledger</a>
+                    <a href="{{ request()->fullUrlWithQuery(['export' => 1]) }}" class="btn btn-sm btn-outline-success"><i class="fa fa-file-excel-o"></i> Excel</a>
                     @can('add-bill-payment')
                         <a href="{{ route('shipment-bills.create') }}" class="btn btn-sm btn-success">
                             <i class="fa fa-money"></i> Pay Multiple Shipments

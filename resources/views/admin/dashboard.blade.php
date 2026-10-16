@@ -72,6 +72,9 @@
                  place-items:center; font-weight:800; font-size:13px; margin-right:10px; vertical-align:middle; }
     .pd-empty { color:var(--ink-2); font-size:13.5px; padding:26px 0; text-align:center; }
 
+    .pd-qa { display:inline-flex; gap:8px; align-items:center; background:#fff; border:1px solid var(--line); border-radius:12px; padding:9px 14px; font-weight:700; font-size:13px; color:var(--ink); text-decoration:none; }
+    .pd-qa:hover { background:#e8eefd; color:var(--blue); text-decoration:none; }
+
     /* single entrance for the hero numbers only (counters); cards stay still */
     @media (max-width:1100px){ .g4{grid-template-columns:repeat(2,1fr)} .g21,.g3,.g2{grid-template-columns:1fr} .pd-hero{grid-template-columns:1fr} }
     @media (max-width:560px){ .g4{grid-template-columns:1fr} .pd-hero{padding:22px} .pd-hero .big{font-size:34px} }
@@ -84,24 +87,73 @@
     <div class="pd-hero">
         <div>
             <h1 style="color: white;">Welcome back, {{ auth()->user()->name ?? 'Admin' }}</h1>
-            <p class="sub">{{ now()->format('l, d F Y') }} &middot; {{ $stats['active_shipments'] }} active of {{ $stats['shipments'] }} shipments</p>
+            <p class="sub">{{ now()->format('l, d F Y') }} &middot; {{ $stats['active_shipments'] }} in progress of {{ $stats['shipments'] }} shipments</p>
             <div class="big"><span class="count" data-val="{{ round($stats['profit']) }}">0</span><small>TK</small></div>
-            <p class="lbl">Net profit (customer billing minus shipment costs)</p>
+            <p class="lbl">Net profit (customer bills minus shipment costs, same as the ledgers)</p>
         </div>
         <div class="pd-hero-side">
             <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['billed']) }}">0</span></div><div class="l">Total billed</div></div>
             <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['received']) }}">0</span></div><div class="l">Received from customers</div></div>
             <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['cost']) }}">0</span></div><div class="l">Shipment costs</div></div>
-            <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['cash']) }}">0</span></div><div class="l">Cash on hand</div></div>
+            <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['cash']) }}">0</span></div><div class="l">Cash (received - paid out)</div></div>
         </div>
     </div>
 
-   
+
+    {{-- ===== QUICK ACTIONS ===== --}}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+        <a class="pd-qa" href="{{ route('ledger.index') }}"><i class="fa fa-address-book-o"></i> Customer Ledger</a>
+        <a class="pd-qa" href="{{ route('shipment-bills.index') }}"><i class="fa fa-money"></i> Shipment Billing</a>
+        <a class="pd-qa" href="{{ route('shipment-bills.ledger') }}"><i class="fa fa-book"></i> Bill Ledger</a>
+        <a class="pd-qa" href="{{ route('reports.summary') }}"><i class="fa fa-pie-chart"></i> Business Summary</a>
+        <a class="pd-qa" href="{{ route('reports.period') }}"><i class="fa fa-calendar"></i> Month Report</a>
+        <a class="pd-qa" href="{{ route('notifications.index') }}"><i class="fa fa-bell"></i> Notifications</a>
+    </div>
+
+    {{-- ===== THIS MONTH vs LAST MONTH ===== --}}
+    @php
+        $mrow = [['Billed','billed'],['Received','received'],['Shipment cost','cost'],['Profit','profit']];
+    @endphp
+    <div class="pd-grid g4">
+        @foreach($mrow as [$lbl,$k])
+            @php $cur = $month['this'][$k]; $prv = $month['last'][$k]; $chg = $prv != 0 ? round(($cur - $prv) / abs($prv) * 100) : null; @endphp
+            <div class="pd-card">
+                <div class="l" style="font-size:12.5px;color:var(--ink-2);font-weight:600">{{ $lbl }} - {{ now()->format('F') }}</div>
+                <div style="font-size:22px;font-weight:800;margin-top:4px">{{ number_format($cur) }}</div>
+                <div style="font-size:12px;color:var(--ink-2);margin-top:2px">
+                    Last month {{ number_format($prv) }}
+                    @if($chg !== null)<span class="{{ ($chg >= 0) === ($k !== 'cost') ? 'pos' : 'neg' }}"><b>{{ $chg >= 0 ? '+' : '' }}{{ $chg }}%</b></span>@endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    {{-- ===== NEEDS ATTENTION + NOTIFICATIONS ===== --}}
+    <div class="pd-grid g2">
+        <div class="pd-card">
+            <div class="pd-head"><div><h3>Needs attention</h3><p class="hint">Data gaps that hide money from the ledgers</p></div></div>
+            <table><tbody>
+                <tr><td>Items with no customer</td><td class="r"><span class="pd-pill {{ $alerts['unassigned'] ? 'pill-warn' : 'pill-ok' }}">{{ $alerts['unassigned'] }}</span></td></tr>
+                <tr><td>Items with no price</td><td class="r"><span class="pd-pill {{ $alerts['unpriced'] ? 'pill-warn' : 'pill-ok' }}">{{ $alerts['unpriced'] }}</span></td></tr>
+                <tr><td>Items not in any shipment</td><td class="r"><span class="pd-pill {{ $alerts['no_shipment'] ? 'pill-info' : 'pill-ok' }}">{{ $alerts['no_shipment'] }}</span></td></tr>
+                <tr><td>Owed to agents</td><td class="r neg"><strong>{{ number_format($alerts['cost_due']) }}</strong></td></tr>
+                <tr><td>Owed by customers</td><td class="r neg"><strong>{{ number_format($stats['customer_due']) }}</strong></td></tr>
+            </tbody></table>
+        </div>
+        <div class="pd-card">
+            <div class="pd-head"><div><h3>Customers to notify</h3><p class="hint">Receipts not yet notified, per status</p></div><a class="lnk" href="{{ route('notifications.index') }}">Open</a></div>
+            <table><tbody>
+                @foreach(\App\Models\CargoItem::STATUS_FLOW as $st => $label)
+                    <tr><td>{{ $label }}</td><td class="r"><span class="pd-pill {{ ($notifyPending[$st] ?? 0) ? 'pill-warn' : 'pill-ok' }}">{{ $notifyPending[$st] ?? 0 }}</span></td></tr>
+                @endforeach
+            </tbody></table>
+        </div>
+    </div>
 
     {{-- ===== TREND + COLLECTION ===== --}}
     <div class="pd-grid g21">
         <div class="pd-card">
-            <div class="pd-head"><div><h3>Billing, collection and cost</h3><p class="hint">Last 6 months</p></div></div>
+            <div class="pd-head"><div><h3>Billing, collection and cost</h3><p class="hint">Last 6 months: billed by shipment date, received by payment date</p></div></div>
             <div class="chart-box"><canvas id="trendChart"></canvas></div>
         </div>
         <div class="pd-card">
@@ -133,7 +185,7 @@
             @else <div class="pd-empty">No costs recorded yet.</div> @endif
         </div>
         <div class="pd-card">
-            <div class="pd-head"><div><h3>Cargo status</h3><p class="hint">All cargo items</p></div></div>
+            <div class="pd-head"><div><h3>Cargo status</h3><p class="hint">Items per pipeline status</p></div></div>
             @if($cargoStatus->count())
                 <div class="chart-box sm"><canvas id="cargoChart"></canvas></div>
             @else <div class="pd-empty">No cargo items yet.</div> @endif
@@ -171,14 +223,14 @@
                 <a class="lnk" href="{{ route('reports.dashboard') }}">Open reports</a></div>
             @forelse($recentShipments as $s)
                 @if($loop->first)
-                <table><thead><tr><th>Shipment</th><th>Items</th><th class="r">Cost</th><th class="r">Due</th><th class="r"></th></tr></thead><tbody>
+                <table><thead><tr><th>Shipment</th><th class="r">Billed</th><th class="r">Cost</th><th class="r">Profit</th><th class="r"></th></tr></thead><tbody>
                 @endif
                 <tr>
-                    <td><strong>{{ $s->shipment_name }}</strong><br><span style="color:var(--ink-2);font-size:12px">{{ optional($s->shipment_date)->format('d M Y') }}</span></td>
-                    <td>{{ $s->cargo_items_count }}</td>
-                    <td class="r">{{ number_format($s->total_cost) }}</td>
-                    <td class="r {{ $s->total_due > 0 ? 'neg' : 'pos' }}">{{ number_format($s->total_due) }}</td>
-                    <td class="r"><a class="lnk" href="{{ route('reports.single', $s->id) }}">View</a></td>
+                    <td><strong>{{ $s->name }}</strong><br><span style="color:var(--ink-2);font-size:12px">{{ $s->date }} &middot; {{ $s->items }} items</span></td>
+                    <td class="r">{{ number_format($s->billed) }}</td>
+                    <td class="r">{{ number_format($s->cost) }}</td>
+                    <td class="r {{ $s->profit < 0 ? 'neg' : 'pos' }}">{{ number_format($s->profit) }}</td>
+                    <td class="r"><a class="lnk" href="{{ route('reports.shipments', ['shipment_ids' => [$s->id]]) }}">View</a></td>
                 </tr>
                 @if($loop->last) </tbody></table> @endif
             @empty <div class="pd-empty">No shipments yet.</div> @endforelse
@@ -198,6 +250,29 @@
                 </tr>
                 @if($loop->last) </tbody></table> @endif
             @empty <div class="pd-empty">No customer payments yet.</div> @endforelse
+        </div>
+    </div>
+
+    {{-- ===== CUSTOMER DUES + VOUCHERS ===== --}}
+    <div class="pd-grid g2">
+        <div class="pd-card">
+            <div class="pd-head"><div><h3>Highest customer dues</h3><p class="hint">Shipment bills minus received payments</p></div><a class="lnk" href="{{ route('ledger.index') }}">All</a></div>
+            @forelse($topDue as $c)
+                @if($loop->first)<table><thead><tr><th>Customer</th><th class="r">Billed</th><th class="r">Due</th><th class="r"></th></tr></thead><tbody>@endif
+                <tr><td><span class="pd-avatar">{{ strtoupper(substr($c->name, 0, 1)) }}</span>{{ $c->name }}<br><span style="color:var(--ink-2);font-size:12px;margin-left:44px">{{ $c->shipments_due }} shipment(s) due</span></td>
+                    <td class="r">{{ number_format($c->billed) }}</td><td class="r neg"><strong>{{ number_format($c->due) }}</strong></td>
+                    <td class="r"><a class="lnk" href="{{ route('ledger.customer', $c->customer_id) }}">Ledger</a></td></tr>
+                @if($loop->last)</tbody></table>@endif
+            @empty <div class="pd-empty">No customer dues.</div> @endforelse
+        </div>
+        <div class="pd-card">
+            <div class="pd-head"><div><h3>Recent bill vouchers</h3><p class="hint">Payments to agents and suppliers</p></div><a class="lnk" href="{{ route('shipment-bills.index') }}">All</a></div>
+            @forelse($recentVouchers as $v)
+                @if($loop->first)<table><thead><tr><th>Voucher</th><th>Paid to</th><th class="r">Amount</th></tr></thead><tbody>@endif
+                <tr><td><a class="lnk" href="{{ route('shipment-bills.show', $v->id) }}">{{ $v->voucher_no }}</a><br><span style="color:var(--ink-2);font-size:12px">{{ optional($v->payment_date)->format('d M Y') }}</span></td>
+                    <td>{{ optional($v->agent)->name ?? '—' }}</td><td class="r"><strong>{{ number_format($v->amount) }}</strong></td></tr>
+                @if($loop->last)</tbody></table>@endif
+            @empty <div class="pd-empty">No vouchers yet.</div> @endforelse
         </div>
     </div>
 
