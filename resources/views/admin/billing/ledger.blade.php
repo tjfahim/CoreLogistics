@@ -13,6 +13,10 @@
 @endphp
 
 <div class="rp">
+    <div class="mb-2 no-print">
+        <a href="{{ route('shipment-bills.index') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Shipment Billing</a>
+    </div>
+
     <div class="rp-print-head"><b>Shipment Bill Ledger</b> &middot; {{ $filtered ? (($f['from'] ?: 'start') . ' to ' . ($f['to'] ?: 'today')) : 'All time' }} &middot; printed {{ now()->format('d M Y H:i') }}</div>
 
     <div class="rp-head">

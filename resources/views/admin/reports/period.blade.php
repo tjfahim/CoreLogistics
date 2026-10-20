@@ -2,6 +2,10 @@
 @section('main_content')
 @include('admin.partials.pd-styles')
 <div class="rp">
+    <div class="mb-2 no-print">
+        <a href="{{ route('reports.dashboard') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Reports</a>
+    </div>
+
     <div class="rp-head">
         <div><h1>{{ $group==='day' ? 'Day' : 'Month' }}-wise Report</h1><p class="sub">Billed by shipment date, cost by cost date, received and paid by payment date.</p></div>
         <div class="rp-actions no-print">

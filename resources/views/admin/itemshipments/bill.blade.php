@@ -4,7 +4,7 @@
 <div class="invoice-container">
 
     <div class="no-print">
-        <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">Back</a>
+        <a href="{{ route('shipments.billing', $itemshipment->id) }}" class="btn btn-outline-secondary btn-sm">Back</a>
 
         {{-- ✅ Print — view-invoices --}}
         @can('view-invoices')

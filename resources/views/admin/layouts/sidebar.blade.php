@@ -122,7 +122,7 @@
                     <li class="{{ request()->routeIs('offices.*') ? 'active' : '' }}"><a href="{{ route('offices.index') }}"><i class="fa fa-building-o"></i> Offices</a></li>
                     <li class="{{ request()->routeIs('employees.*') ? 'active' : '' }}"><a href="{{ route('employees.index') }}"><i class="fa fa-id-badge"></i> Employees</a></li>
                     <li class="{{ request()->routeIs('office-bills.*') ? 'active' : '' }}"><a href="{{ route('office-bills.index') }}"><i class="fa fa-file-text"></i> Office Bills</a></li>
-                    <li class="{{ request()->routeIs('warehouse-bills.*') ? 'active' : '' }}"><a href="{{ route('warehouse-bills.index') }}"><i class="fa fa-file-text-o"></i> Warehouse Bills</a></li>
+                    <li class="{{ request()->routeIs('warehouse-bills.*') ? 'active' : '' }}"><a href="{{ route('warehouse-bills.index') }}"><i class="fa fa-file-text-o"></i> Summary Bills</a></li>
                     <li class="{{ request()->routeIs('reports.office') ? 'active' : '' }}"><a href="{{ route('reports.office') }}"><i class="fa fa-bar-chart"></i> Expense Report</a></li>
                 </ul>
             </li>

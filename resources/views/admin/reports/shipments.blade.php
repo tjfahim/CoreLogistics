@@ -2,6 +2,10 @@
 @section('main_content')
 @include('admin.partials.pd-styles')
 <div class="rp">
+    <div class="mb-2 no-print">
+        <a href="{{ route('reports.dashboard') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Reports</a>
+    </div>
+
     <div class="rp-head">
         <div><h1>Shipment Report</h1><p class="sub">Pick one or many shipments (or leave empty for all) and an optional shipment-date range.</p></div>
         <div class="rp-actions no-print">

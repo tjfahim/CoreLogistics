@@ -2,6 +2,10 @@
 @section('main_content')
 @include('admin.partials.pd-styles')
 <div class="rp">
+    <div class="mb-2 no-print">
+        <a href="{{ route('reports.dashboard') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Reports</a>
+    </div>
+
     <div class="rp-head">
         <div><h1>Business Summary</h1><p class="sub">Shipment business only. Office expense is reported separately.</p></div>
         <div class="rp-actions no-print">

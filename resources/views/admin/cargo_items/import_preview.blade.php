@@ -1,6 +1,10 @@
 @extends('admin.layouts.master')
 
 @section('main_content')
+<div class="mb-2 no-print">
+    <a href="{{ route('cargo-items.create') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Add Items</a>
+</div>
+
 <div class="breadcrumbs">
     <div class="col-sm-4">
         <div class="page-header float-left">

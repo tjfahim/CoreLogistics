@@ -1,6 +1,10 @@
 @extends('admin.layouts.master')
 
 @section('main_content')
+<div class="mb-2 no-print">
+    <a href="{{ route('legacy.show', $upload) }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Upload</a>
+</div>
+
 @php
     $fmt = fn ($n) => number_format($n, 0);
     $net = $upload->total_billed - $upload->total_paid - $totalCredit;

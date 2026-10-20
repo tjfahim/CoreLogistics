@@ -2,6 +2,10 @@
 @section('main_content')
 @include('admin.partials.pd-styles')
 <div class="rp">
+    <div class="mb-2 no-print">
+        <a href="{{ route('reports.dashboard') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Reports</a>
+    </div>
+
     <div class="rp-head">
         <div><h1>Customer Report</h1><p class="sub">Closing due = opening due + billed in period - received in period.</p></div>
         <div class="rp-actions no-print">

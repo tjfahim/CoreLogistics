@@ -1,6 +1,10 @@
 @extends('admin.layouts.master')
 
 @section('main_content')
+<div class="mb-2 no-print">
+    <a href="{{ route('old-payments.index') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Payments</a>
+</div>
+
 <div class="content mt-3">
     <div class="animated fadeIn">
 

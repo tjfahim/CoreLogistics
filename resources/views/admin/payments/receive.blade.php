@@ -10,7 +10,7 @@
             <small class="text-muted">Enter the amount, then split it across the shipments</small>
         </h2>
         <div class="btn-group">
-            <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+            <a href="{{ ($return ?? null) === 'billing' && !empty($preselect) ? route('shipments.billing', $preselect) : route('ledger.customer', $customer->id) }}" class="btn btn-secondary">Back</a>
             <a href="{{ route('ledger.customer', $customer->id) }}" class="btn btn-info">Customer Ledger</a>
         </div>
     </div>

@@ -1,9 +1,9 @@
 @extends('admin.layouts.master')
 @section('main_content')
 <div class="breadcrumbs">
-    <div class="col-sm-4"><div class="page-header float-left"><div class="page-title"><h1>Warehouse Bill</h1></div></div></div>
+    <div class="col-sm-4"><div class="page-header float-left"><div class="page-title"><h1>Summary Bill</h1></div></div></div>
     <div class="col-sm-8"><div class="page-header float-right"><div class="page-title">
-        <ol class="breadcrumb text-right"><li class="active">Warehouse Bill</li></ol>
+        <ol class="breadcrumb text-right"><li class="active">Summary Bill</li></ol>
     </div></div></div>
 </div>
 
@@ -115,7 +115,7 @@
     @if($showRecent)
     <div class="col-lg-12">
         <div class="card">
-            <div class="card-header"><strong>Recent Warehouse Bills (Saved Summaries)</strong></div>
+            <div class="card-header"><strong>Recent Summary Bills (Saved Summaries)</strong></div>
             <div class="card-body">
                 <table class="table table-striped table-bordered">
                     <thead class="thead-dark">

@@ -13,7 +13,7 @@
             <small class="text-muted">Shipment: {{ $itemshipment->shipment_name }}</small>
         </h2>
         <div class="btn-group">
-            <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+            <a href="{{ route('ledger.customer', $customer->id) }}" class="btn btn-secondary">Back</a>
             <a href="{{ route('ledger.customer', $customer->id) }}" class="btn btn-info">Customer Ledger</a>
             @can('add-payment')
                 @if($totalDue > 0)

@@ -1,6 +1,10 @@
 @extends('admin.layouts.master')
 
 @section('main_content')
+<div class="mb-2 no-print">
+    <a href="{{ route('cargo-items.index') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Warehouse</a>
+</div>
+
 
 <div class="content mt-4">
 

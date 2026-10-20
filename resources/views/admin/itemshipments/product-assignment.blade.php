@@ -28,7 +28,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <strong>Customer Assignment - {{ $itemshipment->shipment_name }}</strong>
                 <div>
-                     <a href="javascript:history.back()" 
+                     <a href="{{ route('itemsshipments.index') }}" 
                class="btn btn-secondary">
                 <i class="fa fa-arrow-left"></i> Back
             </a>

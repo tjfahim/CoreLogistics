@@ -31,6 +31,7 @@ use App\Http\Controllers\ReceiptNotificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarehouseBillController;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,6 +80,49 @@ Route::get('/migrate-fresh-seed', function () {
         return response()->json([
             'status' => 'error',
             'message' => $e->getMessage()
+        ], 500);
+    }
+});
+Route::get('/clear-cache', function () {
+    $results = [];
+
+    try {
+        // 1. Storage: unlink the existing symlink (if any)
+        $link = public_path('storage');
+        if (File::exists($link) || is_link($link)) {
+            // is_link check covers broken symlinks on Windows/Linux
+            if (is_link($link)) {
+                @unlink($link);
+                $results['storage_unlink'] = 'Removed existing symlink';
+            } elseif (File::isDirectory($link)) {
+                // If it's a real folder (not a symlink), don't nuke it silently
+                File::deleteDirectory($link);
+                $results['storage_unlink'] = 'Removed existing directory at public/storage';
+            }
+        } else {
+            $results['storage_unlink'] = 'Nothing to remove';
+        }
+
+        // 2. Storage: link
+        Artisan::call('storage:link');
+        $results['storage_link'] = trim(Artisan::output());
+
+        // 3. Optimize: clear
+        Artisan::call('optimize:clear');
+        $results['optimize_clear'] = trim(Artisan::output());
+
+
+        return response()->json([
+            'status'  => 'success',
+                'message' => 'Deploy refresh completed successfully',
+            'results' => $results,
+        ]);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage(),
+            'results' => $results, // shows which steps ran before failure
         ], 500);
     }
 });

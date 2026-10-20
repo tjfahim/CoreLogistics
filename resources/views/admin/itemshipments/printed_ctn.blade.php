@@ -47,7 +47,7 @@
         <div class="card-header d-flex justify-content-between">
             <strong>Printed CTN Numbers - {{ $itemshipment->shipment_name }}</strong>
             <div>
-                <a href="javascript:history.back()" class="btn btn-secondary">
+                <a href="{{ route('itemsshipments.index') }}" class="btn btn-secondary">
                     <i class="fa fa-arrow-left"></i> Back
                 </a>
 

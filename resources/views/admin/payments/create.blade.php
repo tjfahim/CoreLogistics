@@ -9,7 +9,7 @@
         <small class="text-muted">Shipment: {{ $itemshipment->shipment_name }}</small>
     </h2>
     <div class="btn-group">
-        <a href="javascript:history.back()" 
+        <a href="{{ route('ledger.customer', $customer->id) }}" 
            class="btn btn-secondary">
             Back
         </a>

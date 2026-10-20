@@ -4,6 +4,10 @@
 @include('admin.partials.pd-styles')
 
 <div class="rp">
+    <div class="mb-2 no-print">
+        <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+
     <div class="rp-head">
         <div>
             <h1>Customer Ledger</h1>
