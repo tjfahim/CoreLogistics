@@ -255,17 +255,31 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
+                                    <label class="font-weight-bold"><i class="fa fa-handshake-o"></i> Third party</label>
+                                    <select name="third_party_id" class="form-control">
+                                        <option value="">— Own customer (not third party) —</option>
+                                        @foreach($thirdParties as $tp)
+                                            <option value="{{ $tp->id }}" {{ old('third_party_id', $cargoItem->third_party_id) == $tp->id ? 'selected' : '' }}>{{ $tp->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
                                     <label class="font-weight-bold">Status</label>
                                     @php
                                         $statuses = [
                                             'pending'              => 'Pending',
                                             'packed'               => 'Packed',
+                                            'ready_to_ship'        => 'Ready to Ship',
                                             'shipping_ongoing'     => 'Shipping Ongoing',
                                             'arrived_bd'           => 'Arrived BD',
                                             'waiting_for_customs'  => 'Waiting for Customs',
                                             'ready_to_deliver'     => 'Ready to Deliver',
                                             'delivered'            => 'Delivered',
                                         ];
+                                        if ($cargoItem->status === 'cancelled') { $statuses = ['cancelled' => 'Cancelled']; }
                                         $currentStatus = old('status', $cargoItem->status);
                                     @endphp
                                     <select name="status" class="form-control @error('status') is-invalid @enderror">
@@ -356,6 +370,38 @@
                     </form>
                 </div>
             </div>
+        @endcan
+
+        @can('edit-warehouse-item')
+            @if($cargoItem->status === 'cancelled')
+                <div class="card mb-3 border-danger">
+                    <div class="card-header bg-danger text-white"><strong><i class="fa fa-ban"></i> Cancelled</strong></div>
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            Cancelled {{ $cargoItem->cancelled_at?->format('d M Y H:i') }}
+                            @if($cargoItem->cancel_reason) — <em>{{ $cargoItem->cancel_reason }}</em>@endif
+                        </div>
+                        <form action="{{ route('cargo-items.restore', $cargoItem->id) }}" method="POST"
+                              onsubmit="return confirm('Restore this item as pending?')">
+                            @csrf
+                            <button class="btn btn-success btn-sm"><i class="fa fa-undo"></i> Restore</button>
+                        </form>
+                    </div>
+                </div>
+            @elseif($cargoItem->status !== 'delivered')
+                <div class="card mb-3 border-danger">
+                    <div class="card-header bg-danger text-white"><strong><i class="fa fa-ban"></i> Cancel Item</strong></div>
+                    <div class="card-body">
+                        <form action="{{ route('cargo-items.cancel', $cargoItem->id) }}" method="POST" class="form-inline"
+                              onsubmit="return confirm('Cancel item #{{ $cargoItem->id }}? It will be removed from its shipment.')">
+                            @csrf
+                            <input type="text" name="cancel_reason" class="form-control form-control-sm mr-2" style="min-width:280px"
+                                   placeholder="Reason (optional)">
+                            <button class="btn btn-outline-danger btn-sm"><i class="fa fa-ban"></i> Cancel Item</button>
+                        </form>
+                    </div>
+                </div>
+            @endif
         @endcan
 
     </div>

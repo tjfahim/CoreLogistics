@@ -14,7 +14,7 @@
             <p class="sub">What every customer owes us, built from shipment bills and received payments.</p>
         </div>
         <div class="rp-actions no-print">
-            <a class="rp-btn green" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a>
+            <a class="rp-btn green" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a> <a class="rp-btn red" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
             <button class="rp-btn" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
         </div>
     </div>

@@ -28,7 +28,7 @@
             <p class="sub">Every receipt, every warehouse status. Tick a cell once you have told the customer.</p>
         </div>
         <div class="rp-actions no-print">
-            <a class="rp-btn green" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a>
+            <a class="rp-btn green" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a> <a class="rp-btn red" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
         </div>
     </div>
 

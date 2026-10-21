@@ -27,7 +27,7 @@
         <div class="rp-actions no-print">
             <a class="rp-btn" href="{{ route('shipment-bills.index') }}"><i class="fa fa-arrow-left"></i> Billing</a>
             @can('add-bill-payment')<a class="rp-btn green" href="{{ route('shipment-bills.create') }}"><i class="fa fa-money"></i> Pay Bills</a>@endcan
-            <a class="rp-btn" style="color:#0b7f72" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a>
+            <a class="rp-btn" style="color:#0b7f72" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a> <a class="rp-btn" style="color:#c0392b" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
             <button class="rp-btn" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
         </div>
     </div>

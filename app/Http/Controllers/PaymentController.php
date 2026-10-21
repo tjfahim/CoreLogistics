@@ -54,6 +54,12 @@ class PaymentController extends Controller
     {
         abort_unless(Gate::allows('add-payment'), 403);
 
+        try {
+            $cur = \App\Support\PaymentCurrency::apply($request);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
+
         $request->validate([
             'amount'         => 'required|numeric|min:1',
             'payment_method' => 'required|string|in:cash,bank_transfer,cheque,card',
@@ -74,7 +80,7 @@ class PaymentController extends Controller
         }
 
         try {
-            $payment = DB::transaction(function () use ($request, $customer, $allocations) {
+            $payment = DB::transaction(function () use ($request, $customer, $allocations, $cur) {
                 // serialize concurrent payments for the same customer
                 Customer::whereKey($customer->id)->lockForUpdate()->first();
 
@@ -109,6 +115,9 @@ class PaymentController extends Controller
                     'user_id'         => Auth::id(),
                     'itemshipment_id' => $allocations->count() === 1 ? (int) $allocations->keys()->first() : null,
                     'amount'          => $allocatedTotal,
+                    'currency'        => $cur['currency'],
+                    'foreign_amount'  => $cur['foreign_amount'],
+                    'exchange_rate'   => $cur['exchange_rate'],
                     'payment_method'  => $request->payment_method,
                     'payment_date'    => $request->payment_date,
                     'reference_no'    => $request->reference_no,
@@ -195,6 +204,22 @@ class PaymentController extends Controller
         $allocations = $allocations->reverse()->values(); // newest first
         $totalPaid   = (float) $allocations->sum('amount');
         $totalDue    = max($totalAmount - $totalPaid, 0);
+
+        if (request()->boolean('pdf')) {
+            $sheet = [
+                'title' => 'Payments', 'heading' => 'Payment history - ' . $customer->name . ' / ' . $itemshipment->shipment_name,
+                'subtitle' => 'Billed ' . number_format($totalAmount, 2) . ' | Paid ' . number_format($totalPaid, 2) . ' | Due ' . number_format($totalDue, 2),
+                'headings' => ['Date', 'Receipt', 'Method', 'Reference', 'Paid in', 'Amount (BDT)', 'Due after'],
+                'rows' => $allocations->map(fn ($a) => [
+                    $a->payment->payment_date->toDateString(), \App\Services\AccountingService::receiptNo($a->payment->id),
+                    ucfirst(str_replace('_', ' ', $a->payment->payment_method)), $a->payment->reference_no,
+                    $a->payment->currency !== 'bdt' ? strtoupper($a->payment->currency) . ' ' . number_format((float) $a->payment->foreign_amount, 2) . ' @ ' . rtrim(rtrim(number_format((float) $a->payment->exchange_rate, 4), '0'), '.') : '',
+                    (float) $a->amount, (float) $a->remaining_after,
+                ])->all(),
+                'totals' => ['TOTAL', '', '', '', '', $totalPaid, $totalDue], 'money' => [5, 6],
+            ];
+            return \App\Support\SheetsPdf::download([$sheet], 'payment-history-' . $customer->id . '-' . $itemshipment->id . '.pdf');
+        }
 
         return view('admin.payments.history', compact(
             'customer',

@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\MonthlySummary;
 use App\Models\Office;
 use App\Models\OfficeBill;
+use App\Models\SalaryRecord;
 use App\Models\WarehouseBill;
 use Illuminate\Http\Request;
 
@@ -18,25 +19,24 @@ class WarehouseBillController extends Controller
         $year  = (int) $request->input('year',  date('Y'));
         $month = (int) $request->input('month', date('n'));
 
-        // Only what we show
         $officeBillsTotal = OfficeBill::where('year', $year)->where('month', $month)->sum('amount');
-        $salariesTotal    = Employee::sum('salary');
+        $salary           = SalaryRecord::monthTotal($year, $month);   // frozen monthly salary sheet
+        $salariesTotal    = $salary['total'];
+        $salaryInfo       = $salary;
         $grandTotal       = $officeBillsTotal + $salariesTotal;
 
-        $savedSummary = MonthlySummary::where('year', $year)->where('month', $month)->first();
+        // every saved per-kg bill of this month (newest first) - saving never overwrites
+        $monthBills   = MonthlySummary::where('year', $year)->where('month', $month)->orderByDesc('id')->get();
+        $savedSummary = $monthBills->first();
 
-        // Show recent-saved card ONLY after Save (flag in query string)
-        $showRecent = $request->boolean('saved');
-
-        $recent = $showRecent
-            ? MonthlySummary::orderByDesc('year')->orderByDesc('month')->limit(20)->get()
-            : collect();
+        $showRecent = true;
+        $recent = MonthlySummary::orderByDesc('year')->orderByDesc('month')->orderByDesc('id')->limit(30)->get();
 
         return view('admin.warehouse_bills.index', compact(
             'offices',
             'year', 'month',
             'officeBillsTotal', 'salariesTotal', 'grandTotal',
-            'savedSummary', 'showRecent', 'recent'
+            'savedSummary', 'showRecent', 'recent', 'monthBills', 'salaryInfo'
         ));
     }
 
@@ -49,6 +49,7 @@ class WarehouseBillController extends Controller
             'year'       => 'required|integer|min:2000|max:2100',
             'month'      => 'required|integer|min:1|max:12',
             'default_kg' => 'required|numeric|min:0.01',
+            'title'      => 'nullable|string|max:120',
         ]);
 
         $year  = (int) $request->year;
@@ -56,15 +57,17 @@ class WarehouseBillController extends Controller
 
         // Recompute server-side
         $officeBillsTotal = OfficeBill::where('year', $year)->where('month', $month)->sum('amount');
-        $salariesTotal    = Employee::sum('salary');
+        $salariesTotal    = SalaryRecord::monthTotal($year, $month)['total'];
         $grandTotal       = $officeBillsTotal + $salariesTotal;
 
         $defaultKg = (float) $request->default_kg;
         $costPerKg = $defaultKg > 0 ? round($grandTotal / $defaultKg, 4) : 0;
 
-        MonthlySummary::updateOrCreate(
-            ['year' => $year, 'month' => $month],
+        // always a NEW bill (multiple per-kg bills per month are allowed)
+        MonthlySummary::create(
             [
+                'year' => $year, 'month' => $month,
+                'title'                 => $request->title,
                 'office_bills_total'    => $officeBillsTotal,
                 'salaries_total'        => $salariesTotal,
                 'warehouse_bills_total' => 0,   // not used now
@@ -81,6 +84,14 @@ class WarehouseBillController extends Controller
                 'saved' => 1,
             ])
             ->with('success', 'Saved. Cost per KG: ' . number_format($costPerKg, 4) . ' BDT');
+    }
+
+    public function destroySummary(MonthlySummary $summary)
+    {
+        $y = $summary->year; $m = $summary->month;
+        $summary->delete();
+        return redirect()->route('warehouse-bills.index', ['year' => $y, 'month' => $m])
+            ->with('success', 'Summary bill deleted.');
     }
 
     // Keep these two so existing routes / links don't break
@@ -124,7 +135,8 @@ class WarehouseBillController extends Controller
             $bill = OfficeBill::where('office_id', $office->id)
                 ->where('year', $year)->where('month', $month)->first();
 
-            $salaries = $office->employees->sum('salary');
+            $salaries = \App\Models\SalaryRecord::where('year', $year)->where('month', $month)->where('office_id', $office->id)->sum('amount')
+                ?: $office->employees->sum('salary');
 
             return [
                 'office'   => $office->name,

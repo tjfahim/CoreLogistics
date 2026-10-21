@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class OfficeBill extends Model
 {
-    protected $fillable = ['office_id', 'year', 'month', 'amount', 'note'];
+    protected $fillable = ['office_id', 'bill_type', 'bill_date', 'year', 'month', 'amount', 'note'];
+
+    protected $casts = ['bill_date' => 'date'];
 
     public function office() { return $this->belongsTo(Office::class); }
 

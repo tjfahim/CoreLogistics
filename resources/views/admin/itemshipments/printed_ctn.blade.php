@@ -71,6 +71,24 @@
 
             @can('view-ctn')
 
+                @can('edit-ctn')
+                    <form action="{{ route('itemshipments.auto-assign-ctn', $itemshipment->id) }}" method="POST"
+                          class="form-inline mb-3 p-2 border rounded bg-light"
+                          onsubmit="return confirm('সব CTN এই ফরম্যাটে অটো অ্যাসাইন ও সেভ হবে। ঠিক আছে?')">
+                        @csrf
+                        <label class="mr-2 font-weight-bold">CTN Format:</label>
+                        <input type="text" name="ctn_format" class="form-control mr-2"
+                               value="{{ old('ctn_format', $ctnSuggestion) }}"
+                               placeholder="e.g. AB-100" required>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa fa-magic"></i> Auto Assign &amp; Save All
+                        </button>
+                        <small class="text-muted ml-3">
+                            ফরম্যাটের শেষে নাম্বার দিন (AB-100 → AB-100, AB-101...). একই গ্রুপের আইটেম একই CTN পাবে।
+                        </small>
+                    </form>
+                @endcan
+
                 {{-- Form is only rendered when user can edit-ctn --}}
                 @can('edit-ctn')
                     <form action="{{ route('itemshipments.update-ctn', $itemshipment->id) }}" method="POST">

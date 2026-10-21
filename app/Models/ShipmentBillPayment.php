@@ -22,6 +22,7 @@ class ShipmentBillPayment extends Model
         'payment_method',
         'reference_no',
         'notes',
+        'currency', 'foreign_amount', 'exchange_rate',
     ];
 
     protected $casts = [

@@ -9,6 +9,7 @@ use App\Models\ItemsShipmentCostAttachment;
 use App\Models\ItemsShipmentPayment;
 use App\Models\CostType;
 use App\Models\Agent;
+use App\Models\CtnSequence;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -172,6 +173,12 @@ class ItemShipmentCostController extends Controller
     // Add payment for a cost (payments are in BDT, validated against due_amount)
     public function addPayment(Request $request, $costId)
     {
+        try {
+            $cur = \App\Support\PaymentCurrency::apply($request);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
@@ -182,7 +189,7 @@ class ItemShipmentCostController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $costId) {
+            DB::transaction(function () use ($request, $costId, $cur) {
                 $itemShipmentCost = ItemsShipmentCost::lockForUpdate()->findOrFail($costId);
 
                 // Check if payment amount exceeds due amount
@@ -194,6 +201,9 @@ class ItemShipmentCostController extends Controller
                 ItemsShipmentPayment::create([
                     'items_shipment_cost_id' => $costId,
                     'amount' => $request->amount,
+                    'currency' => $cur['currency'],
+                    'foreign_amount' => $cur['foreign_amount'],
+                    'exchange_rate' => $cur['exchange_rate'],
                     'payment_date' => $request->payment_date,
                     'payment_method' => $request->payment_method,
                     'reference_no' => $request->reference_no,
@@ -317,7 +327,9 @@ class ItemShipmentCostController extends Controller
         $itemshipment->load('cargoItems');
         $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
 
-        return view('admin.itemshipments.printed_ctn', compact('itemshipment', 'groupedItems'));
+        $ctnSuggestion = CtnSequence::suggestion();
+
+        return view('admin.itemshipments.printed_ctn', compact('itemshipment', 'groupedItems', 'ctnSuggestion'));
     }
 
     public function updateCtnNumbers(Request $request, ItemsShipment $itemshipment)
@@ -350,9 +362,62 @@ class ItemShipmentCostController extends Controller
                 }
             });
 
+            $lastCtn = collect($request->printed_ctn)->filter(fn ($v) => trim((string) $v) !== '')->last();
+            CtnSequence::record($lastCtn);
+
             return redirect()->back()->with('success', 'CTN numbers updated successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to update: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * One-click auto assign: format like "AB-100" => groups get AB-100, AB-101, ...
+     * Items that already share the same printed CTN stay together (same new number).
+     */
+    public function autoAssignCtn(Request $request, ItemsShipment $itemshipment)
+    {
+        $request->validate(['ctn_format' => 'required|string|max:100']);
+
+        $parsed = CtnSequence::parse($request->ctn_format);
+        if (!$parsed) {
+            return back()->with('error', 'Format must end with a number, e.g. AB-100');
+        }
+        [$prefix, $number, $pad] = $parsed;
+
+        try {
+            $last = null;
+            DB::transaction(function () use ($itemshipment, $prefix, &$number, $pad, &$last) {
+                $items = $itemshipment->cargoItems()->orderBy('cargo_items.id')->get();
+
+                // group by current CTN (blank CTN items are each their own group)
+                $groups = [];
+                foreach ($items as $item) {
+                    $key = trim((string) $item->printed_ctn_no) !== ''
+                        ? 'c:' . $item->printed_ctn_no
+                        : 'i:' . $item->id;
+                    $groups[$key][] = $item;
+                }
+
+                foreach ($groups as $groupItems) {
+                    $ctn = $prefix . str_pad((string) $number, $pad, '0', STR_PAD_LEFT);
+                    foreach ($groupItems as $item) {
+                        $item->printed_ctn_no = $ctn;
+                        if (in_array($item->status, ['pending', 'packed'])) {
+                            $item->status = 'ready_to_ship';
+                        }
+                        $item->save();
+                    }
+                    $last = $ctn;
+                    $number++;
+                }
+            });
+
+            CtnSequence::record($last);
+
+            return back()->with('success', 'CTN auto-assigned. Last CTN: ' . $last);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to auto assign: ' . $e->getMessage());
         }
     }
 }

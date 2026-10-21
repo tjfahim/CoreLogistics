@@ -27,6 +27,11 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         </div>
     @endif
+    @if(session('error'))
+        <div class="col-sm-12">
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        </div>
+    @endif
 
     <div class="col-lg-12">
 
@@ -127,11 +132,39 @@
                 @endphp
 
                 @if($itemshipment->cargoItems->count() > 0)
+                    @can('edit-warehouse-item')
+                    <form id="boxForm" method="POST" class="form-inline mb-2 p-2 border rounded bg-light">
+                        @csrf
+                        <strong class="mr-2"><i class="fa fa-cube"></i> Box:</strong>
+                        <input type="text" name="box_no" class="form-control form-control-sm mr-2" style="width:140px"
+                               placeholder="auto (BOX-1…)">
+                        <button type="submit" class="btn btn-primary btn-sm mr-2"
+                                formaction="{{ route('itemsshipments.make-box', $itemshipment->id) }}">
+                            <i class="fa fa-object-group"></i> Group selected into box
+                        </button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                formaction="{{ route('itemsshipments.remove-box', $itemshipment->id) }}">
+                            <i class="fa fa-object-ungroup"></i> Remove from box
+                        </button>
+                        <select name="third_party_id" class="form-control form-control-sm ml-3 mr-1" style="width:auto" title="Third party for selected items">
+                            <option value="">— none (own) —</option>
+                            @foreach($thirdParties as $tp)<option value="{{ $tp->id }}">{{ $tp->name }}</option>@endforeach
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary btn-sm"
+                                formaction="{{ route('itemsshipments.set-third-party', $itemshipment->id) }}">
+                            <i class="fa fa-handshake-o"></i> Set third party
+                        </button>
+                        <small class="text-muted ml-3">সিলেক্ট করা আইটেমগুলো একটি বক্সের গ্রুপ হিসেবে দেখাবে; আইটেমের বাকি সব কাজ আগের মতোই।</small>
+                    </form>
+                    @endcan
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered">
                             <thead class="thead-dark">
                                 <tr>
+                                    @can('edit-warehouse-item')<th><input type="checkbox" id="checkAllBox"></th>@endcan
                                     <th>ID</th>
+                                    <th>Box</th>
+                                    <th>Third party</th>
                                     <th>Printed CTN NO.</th>
                                     <th>Written CTN NO.</th>
                                     <th>Tracking NO.</th>
@@ -155,7 +188,10 @@
                                     @endphp
                                     @foreach($items as $item)
                                     <tr style="background: {{ $bg }}">
+                                        @can('edit-warehouse-item')<td><input type="checkbox" class="box-check" name="item_ids[]" value="{{ $item->id }}" form="boxForm"></td>@endcan
                                         <td>{{ $item->id }}</td>
+                                        <td>@if($item->box_no)<span class="badge badge-dark">{{ $item->box_no }}</span>@endif</td>
+                                        <td>@if($item->thirdParty)<span class="badge" style="background:{{ $item->thirdParty->color }};color:#fff">3P · {{ $item->thirdParty->name }}</span>@endif</td>
                                         <td>{{ $item->printed_ctn_no }}</td>
                                         <td>{{ $item->written_ctn_no }}</td>
                                         <td>{{ $item->tracking_no }}</td>
@@ -187,6 +223,9 @@
 </div>
 
 <script>
+document.getElementById('checkAllBox')?.addEventListener('change', function () {
+    document.querySelectorAll('.box-check').forEach(function (c) { c.checked = this.checked; }, this);
+});
 function printShipment() {
     var printContents = document.querySelector('.card').innerHTML;
     var originalContents = document.body.innerHTML;

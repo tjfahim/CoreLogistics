@@ -64,7 +64,7 @@ class LedgerController extends Controller
         $grandTotalPaid   = $ledgerRows->sum('total_paid');
         $grandTotalDue    = $ledgerRows->sum('total_due');
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportIndex($ledgerRows, $grandTotalBilled, $grandTotalPaid, $grandTotalDue);
         }
 
@@ -85,7 +85,7 @@ class LedgerController extends Controller
 
         $st = $this->acc->customerStatement($customer, $from, $to);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportCustomer($customer, $st, $from, $to);
         }
 
@@ -127,7 +127,7 @@ class LedgerController extends Controller
             'int'      => [3, 4],
         ];
 
-        return Excel::download(new SheetsExport([$sheet]), 'customer-ledger-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$sheet], 'customer-ledger-' . date('Y-m-d') . '.xlsx');
     }
 
     private function exportCustomer(Customer $c, array $st, ?string $from, ?string $to)
@@ -164,6 +164,6 @@ class LedgerController extends Controller
             'int'      => [2, 3],
         ];
 
-        return Excel::download(new SheetsExport([$stmt, $ship]), 'ledger-' . preg_replace('/[^A-Za-z0-9_-]/', '', $c->customer_code ?: $c->id) . '-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$stmt, $ship], 'ledger-' . preg_replace('/[^A-Za-z0-9_-]/', '', $c->customer_code ?: $c->id) . '-' . date('Y-m-d') . '.xlsx');
     }
 }

@@ -24,6 +24,16 @@ class SheetsExport implements WithMultipleSheets
     {
     }
 
+    /** Excel by default; PDF when the request has ?pdf=1 (same data, same call site). */
+    public static function respond(array $sheets, string $file)
+    {
+        if (request()->boolean('pdf')) {
+            return \App\Support\SheetsPdf::download($sheets, preg_replace('/\.xlsx$/', '.pdf', $file));
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new self($sheets), $file);
+    }
+
     public function sheets(): array
     {
         $out  = [];

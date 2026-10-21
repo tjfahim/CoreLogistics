@@ -62,7 +62,16 @@ public function ajaxItems(Request $request)
         'bangladesh_warehouse' => ['ready_to_deliver', 'delivered'],
     ];
 
-    $query = CargoItem::query()->with('latestReturn');
+    $query = CargoItem::query()->with(['latestReturn', 'thirdParty:id,name']);
+
+    $tpFilter = $request->input('third_party', '');
+    if ($tpFilter === 'any') {
+        $query->whereNotNull('third_party_id');
+    } elseif ($tpFilter === 'none') {
+        $query->whereNull('third_party_id');
+    } elseif (ctype_digit((string) $tpFilter)) {
+        $query->where('third_party_id', (int) $tpFilter);
+    }
 
     if ($status !== 'all' && isset($statusGroups[$status])) {
         $query->whereIn('status', $statusGroups[$status]);
@@ -84,6 +93,8 @@ public function ajaxItems(Request $request)
 
     $data = collect($items->items())->map(function ($item) {
         $arr = $item->toArray();
+        $arr['third_party_name']  = $item->thirdParty->name ?? null;
+        $arr['third_party_color'] = $item->thirdParty->color ?? null;
         $arr['is_returned'] = (bool) $item->latestReturn;
         $arr['return_note'] = $item->latestReturn->note ?? null;
         $arr['return_date'] = $item->latestReturn?->return_date?->format('Y-m-d');
@@ -130,6 +141,7 @@ public function ajaxItems(Request $request)
             'items.*.remark'          => ['nullable', 'string', 'max:500'],
             'items.*.warehouse'       => ['nullable', 'string', 'max:255'],
             'items.*.is_copy'         => ['nullable'],
+            'third_party_id'          => ['nullable', 'exists:third_parties,id'],
         ]);
 
         // Check duplicates (manual entry)
@@ -155,7 +167,9 @@ foreach ($validated['items'] as $index => $itemData) {
         // If duplicate action was requested
         $duplicateAction = $request->input('duplicate_action', 'skip');
 
-        DB::transaction(function () use ($validated, $duplicateAction) {
+        $thirdPartyId = $request->input('third_party_id') ?: null;
+
+        DB::transaction(function () use ($validated, $duplicateAction, $thirdPartyId) {
             $seen = [];
             foreach ($validated['items'] as $itemData) {
                 $itemData['is_copy'] = !empty($itemData['is_copy']);
@@ -174,6 +188,7 @@ foreach ($validated['items'] as $index => $itemData) {
                     continue;
                 }
 
+                $itemData['third_party_id'] = $thirdPartyId;
                 CargoItem::create($itemData);
             }
         });
@@ -210,8 +225,14 @@ foreach ($validated['items'] as $index => $itemData) {
             'remark'           => ['nullable', 'string', 'max:500'],
             'warehouse'        => ['nullable', 'string', 'max:255'],
             'is_copy'          => ['nullable'],
-            'status'           => ['nullable'],
+            'third_party_id'   => ['nullable', 'exists:third_parties,id'],
+            'status'           => ['nullable', 'in:pending,packed,ready_to_ship,shipping_ongoing,arrived_bd,waiting_for_customs,ready_to_deliver,delivered'],
         ]);
+
+        // a cancelled item must be restored via the Restore button, not the status dropdown
+        if ($cargoItem->status === 'cancelled') {
+            unset($data['status']);
+        }
 
         $data['is_copy'] = $request->boolean('is_copy');
 
@@ -220,6 +241,54 @@ foreach ($validated['items'] as $index => $itemData) {
         return redirect()
             ->route('cargo-items.index')
             ->with('success', 'Cargo item updated successfully.');
+    }
+
+    /** Cancel an item (removes it from any shipment, keeps the record in the Cancelled list). */
+    public function cancel(Request $request, CargoItem $cargoItem)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        $data = $request->validate(['cancel_reason' => ['nullable', 'string', 'max:255']]);
+
+        if ($cargoItem->status === 'cancelled') {
+            return back()->with('error', 'Item is already cancelled.');
+        }
+        if ($cargoItem->status === 'delivered') {
+            return back()->with('error', 'Delivered items cannot be cancelled.');
+        }
+
+        DB::transaction(function () use ($cargoItem, $data) {
+            $cargoItem->itemshipments()->detach();
+            $cargoItem->update([
+                'status_before_cancel' => $cargoItem->status,
+                'status'               => 'cancelled',
+                'cancelled_at'         => now(),
+                'cancel_reason'        => $data['cancel_reason'] ?? null,
+                'box_no'               => null,
+            ]);
+        });
+
+        return redirect()->route('cargo-items.status', 'cancelled')
+            ->with('success', 'Item #' . $cargoItem->id . ' cancelled.');
+    }
+
+    /** Bring a cancelled item back as pending. */
+    public function restore(CargoItem $cargoItem)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        if ($cargoItem->status !== 'cancelled') {
+            return back()->with('error', 'Item is not cancelled.');
+        }
+
+        $cargoItem->update([
+            'status'               => 'pending',
+            'cancelled_at'         => null,
+            'cancel_reason'        => null,
+            'status_before_cancel' => null,
+        ]);
+
+        return redirect()->route('cargo-items.index')->with('success', 'Item #' . $cargoItem->id . ' restored to pending.');
     }
 
     public function destroy(CargoItem $cargoItem)
@@ -381,7 +450,9 @@ foreach ($validated['items'] as $index => $itemData) {
     $importedCount = 0;
     $skippedCount = 0;
 
-    DB::transaction(function () use ($items, $skipDuplicates, &$importedCount, &$skippedCount) {
+    $thirdPartyId = $request->input('third_party_id') ?: null;
+
+    DB::transaction(function () use ($items, $skipDuplicates, &$importedCount, &$skippedCount, $thirdPartyId) {
         $seen = [];
         foreach ($items as $itemData) {
             $key = $this->buildRowKey($itemData);
@@ -396,6 +467,9 @@ foreach ($validated['items'] as $index => $itemData) {
                 continue;
             }
 
+            if ($thirdPartyId) {
+                $itemData['third_party_id'] = $thirdPartyId;
+            }
             CargoItem::create($itemData);
             $seen[$key] = true;
             $importedCount++;

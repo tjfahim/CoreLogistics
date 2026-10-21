@@ -28,7 +28,7 @@ class ReceiptNotificationController extends Controller
 
         $query = $this->groupedQuery($request, $keys);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->export($query->get(), $statuses, $keys);
         }
 
@@ -237,6 +237,6 @@ class ReceiptNotificationController extends Controller
             'int'      => [3],
         ];
 
-        return Excel::download(new SheetsExport([$sheet]), 'customer-notifications-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$sheet], 'customer-notifications-' . date('Y-m-d') . '.xlsx');
     }
 }
