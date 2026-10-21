@@ -182,7 +182,7 @@ class ItemShipmentCostController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
-            'payment_method' => 'required|string',
+            'payment_method' => 'required|in:cash,mobile_banking,cheque,bank_transfer',
             'reference_no' => 'nullable|string',
             'notes' => 'nullable|string',
             'paid_by' => 'nullable|string'

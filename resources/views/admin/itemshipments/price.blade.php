@@ -115,7 +115,7 @@
                         <label class="mb-0 mr-2 font-weight-bold"><input type="checkbox" id="autoSame" checked>
                             Auto-fill same goods &amp; mark
                         </label>
-                        <small class="text-muted mr-4">একটা বক্সে প্রাইস দিলে একই পণ্য/মার্কের সব বক্সে বসে যাবে।</small>
+                        <small class="text-muted mr-4">একটা বক্সে প্রাইস দিলে একই পণ্য/মার্কের সব বক্সে বসে যাবে। কোনো বক্সের আলাদা প্রাইস চাইলে তার "Override" টিক দিন — সেটা আর অন্যদের সাথে বদলাবে না।</small>
                         <div class="input-group input-group-sm" style="max-width:340px">
                             <div class="input-group-prepend"><span class="input-group-text">Price / kg for ALL</span></div>
                             <input type="number" step="0.01" min="0" id="allPrice" class="form-control" placeholder="0.00">
@@ -147,6 +147,7 @@
                                         <th>Weight (kg)</th>
                                         <th>Current Price/KG (৳)</th>
                                         <th>New Price/KG (৳)</th>
+                                        @can('edit-price')<th title="Keep this box's own price (don't follow the same-goods group)">Override</th>@endcan
                                         <th>Total Price (৳)</th>
                                         <th>Status</th>
                                     </tr>
@@ -186,6 +187,11 @@
                                                 {{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}
                                             @endcan
                                         </td>
+                                        @can('edit-price')
+                                        <td class="text-center">
+                                            <input type="checkbox" class="override-check" data-item-id="{{ $item->id }}" title="Override: own price for this box">
+                                        </td>
+                                        @endcan
                                         <td class="text-right total-price" id="total-price-{{ $item->id }}">
                                             <strong class="text-success">{{ number_format($item->price ?? 0, 0) }}</strong>
                                         </td>
@@ -278,14 +284,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const autoSame = document.getElementById('autoSame');
 
+    const overrideOf = id => document.querySelector('.override-check[data-item-id="' + id + '"]');
+    const isOverride = input => { const c = overrideOf(input.dataset.itemId); return !!(c && c.checked); };
+
+    // rows whose saved price already differs from the rest of their group start as "override"
+    const groups = {};
+    priceInputs.forEach(i => { (groups[i.dataset.group] = groups[i.dataset.group] || []).push(i); });
+    Object.values(groups).forEach(list => {
+        const vals = list.map(i => (parseFloat(i.value) || 0).toFixed(2));
+        if (list.length > 1 && new Set(vals).size > 1) {
+            const freq = {}; vals.forEach(v => freq[v] = (freq[v] || 0) + 1);
+            const common = Object.keys(freq).sort((a, b) => freq[b] - freq[a])[0];
+            list.forEach((i, k) => { if (vals[k] !== common) { const c = overrideOf(i.dataset.itemId); if (c) c.checked = true; } });
+        }
+    });
+
     priceInputs.forEach(input => {
         input.addEventListener('input', function() {
             calculateTotalPrice(this);
-            // one box priced -> every other box of the same goods + shipping mark gets the same price
-            if (autoSame && autoSame.checked && this.dataset.group) {
+            // one box priced -> every other NON-override box of the same goods + shipping mark gets the same price.
+            // An overridden box neither spreads its price nor receives one.
+            if (autoSame && autoSame.checked && this.dataset.group && !isOverride(this)) {
                 const g = this.dataset.group, v = this.value;
                 priceInputs.forEach(o => {
-                    if (o !== this && o.dataset.group === g) { o.value = v; calculateTotalPrice(o); }
+                    if (o !== this && o.dataset.group === g && !isOverride(o)) { o.value = v; calculateTotalPrice(o); }
                 });
             }
         });
@@ -297,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
         applyAll.addEventListener('click', function () {
             const v = document.getElementById('allPrice').value;
             if (v === '') return;
-            priceInputs.forEach(o => { o.value = v; calculateTotalPrice(o); });
+            priceInputs.forEach(o => { if (isOverride(o)) return; o.value = v; calculateTotalPrice(o); });
         });
     }
 });

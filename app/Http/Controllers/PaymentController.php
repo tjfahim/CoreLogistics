@@ -44,7 +44,9 @@ class PaymentController extends Controller
         $preselect = (int) $request->query('shipment');
         $return    = $request->query('return');
 
-        return view('admin.payments.receive', compact('customer', 'dueBills', 'totals', 'preselect', 'return'));
+        $advance = $this->ledger->advance($customer);
+
+        return view('admin.payments.receive', compact('customer', 'dueBills', 'totals', 'preselect', 'return', 'advance'));
     }
 
     /**
@@ -62,25 +64,22 @@ class PaymentController extends Controller
 
         $request->validate([
             'amount'         => 'required|numeric|min:1',
-            'payment_method' => 'required|string|in:cash,bank_transfer,cheque,card',
+            'payment_method' => 'required|string|in:cash,mobile_banking,cheque,bank_transfer',
             'payment_date'   => 'required|date',
             'reference_no'   => 'nullable|string|max:100',
             'notes'          => 'nullable|string',
-            'allocations'    => 'required|array',
+            'allocations'    => 'nullable|array',
             'allocations.*'  => 'nullable|numeric|min:0',
+            'advance_used'   => 'nullable|numeric|min:0',
         ]);
 
         $allocations = collect($request->input('allocations', []))
             ->map(fn ($v) => round((float) $v, 2))
             ->filter(fn ($v) => $v > 0);
 
-        if ($allocations->isEmpty()) {
-            return redirect()->back()->withInput()
-                ->with('error', 'Allocate the payment to at least one shipment.');
-        }
-
         try {
-            $payment = DB::transaction(function () use ($request, $customer, $allocations, $cur) {
+            $advanceCreated = 0.0;
+            $payment = DB::transaction(function () use ($request, $customer, $allocations, $cur, &$advanceCreated) {
                 // serialize concurrent payments for the same customer
                 Customer::whereKey($customer->id)->lockForUpdate()->first();
 
@@ -103,10 +102,21 @@ class PaymentController extends Controller
 
                 $allocatedTotal = round((float) $allocations->sum(), 2);
 
-                if (abs($allocatedTotal - round((float) $request->amount, 2)) > 0.009) {
-                    throw new \Exception('Allocated total (' . number_format($allocatedTotal, 2) .
-                        ') must equal the received amount (' . number_format((float) $request->amount, 2) . ').');
+                $received   = round((float) $request->amount, 2);
+                $advUsed    = round((float) $request->input('advance_used', 0), 2);
+                $available  = $this->ledger->advance($customer);
+
+                if ($advUsed > $available + 0.004) {
+                    throw new \Exception('Advance used (' . number_format($advUsed, 2) .
+                        ') is more than the available advance (' . number_format($available, 2) . ').');
                 }
+                if ($allocatedTotal > $received + $advUsed + 0.009) {
+                    throw new \Exception('Allocated total (' . number_format($allocatedTotal, 2) .
+                        ') is more than the received amount plus advance used (' . number_format($received + $advUsed, 2) . ').');
+                }
+
+                // whatever is received but not allocated stays with the customer as ADVANCE
+                $advanceCreated = max(round($received + $advUsed - $allocatedTotal, 2), 0);
 
                 $dueBefore = (float) $bills->sum('due');
 
@@ -114,7 +124,7 @@ class PaymentController extends Controller
                     'customer_id'     => $customer->id,
                     'user_id'         => Auth::id(),
                     'itemshipment_id' => $allocations->count() === 1 ? (int) $allocations->keys()->first() : null,
-                    'amount'          => $allocatedTotal,
+                    'amount'          => $received,
                     'currency'        => $cur['currency'],
                     'foreign_amount'  => $cur['foreign_amount'],
                     'exchange_rate'   => $cur['exchange_rate'],
@@ -137,7 +147,8 @@ class PaymentController extends Controller
             });
 
             $message = 'Payment of ' . number_format($payment->amount, 2) . ' tk received and allocated to ' .
-                $allocations->count() . ' shipment(s).';
+                $allocations->count() . ' shipment(s).'
+                . ($advanceCreated > 0 ? ' Extra ' . number_format($advanceCreated, 2) . ' tk saved as customer advance.' : '');
 
             if ($request->input('return') === 'billing' && $request->filled('shipment')) {
                 return redirect()->route('shipments.billing', (int) $request->input('shipment'))

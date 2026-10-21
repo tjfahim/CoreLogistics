@@ -24,9 +24,9 @@ class ShipmentBillController extends Controller
 {
     public const METHODS = [
         'cash'           => 'Cash',
-        'bank'           => 'Bank Transfer',
-        'check'          => 'Check',
         'mobile_banking' => 'Mobile Banking',
+        'cheque'         => 'Cheque',
+        'bank_transfer'  => 'Bank Transfer',
     ];
 
     /** Overview: every shipment with cost / paid / due + recent vouchers. */

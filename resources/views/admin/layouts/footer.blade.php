@@ -60,6 +60,22 @@
 </script>
 
 <script>
+// searchable dropdowns: customers, agents, partners, shipments (or any select with .js-search)
+(function () {
+    var $ = window.jQuery; if (!$ || !$.fn.select2) return;
+    $(function () {
+        $('select').each(function () {
+            var el = this, n = (el.name || el.id || '').toLowerCase();
+            if (el.multiple || $(el).hasClass('select2-hidden-accessible') || $(el).hasClass('no-search')) return;
+            if (!($(el).hasClass('js-search') || /customer|agent|partner|party|shipment_id|office/.test(n))) return;
+            var modal = $(el).closest('.modal');
+            $(el).select2({ width: '100%', dropdownParent: modal.length ? modal : $(document.body) });
+        });
+    });
+})();
+</script>
+
+<script>
     @stack('scripts')
 </script>
 

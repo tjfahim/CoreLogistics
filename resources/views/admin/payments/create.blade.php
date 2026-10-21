@@ -175,9 +175,9 @@
                                         required>
                                     <option value="">Select Method</option>
                                     <option value="cash" {{ old('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
-                                    <option value="bank_transfer" {{ old('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                    <option value="mobile_banking" {{ old('payment_method') == 'mobile_banking' ? 'selected' : '' }}>Mobile Banking</option>
                                     <option value="cheque" {{ old('payment_method') == 'cheque' ? 'selected' : '' }}>Cheque</option>
-                                    <option value="card" {{ old('payment_method') == 'card' ? 'selected' : '' }}>Card</option>
+                                    <option value="bank_transfer" {{ old('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
                                 </select>
                                 @error('payment_method')
                                     <div class="invalid-feedback">{{ $message }}</div>

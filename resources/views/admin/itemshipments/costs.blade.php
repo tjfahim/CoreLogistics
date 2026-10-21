@@ -161,14 +161,14 @@
                         </div>
 
                         <div class="form-group" id="agent_field" style="display:none;">
-                            <label for="agent_id">Agent</label>
+                            <label for="agent_id" id="agent_label">Agent</label>
                             <select name="agent_id" id="agent_id"
                                     class="form-control @error('agent_id') is-invalid @enderror">
                                 <option value="">Select Agent</option>
                                 @foreach($agents as $agent)
-                                    <option value="{{ $agent->id }}"
+                                    <option value="{{ $agent->id }}" data-type="{{ $agent->type }}"
                                         {{ old('agent_id') == $agent->id ? 'selected' : '' }}>
-                                        {{ $agent->name }} - {{ $agent->company_name }}
+                                        {{ $agent->name }} - {{ $agent->company_name }} ({{ $agent->type === 'cnf_agent' ? 'CNF' : 'Freight' }})
                                     </option>
                                 @endforeach
                             </select>
@@ -515,9 +515,9 @@
                                                             <select name="payment_method" id="payment_method{{ $cost->id }}"
                                                                     class="form-control" required>
                                                                 <option value="cash">Cash</option>
-                                                                <option value="bank">Bank Transfer</option>
-                                                                <option value="check">Check</option>
                                                                 <option value="mobile_banking">Mobile Banking</option>
+                                                                <option value="cheque">Cheque</option>
+                                                                <option value="bank_transfer">Bank Transfer</option>
                                                             </select>
                                                         </div>
 
@@ -651,6 +651,25 @@ document.addEventListener("DOMContentLoaded", function () {
         return v === true || v === "true" || v === 1 || v === "1";
     }
 
+    // freight cost type -> freight agents, cnf cost type -> cnf agents, otherwise all
+    function filterAgents(typeName) {
+        const n = typeName.toLowerCase();
+        let want = null, label = "Agent";
+        if (n.includes("cnf") || n.includes("c&f") || n.includes("c & f")) { want = "cnf_agent"; label = "CNF Agent"; }
+        else if (n.includes("freight") || n.includes("fraight")) { want = "freight_forwarder"; label = "Freight Agent"; }
+        const sel = document.getElementById("agent_id");
+        const lbl = document.getElementById("agent_label");
+        if (lbl) lbl.textContent = label;
+        if (!sel) return;
+        Array.from(sel.options).forEach(o => {
+            if (!o.value) return;
+            const show = !want || o.dataset.type === want;
+            o.hidden = !show; o.disabled = !show;
+        });
+        const cur = sel.options[sel.selectedIndex];
+        if (cur && cur.value && cur.disabled) sel.value = "";
+    }
+
     function updateFormUI() {
         const selectedId = costTypeDropdown.value;
         const selectedType = costTypes.find(ct => ct.id == selectedId);
@@ -664,6 +683,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const haveAgent = isTrue(selectedType.have_agent);
         agentField.style.display = haveAgent ? "block" : "none";
+        filterAgents(selectedType.name || "");
         if (!haveAgent) {
             const agentSelect = document.getElementById("agent_id");
             if (agentSelect) agentSelect.value = "";

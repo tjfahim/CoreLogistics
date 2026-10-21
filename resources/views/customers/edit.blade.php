@@ -198,6 +198,15 @@
                         </div>
 
                         <div class="form-group">
+                            <div class="custom-control custom-checkbox form-check">
+                                <input type="checkbox" name="is_partner" value="1" id="is_partner" class="form-check-input"
+                                       {{ old('is_partner', $customer->is_partner ?? false) ? 'checked' : '' }}>
+                                <label class="form-check-label font-weight-bold" for="is_partner">Partner (third-party business)</label>
+                            </div>
+                            <small class="text-muted">Partner's goods can be marked as third-party; its ledger works like any customer.</small>
+                        </div>
+
+                        <div class="form-group">
                             <label class="font-weight-bold">Address</label>
                             <textarea name="address" rows="3"
                                       class="form-control @error('address') is-invalid @enderror"

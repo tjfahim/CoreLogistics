@@ -149,6 +149,7 @@ class AccountingService
                 'billed'         => round($g->sum('billed'), 2),
                 'paid'           => round((float) ($p->total ?? 0), 2),
                 'due'            => round($g->sum('due'), 2),
+                'advance'        => max(round((float) ($p->total ?? 0) - $g->sum('paid'), 2), 0),
                 'shipments_due'  => $g->where('due', '>', 0)->count(),
                 'last_payment'   => $p->last_date ?? null,
                 'oldest_due_date'=> optional($g->where('due', '>', 0)->sortBy('date')->first())->date,
@@ -178,6 +179,8 @@ class AccountingService
                 $all->push([
                     'date'      => $r->date,
                     'order'     => 0,
+                    'ts'        => '',
+                    'time'      => null,
                     'sid'       => $r->shipment_id,
                     'kind'      => 'bill',
                     'doc'       => $invoices[$r->shipment_id] ?? ('BILL-' . $r->shipment_id),
@@ -198,6 +201,8 @@ class AccountingService
             $all->push([
                 'date'      => $p->payment_date->toDateString(),
                 'order'     => 1,
+                'ts'        => optional($p->created_at)->format('Y-m-d H:i:s') ?? '',
+                'time'      => optional($p->created_at)->format('H:i'),
                 'sid'       => $p->id,
                 'kind'      => 'receipt',
                 'doc'       => self::receiptNo($p->id),
@@ -215,7 +220,7 @@ class AccountingService
             ]);
         }
 
-        $all = $all->sortBy([['date', 'asc'], ['order', 'asc'], ['sid', 'asc']])->values();
+        $all = $all->sortBy([['date', 'asc'], ['ts', 'asc'], ['order', 'asc'], ['sid', 'asc']])->values();
 
         $opening = 0.0;
         $entries = collect();
@@ -254,6 +259,7 @@ class AccountingService
             'debit'     => $debit,
             'credit'    => $credit,
             'closing'   => round($opening + $debit - $credit, 2),
+            'advance'   => max(round((float) $payments->sum('amount') - (float) $rows->sum('paid'), 2), 0),
             'totals'    => [
                 'billed'        => round($rows->sum('billed'), 2),
                 'paid'          => round($rows->sum('paid'), 2),
@@ -306,6 +312,8 @@ class AccountingService
             $all->push([
                 'date'      => optional($c->cost_date)->toDateString() ?? $c->created_at->toDateString(),
                 'order'     => 0,
+                'ts'        => optional($c->created_at)->format('Y-m-d H:i:s') ?? '',
+                'time'      => optional($c->created_at)->format('H:i'),
                 'sid'       => $c->id,
                 'kind'      => 'bill',
                 'doc'       => 'BILL-' . str_pad((string) $c->id, 6, '0', STR_PAD_LEFT),
@@ -330,6 +338,8 @@ class AccountingService
             $all->push([
                 'date'      => $p->payment_date->toDateString(),
                 'order'     => 1,
+                'ts'        => optional($p->created_at)->format('Y-m-d H:i:s') ?? '',
+                'time'      => optional($p->created_at)->format('H:i'),
                 'sid'       => $p->id,
                 'kind'      => 'payment',
                 'doc'       => $p->voucher->voucher_no ?? ('PAY-' . str_pad((string) $p->id, 6, '0', STR_PAD_LEFT)),
@@ -347,7 +357,7 @@ class AccountingService
             ]);
         }
 
-        $all = $all->sortBy([['date', 'asc'], ['order', 'asc'], ['sid', 'asc']])->values();
+        $all = $all->sortBy([['ts', 'asc'], ['date', 'asc'], ['order', 'asc'], ['sid', 'asc']])->values();
 
         $opening = 0.0;
         $entries = collect();
@@ -431,7 +441,7 @@ class AccountingService
             ->groupBy('cis.items_shipment_id')
             ->selectRaw('cis.items_shipment_id as shipment_id, COUNT(ci.id) as items,
                 SUM(COALESCE(ci.weight_kg, 0)) as weight, SUM(COALESCE(ci.cbm, 0)) as cbm,
-                SUM(CASE WHEN ci.customer_id IS NULL AND ci.third_party_id IS NULL THEN 1 ELSE 0 END) as unassigned,
+                SUM(CASE WHEN ci.customer_id IS NULL THEN 1 ELSE 0 END) as unassigned,
                 SUM(CASE WHEN ci.price IS NULL AND ci.price_per_kg IS NULL THEN 1 ELSE 0 END) as unpriced')
             ->get()
             ->keyBy('shipment_id');
@@ -454,7 +464,6 @@ class AccountingService
         $items = $this->itemStats($ids);
 
         $cust = $this->customerShipmentRows(['shipment_ids' => $ids])->groupBy('shipment_id');
-        $tpBill = app(ThirdPartyLedgerService::class)->shipmentRows(['shipment_ids' => $ids])->groupBy('shipment_id');
 
         $costs = ItemsShipmentCost::whereIn('items_shipment_id', $ids)
     ->selectRaw('items_shipment_id,
@@ -466,14 +475,12 @@ class AccountingService
     ->get()
     ->keyBy('items_shipment_id');
 
-        return $shipments->map(function ($s) use ($items, $cust, $costs, $tpBill) {
+        return $shipments->map(function ($s) use ($items, $cust, $costs) {
             $i = $items->get($s->id);
             $c = $cust->get($s->id, collect());
             $k = $costs->get($s->id);
 
-            // revenue = own customers + third-party companies
-            $tpBilled = round($tpBill->get($s->id, collect())->sum('billed'), 2);
-            $billed   = round($c->sum('billed'), 2) + $tpBilled;
+            $billed = round($c->sum('billed'), 2);
             $recv   = round($c->sum('paid'), 2);
             $cost   = round((float) ($k->cost ?? 0), 2);
 
@@ -490,7 +497,6 @@ class AccountingService
                 'unpriced'     => (int) ($i->unpriced ?? 0),
                 'customers'    => $c->pluck('customer_id')->unique()->count(),
                 'billed'       => $billed,
-                'tp_billed'    => $tpBilled,
                 'received'     => $recv,
                 'receivable'   => round($c->sum('due'), 2),
                 'cost_lines'   => (int) ($k->lines ?? 0),
@@ -570,14 +576,6 @@ class AccountingService
             ->whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
             ->orderBy('payment_date')->orderBy('id')->get();
         foreach ($receipts as $p) {
-            $k = $key($p->payment_date->toDateString());
-            if (isset($buckets[$k])) {
-                $buckets[$k]['received'] += (float) $p->amount;
-            }
-        }
-
-        $tpReceipts = \App\Models\ThirdPartyPayment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)->get();
-        foreach ($tpReceipts as $p) {
             $k = $key($p->payment_date->toDateString());
             if (isset($buckets[$k])) {
                 $buckets[$k]['received'] += (float) $p->amount;
@@ -708,7 +706,6 @@ class AccountingService
                                     ->when($to, fn ($x) => $x->whereDate($col, '<=', $to));
 
         $receipts = $range(CustomerPayment::query(), 'payment_date')->get(['amount', 'payment_method', 'payment_date', 'customer_id']);
-        $tpReceived = (float) $range(\App\Models\ThirdPartyPayment::query(), 'payment_date')->sum('amount');
         $payouts  = $range(ItemsShipmentPayment::query(), 'payment_date')->get(['amount', 'payment_method']);
         $costs    = $range(ItemsShipmentCost::with('costType:id,name', 'agent:id,name'), 'cost_date')->get();
 
@@ -718,12 +715,7 @@ class AccountingService
         $allRows = $this->customerShipmentRows();
         $upTo    = $to ? $allRows->where('date', '<=', $to) : $allRows;
         $paidUpTo = DB::table('customer_payments')->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))->sum('amount');
-        $tpSvc    = app(ThirdPartyLedgerService::class);
-        $tpRowsUp = $tpSvc->shipmentRows();
-        $tpUpTo   = $to ? $tpRowsUp->where('date', '<=', $to) : $tpRowsUp;
-        $tpPaidUp = DB::table('third_party_payments')->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))->sum('amount');
-        $receivable = round($upTo->sum('billed') - (float) $paidUpTo, 2)
-                    + round($tpUpTo->sum('billed') - (float) $tpPaidUp, 2);
+        $receivable = round($upTo->sum('billed') - (float) $paidUpTo, 2);
 
         $allCosts = ItemsShipmentCost::when($to, fn ($q) => $q->whereDate('cost_date', '<=', $to))->get();
         $paidCostUpTo = ItemsShipmentPayment::when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))->sum('amount');
@@ -745,11 +737,11 @@ class AccountingService
             'fin'        => $fin,
             'tot'        => $tot,
             'billed'     => $tot['billed'],
-            'received'   => round((float) $receipts->sum('amount') + $tpReceived, 2),
+            'received'   => round((float) $receipts->sum('amount'), 2),
             'cost'       => round($costs->sum($costVal), 2),
             'paid_out'   => round((float) $payouts->sum('amount'), 2),
             'profit'     => round($tot['billed'] - $costs->sum($costVal), 2),
-            'cash_net'   => round((float) $receipts->sum('amount') + $tpReceived - (float) $payouts->sum('amount'), 2),
+            'cash_net'   => round((float) $receipts->sum('amount') - (float) $payouts->sum('amount'), 2),
             'receivable' => $receivable,
             'payable'    => $payable,
             'by_type'    => $byType,

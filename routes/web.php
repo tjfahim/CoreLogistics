@@ -243,11 +243,6 @@ Route::post('/itemshipments/{itemshipment}/auto-assign-ctn',
 
 Route::resource('offices', OfficeController::class);
 Route::resource('employees', EmployeeController::class);
-Route::resource('third-parties', \App\Http\Controllers\ThirdPartyController::class)
-    ->except(['show'])->parameters(['third-parties' => 'third_party']);
-Route::get('third-parties/{third_party}/ledger', [\App\Http\Controllers\ThirdPartyController::class, 'ledger'])->name('third-parties.ledger');
-Route::post('third-parties/{third_party}/payments', [\App\Http\Controllers\ThirdPartyController::class, 'storePayment'])->name('third-parties.payments.store');
-Route::delete('third-party-payments/{payment}', [\App\Http\Controllers\ThirdPartyController::class, 'destroyPayment'])->name('third-parties.payments.destroy');
 Route::post('itemsshipments/{itemshipment}/set-third-party', [ItemShipmentController::class, 'setThirdParty'])->name('itemsshipments.set-third-party');
 Route::get('salary-history', [\App\Http\Controllers\EmployeeController::class, 'history'])->name('salary-history');
 Route::resource('office-bills', OfficeBillController::class)

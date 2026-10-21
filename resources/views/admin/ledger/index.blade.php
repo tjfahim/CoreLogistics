@@ -45,6 +45,13 @@
                     <option value="no-billing" {{ ($status ?? '') === 'no-billing' ? 'selected' : '' }}>No billing</option>
                 </select>
             </div>
+            <div>
+                <label>Type</label>
+                <select name="partner">
+                    <option value="">All customers</option>
+                    <option value="1" {{ !empty($partnerOnly) ? 'selected' : '' }}>Partners only</option>
+                </select>
+            </div>
             <div style="display:flex;gap:8px">
                 <button class="rp-btn primary" type="submit"><i class="fa fa-filter"></i> Filter</button>
                 <a class="rp-btn" href="{{ route('ledger.index') }}">Reset</a>
@@ -66,7 +73,7 @@
                 @foreach($ledgerRows as $row)
                     @php $pct = $row['total_billed'] > 0 ? min(100, round($row['total_paid'] / $row['total_billed'] * 100)) : 0; @endphp
                     <tr>
-                        <td><a class="lnk" href="{{ route('ledger.customer', $row['customer']->id) }}">{{ $row['customer']->name }}</a>
+                        <td><a class="lnk" href="{{ route('ledger.customer', $row['customer']->id) }}">{{ $row['customer']->name }}</a>@if($row['customer']->is_partner) <span class="badge" style="background:#6f42c1;color:#fff">Partner</span>@endif
                             <br><small class="muted">{{ $row['customer']->customer_code }}</small></td>
                         <td>{{ $row['customer']->phone }}</td>
                         <td class="num">{{ $row['shipment_count'] }}@if($row['shipments_due'])<br><small class="neg">{{ $row['shipments_due'] }} due</small>@endif</td>

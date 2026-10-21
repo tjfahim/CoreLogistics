@@ -42,6 +42,19 @@
     {{-- Premium core design (must stay after style.css) --}}
     <link rel="stylesheet" href="{{ asset('admin/assets/css/premium.css') }}">
 
+    <style>
+        /* dropdown arrow on every select */
+        select.form-control, select.form-select, select.custom-select, .content select:not([multiple]):not([size]) {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right .75rem center; background-size: 12px 8px;
+            padding-right: 2rem;
+        }
+        .select2-container { width: 100% !important; }
+        .select2-container .select2-selection--single { height: calc(2.25rem + 2px); }
+        .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: calc(2.25rem); }
+        .select2-container--default .select2-selection--single .select2-selection__arrow { height: calc(2.25rem); }
+    </style>
     @stack('styles')
 </head>
 

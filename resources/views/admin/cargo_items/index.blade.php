@@ -93,11 +93,10 @@
                         <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search receipt no, tracking, goods, CTN...">
                     </div>
                     <div class="col-md-6 text-right">
-                        <select id="tpFilter" class="form-control form-control-sm d-inline-block mr-1" style="width:auto" title="Third party filter">
-                            <option value="">All (own + third party)</option>
-                            <option value="none">Own customers only</option>
-                            <option value="any">All third parties</option>
-                            @foreach($thirdParties as $tp)<option value="{{ $tp->id }}">{{ $tp->name }}</option>@endforeach
+                        <select id="tpFilter" class="form-control form-control-sm d-inline-block mr-1" style="width:auto" title="Third-party filter">
+                            <option value="">All goods</option>
+                            <option value="any">Third-party only</option>
+                            <option value="none">Normal only</option>
                         </select>
                         <select id="perPageSelect" class="form-control form-control-sm d-inline-block " style="width: auto;">
                             <option value="25">25 per page</option>
@@ -300,7 +299,7 @@ $(document).ready(function () {
 
         items.forEach(function (item) {
             const color = statusColors[item.status] || 'secondary';
-            const rowClass = item.status === 'packed' ? 'table-primary' : ('st-' + item.status);
+            const rowClass = (item.status === 'packed' ? 'table-primary' : ('st-' + item.status)) + (item.is_third_party ? ' tp-row' : '');
             const returnedClass = item.is_returned ? 'returned-row' : '';
             const dateStr = item.date ? item.date.substring(5, 10) : '-';
             const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
@@ -335,21 +334,22 @@ $(document).ready(function () {
                     'data-status="' + item.status + '" ' + titleAttr + '>' +
                     checkboxCell +
                     '<td>' + item.id + '</td>' +
-                    '<td>' + dateStr + '</td>' +
-                    '<td>' + (item.receipt_no ? '<strong>' + item.receipt_no + '</strong>' : '') + '</td>' +
-                    '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
-                    '<td>' + (item.written_ctn_no ?? '') + '</td>' +
-                    '<td>' + (item.tracking_no ?? '') + '</td>' +
-                    '<td>' + (item.goods_name_en ?? '') + goodsLocal +
-                        (item.third_party_name ? '<br><span class="badge" style="background:' + item.third_party_color + ';color:#fff" title="Third party">3P · ' + $('<div>').text(item.third_party_name).html() + '</span>' : '') + '</td>' +
-                    '<td>' + (item.pack_no ?? '') + '</td>' +
-                    '<td>' + (item.unit_pcs ?? '') + '</td>' +
-                    '<td>' + (item.weight_kg ?? '0.000') + '</td>' +
-                    '<td>' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
-                    '<td>' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
-                    '<td>' + (item.shipping_mark ?? '-') + '</td>' +
-                    '<td>' + (item.remark ?? '-') + '</td>' +
-                    '<td><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
+                    '<td class="c-date">' + dateStr + '</td>' +
+                    '<td class="c-receipt">' + (item.receipt_no ? '<strong>' + item.receipt_no + '</strong>' : '') + '</td>' +
+                    '<td class="c-ctn">' + (item.printed_ctn_no ?? '') + '</td>' +
+                    '<td class="c-ctn2">' + (item.written_ctn_no ?? '') + '</td>' +
+                    '<td class="c-track">' + (item.tracking_no ?? '') + '</td>' +
+                    '<td class="c-goods">' + (item.goods_name_en ?? '') + goodsLocal +
+                        (item.is_third_party ? '<br><span class="badge badge-3p" title="Third-party goods">3P</span>' : '') +
+                        (item.customer_name ? '<br><small class="text-muted">' + $('<div>').text(item.customer_name).html() + (item.customer_partner ? ' · partner' : '') + '</small>' : '') + '</td>' +
+                    '<td class="c-qty">' + (item.pack_no ?? '') + '</td>' +
+                    '<td class="c-qty">' + (item.unit_pcs ?? '') + '</td>' +
+                    '<td class="c-weight">' + (item.weight_kg ?? '0.000') + '</td>' +
+                    '<td class="c-dim">' + Math.round(item.length_cm) + ', ' + Math.round(item.width_cm) + ', ' + Math.round(item.height_cm) + '</td>' +
+                    '<td class="c-cbm">' + parseFloat(item.cbm || 0).toFixed(6) + '</td>' +
+                    '<td class="c-mark">' + (item.shipping_mark ?? '-') + '</td>' +
+                    '<td class="c-remark">' + (item.remark ?? '-') + '</td>' +
+                    '<td class="c-status st-cell-' + item.status + '"><span class="badge badge-' + color + ' status-badge" style="padding: 0.5em 0.75em; font-size: 0.85em;">' +
                         item.status.replace(/_/g, ' ').toUpperCase() +
                     '</span>' +
                     (item.is_returned ? ' <span class="badge badge-warning">RETURNED</span>' : '') +
@@ -690,6 +690,23 @@ $(document).ready(function () {
     #cargoItemsTable tbody tr.st-delivered           { background-color: #a3cfbb !important; }
     #cargoItemsTable tbody tr.st-cancelled           { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; color:#842029; }
     #cargoItemsTable tbody tr.returned-row           { background-color: #fff3cd !important; }
+    /* column (td) background tints */
+    #cargoItemsTable tbody td.c-date    { background-image: linear-gradient(rgba(13,110,253,.10), rgba(13,110,253,.10)); }
+    #cargoItemsTable tbody td.c-receipt { background-image: linear-gradient(rgba(111,66,193,.12), rgba(111,66,193,.12)); }
+    #cargoItemsTable tbody td.c-ctn,
+    #cargoItemsTable tbody td.c-ctn2    { background-image: linear-gradient(rgba(255,193,7,.22), rgba(255,193,7,.22)); font-weight:600; }
+    #cargoItemsTable tbody td.c-track   { background-image: linear-gradient(rgba(23,162,184,.14), rgba(23,162,184,.14)); }
+    #cargoItemsTable tbody td.c-goods   { background-image: linear-gradient(rgba(40,167,69,.12), rgba(40,167,69,.12)); }
+    #cargoItemsTable tbody td.c-qty     { background-image: linear-gradient(rgba(108,117,125,.12), rgba(108,117,125,.12)); }
+    #cargoItemsTable tbody td.c-weight  { background-image: linear-gradient(rgba(253,126,20,.18), rgba(253,126,20,.18)); font-weight:600; }
+    #cargoItemsTable tbody td.c-dim     { background-image: linear-gradient(rgba(32,201,151,.15), rgba(32,201,151,.15)); }
+    #cargoItemsTable tbody td.c-cbm     { background-image: linear-gradient(rgba(32,201,151,.25), rgba(32,201,151,.25)); }
+    #cargoItemsTable tbody td.c-mark    { background-image: linear-gradient(rgba(214,51,132,.12), rgba(214,51,132,.12)); }
+    #cargoItemsTable tbody td.c-remark  { background-image: linear-gradient(rgba(102,16,242,.07), rgba(102,16,242,.07)); }
+    /* third-party goods: purple left bar + purple tinted goods cell */
+    #cargoItemsTable tbody tr.tp-row { border-left: 5px solid #6f42c1 !important; }
+    #cargoItemsTable tbody tr.tp-row td.c-goods { background-image: linear-gradient(rgba(111,66,193,.28), rgba(111,66,193,.28)); }
+    .badge-3p { background:#6f42c1; color:#fff; }
     .selectable-row { cursor: pointer; }
     .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
     .table-primary { background-color: #007bff !important; color: white; }

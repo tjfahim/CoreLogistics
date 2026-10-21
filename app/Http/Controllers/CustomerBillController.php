@@ -202,22 +202,16 @@ class CustomerBillController extends Controller
         }
     }
 
-    /** PDF of the whole shipment billing: every customer / third party billed, received, due. */
+    /** PDF of the whole shipment billing: every customer / partner billed, received, due. */
     private function billingPdf(ItemsShipment $itemshipment)
     {
         $acc  = app(\App\Services\AccountingService::class);
-        $tpS  = app(\App\Services\ThirdPartyLedgerService::class);
         $rows = $acc->shipmentCustomers([$itemshipment->id]);
-        $tp   = $tpS->shipmentRows(['shipment_ids' => [$itemshipment->id]]);
-        $tpNames = \App\Models\ThirdParty::whereIn('id', $tp->pluck('third_party_id'))->pluck('name', 'id');
 
         $lines = [];
         foreach ($rows as $r) {
-            $lines[] = [optional($r->customer)->customer_code, optional($r->customer)->name ?? ('#' . $r->customer_id), 'Customer',
+            $lines[] = [optional($r->customer)->customer_code, optional($r->customer)->name ?? ('#' . $r->customer_id), optional($r->customer)->is_partner ? 'Partner' : 'Customer',
                         $r->items, (float) $r->weight, $r->billed, $r->paid, $r->due];
-        }
-        foreach ($tp as $r) {
-            $lines[] = ['', $tpNames[$r->third_party_id] ?? ('#' . $r->third_party_id), 'Third party', $r->items, (float) $r->weight, $r->billed, '', ''];
         }
         $billed = collect($lines)->sum(5);
 
