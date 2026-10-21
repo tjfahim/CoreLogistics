@@ -15,6 +15,7 @@
         <div class="btn-group">
             <a href="{{ route('ledger.customer', $customer->id) }}" class="btn btn-secondary">Back</a>
             <a href="{{ route('ledger.customer', $customer->id) }}" class="btn btn-info">Customer Ledger</a>
+            <a href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}" class="btn btn-danger"><i class="fa fa-file-pdf-o"></i> PDF</a>
             @can('add-payment')
                 @if($totalDue > 0)
                     <a href="{{ route('payments.receive', ['customer' => $customer->id, 'shipment' => $itemshipment->id]) }}"

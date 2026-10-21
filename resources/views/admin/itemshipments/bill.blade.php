@@ -11,6 +11,9 @@
             <button class="btn btn-dark btn-sm" onclick="window.print()">
                 <i class="fa fa-print"></i> Print Bill
             </button>
+            <a class="btn btn-danger btn-sm" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}">
+                <i class="fa fa-file-pdf-o"></i> PDF
+            </a>
         @endcan
     </div>
 

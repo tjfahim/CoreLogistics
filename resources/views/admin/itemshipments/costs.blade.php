@@ -487,6 +487,8 @@
                                                             </label>
                                                         </div>
 
+                                                        @include('admin.partials.currency-fields', ['amountId' => 'amount'.$cost->id, 'uid' => 'cost'.$cost->id])
+
                                                         <div class="form-group">
                                                             <label for="amount{{ $cost->id }}">Payment Amount (BDT) <span class="text-danger">*</span></label>
                                                             <input type="number"

@@ -19,6 +19,7 @@ class ItemsShipmentPayment extends Model
         'paid_by',
         'user_id',                  // system user who saved this payment
         'shipment_bill_payment_id', // voucher (multi-shipment payment) this line belongs to
+        'currency', 'foreign_amount', 'exchange_rate',
     ];
 
     protected $casts = [

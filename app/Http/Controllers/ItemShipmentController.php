@@ -71,14 +71,14 @@ class ItemShipmentController extends Controller
 
     public function show(ItemsShipment $itemshipment)
     {
-        $itemshipment->load('cargoItems');
+        $itemshipment->load('cargoItems.thirdParty');
         $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
         return view('admin.itemshipments.show', compact('itemshipment', 'groupedItems'));
     }
 
  public function edit(ItemsShipment $itemshipment)
 {
-    $itemshipment->load('cargoItems');
+    $itemshipment->load('cargoItems.thirdParty');
 
     // IDs already attached to this shipment
     $assignedIds = $itemshipment->cargoItems->pluck('id')->toArray();
@@ -419,6 +419,7 @@ public function bulkToggleItems(Request $request)
         }
 
         CargoItem::whereIn('id', $itemIds)->update(['status' => $targetStatus]);
+        \App\Models\CargoItemStatusLog::recordMany($itemIds, $targetStatus);
     }
 
     /** Group the selected items of this shipment into one box (display-only label, e.g. BOX-3). */
@@ -462,5 +463,22 @@ public function bulkToggleItems(Request $request)
         \App\Models\CargoItem::whereIn('id', $ids)->update(['box_no' => null]);
 
         return back()->with('success', $ids->count() . ' item(s) removed from box.');
+    }
+
+    /** Mark the selected items of this shipment as belonging to a third party (blank = own customers). */
+    public function setThirdParty(Request $request, ItemsShipment $itemshipment)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        $request->validate([
+            'item_ids'       => 'required|array|min:1',
+            'item_ids.*'     => 'integer',
+            'third_party_id' => 'nullable|exists:third_parties,id',
+        ]);
+
+        $ids = $itemshipment->cargoItems()->whereIn('cargo_items.id', $request->item_ids)->pluck('cargo_items.id');
+        \App\Models\CargoItem::whereIn('id', $ids)->update(['third_party_id' => $request->third_party_id ?: null]);
+
+        return back()->with('success', $ids->count() . ' item(s) updated.');
     }
 }

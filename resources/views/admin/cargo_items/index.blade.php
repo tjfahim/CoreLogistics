@@ -93,6 +93,12 @@
                         <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search receipt no, tracking, goods, CTN...">
                     </div>
                     <div class="col-md-6 text-right">
+                        <select id="tpFilter" class="form-control form-control-sm d-inline-block mr-1" style="width:auto" title="Third party filter">
+                            <option value="">All (own + third party)</option>
+                            <option value="none">Own customers only</option>
+                            <option value="any">All third parties</option>
+                            @foreach($thirdParties as $tp)<option value="{{ $tp->id }}">{{ $tp->name }}</option>@endforeach
+                        </select>
                         <select id="perPageSelect" class="form-control form-control-sm d-inline-block " style="width: auto;">
                             <option value="25">25 per page</option>
                             <option value="100" selected>100 per page</option>
@@ -239,6 +245,8 @@ $(document).ready(function () {
         }, 350);
     });
 
+    $('#tpFilter').on('change', function () { currentPage = 1; loadItems(); });
+
     $('#perPageSelect').on('change', function () {
         currentPage = 1;
         loadItems();
@@ -256,7 +264,8 @@ $(document).ready(function () {
                 status: currentStatus,
                 page: currentPage,
                 per_page: perPage,
-                search: currentSearch
+                search: currentSearch,
+                third_party: $('#tpFilter').val()
             },
             success: function (res) {
                 renderRows(res.data);
@@ -331,7 +340,8 @@ $(document).ready(function () {
                     '<td>' + (item.printed_ctn_no ?? '') + '</td>' +
                     '<td>' + (item.written_ctn_no ?? '') + '</td>' +
                     '<td>' + (item.tracking_no ?? '') + '</td>' +
-                    '<td>' + (item.goods_name_en ?? '') + goodsLocal + '</td>' +
+                    '<td>' + (item.goods_name_en ?? '') + goodsLocal +
+                        (item.third_party_name ? '<br><span class="badge" style="background:' + item.third_party_color + ';color:#fff" title="Third party">3P · ' + $('<div>').text(item.third_party_name).html() + '</span>' : '') + '</td>' +
                     '<td>' + (item.pack_no ?? '') + '</td>' +
                     '<td>' + (item.unit_pcs ?? '') + '</td>' +
                     '<td>' + (item.weight_kg ?? '0.000') + '</td>' +

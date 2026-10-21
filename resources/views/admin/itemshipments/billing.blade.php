@@ -74,8 +74,12 @@
 
     <!-- Customer Bills Table -->
     <div class="card">
-        <div class="card-header">
-            <h4>Customer Bills Summary</h4>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Customer Bills Summary</h4>
+            <div>
+                <a class="btn btn-outline-secondary btn-sm" href="{{ route('ledger.shipment', $itemshipment->id) }}"><i class="fa fa-book"></i> Shipment ledger</a>
+                <a class="btn btn-danger btn-sm" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
+            </div>
         </div>
         <div class="card-body">
             @if(count($billingSummary) > 0)
@@ -281,7 +285,8 @@
                                     <td>
                                         <input type="number"
                                                name="prices[{{ $item->id }}][price_per_kg]"
-                                               class="form-control form-control-sm"
+                                               data-group="{{ \Illuminate\Support\Str::lower(trim($item->goods_name_en)) }}|{{ \Illuminate\Support\Str::lower(trim($item->shipping_mark)) }}"
+                                               class="form-control form-control-sm per-kg-auto"
                                                step="0.01"
                                                min="0"
                                                value="{{ $item->price_per_kg }}">
@@ -312,6 +317,19 @@
         if (highlightedRow) {
             highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+
+        // ---- Auto price: same goods + shipping mark get the same price per kg ----
+        const perKgInputs = document.querySelectorAll('.per-kg-auto');
+        perKgInputs.forEach(input => {
+            input.addEventListener('input', function () {
+                perKgInputs.forEach(o => {
+                    const fixed = o.closest('tr').querySelector('input[name*="[price]"]');
+                    if (o !== this && o.dataset.group === this.dataset.group && !(fixed && fixed.value)) {
+                        o.value = this.value;
+                    }
+                });
+            });
+        });
 
         // ---- Price validation (only if modal inputs exist) ----
         const priceInputs = document.querySelectorAll('input[name*="[price]"], input[name*="[price_per_kg]"]');

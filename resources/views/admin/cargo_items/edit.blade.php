@@ -255,6 +255,18 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
+                                    <label class="font-weight-bold"><i class="fa fa-handshake-o"></i> Third party</label>
+                                    <select name="third_party_id" class="form-control">
+                                        <option value="">— Own customer (not third party) —</option>
+                                        @foreach($thirdParties as $tp)
+                                            <option value="{{ $tp->id }}" {{ old('third_party_id', $cargoItem->third_party_id) == $tp->id ? 'selected' : '' }}>{{ $tp->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
                                     <label class="font-weight-bold">Status</label>
                                     @php
                                         $statuses = [

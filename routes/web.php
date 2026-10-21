@@ -243,6 +243,12 @@ Route::post('/itemshipments/{itemshipment}/auto-assign-ctn',
 
 Route::resource('offices', OfficeController::class);
 Route::resource('employees', EmployeeController::class);
+Route::resource('third-parties', \App\Http\Controllers\ThirdPartyController::class)
+    ->except(['show'])->parameters(['third-parties' => 'third_party']);
+Route::get('third-parties/{third_party}/ledger', [\App\Http\Controllers\ThirdPartyController::class, 'ledger'])->name('third-parties.ledger');
+Route::post('third-parties/{third_party}/payments', [\App\Http\Controllers\ThirdPartyController::class, 'storePayment'])->name('third-parties.payments.store');
+Route::delete('third-party-payments/{payment}', [\App\Http\Controllers\ThirdPartyController::class, 'destroyPayment'])->name('third-parties.payments.destroy');
+Route::post('itemsshipments/{itemshipment}/set-third-party', [ItemShipmentController::class, 'setThirdParty'])->name('itemsshipments.set-third-party');
 Route::get('salary-history', [\App\Http\Controllers\EmployeeController::class, 'history'])->name('salary-history');
 Route::resource('office-bills', OfficeBillController::class)
      ->parameters(['office-bills' => 'office_bill']);
@@ -332,12 +338,17 @@ Route::delete('shipment-bills/{voucher}', [ShipmentBillController::class, 'destr
 
         Route::prefix('ledger')->name('ledger.')->group(function () {
     Route::get('/', [LedgerController::class, 'index'])->name('index');
+    Route::get('/agents', [\App\Http\Controllers\PartyLedgerController::class, 'agents'])->name('agents');
+    Route::get('/agents/{agent}', [\App\Http\Controllers\PartyLedgerController::class, 'agent'])->name('agent');
+    Route::get('/shipments/{itemshipment}', [\App\Http\Controllers\PartyLedgerController::class, 'shipment'])->name('shipment');
     Route::get('/{customer}', [LedgerController::class, 'customer'])->name('customer');
 });
 
 
 
 Route::prefix('reports')->group(function () {
+    Route::get('/final', [\App\Http\Controllers\FinalReportController::class, 'index'])->name('reports.final');
+    Route::get('/final/detail/{type}', [\App\Http\Controllers\FinalReportController::class, 'detail'])->name('reports.final.detail');
     Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
     Route::get('/summary', [ReportController::class, 'summary'])->name('reports.summary');
     Route::get('/period', [ReportController::class, 'period'])->name('reports.period');

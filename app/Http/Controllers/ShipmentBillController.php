@@ -80,7 +80,7 @@ class ShipmentBillController extends Controller
             ->limit(50)
             ->get();
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportIndex($shipments, $grand, $vouchers);
         }
 
@@ -107,7 +107,7 @@ class ShipmentBillController extends Controller
 
         $led = $acc->payableLedger($filters);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportLedger($led, $filters);
         }
 
@@ -158,7 +158,7 @@ class ShipmentBillController extends Controller
             'money'    => [2, 3, 4], 'int' => [1],
         ];
 
-        return Excel::download(new SheetsExport([$ledger, $byShip, $byAgent]), 'shipment-bill-ledger-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$ledger, $byShip, $byAgent], 'shipment-bill-ledger-' . date('Y-m-d') . '.xlsx');
     }
 
     private function exportIndex($shipments, array $grand, $vouchers)
@@ -188,7 +188,7 @@ class ShipmentBillController extends Controller
             'money'    => [6], 'int' => [5],
         ];
 
-        return Excel::download(new SheetsExport([$ship, $vch]), 'shipment-billing-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$ship, $vch], 'shipment-billing-' . date('Y-m-d') . '.xlsx');
     }
 
     /** Pay form: choose cost lines of many shipments, one amount, split manually or auto. */
@@ -231,6 +231,12 @@ class ShipmentBillController extends Controller
     {
         abort_unless(Gate::allows('add-bill-payment'), 403);
 
+        try {
+            $cur = \App\Support\PaymentCurrency::apply($request);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
         $request->validate([
             'amount'         => 'required|numeric|min:1',
             'payment_date'   => 'required|date',
@@ -251,7 +257,7 @@ class ShipmentBillController extends Controller
         }
 
         try {
-            $voucher = DB::transaction(function () use ($request, $allocations) {
+            $voucher = DB::transaction(function () use ($request, $allocations, $cur) {
                 // lock the lines so two accountants cannot overpay the same bill
                 $costs = ItemsShipmentCost::with('costType')
                     ->whereIn('id', $allocations->keys()->map(fn ($k) => (int) $k)->all())
@@ -295,6 +301,9 @@ class ShipmentBillController extends Controller
                     'user_id'        => Auth::id(),
                     'agent_id'       => $request->agent_id,
                     'amount'         => $total,
+                    'currency'       => $cur['currency'],
+                    'foreign_amount' => $cur['foreign_amount'],
+                    'exchange_rate'  => $cur['exchange_rate'],
                     'payment_date'   => $request->payment_date,
                     'payment_method' => $request->payment_method,
                     'reference_no'   => $request->reference_no,
@@ -310,6 +319,9 @@ class ShipmentBillController extends Controller
                     ItemsShipmentPayment::create([
                         'items_shipment_cost_id'   => (int) $costId,
                         'amount'                   => $amt,
+                        'currency'                 => $cur['currency'],
+                        'exchange_rate'            => $cur['exchange_rate'],
+                        'foreign_amount'           => $cur['foreign_amount'] ? round($amt / $cur['exchange_rate'], 2) : null,
                         'payment_date'             => $request->payment_date,
                         'payment_method'           => $request->payment_method,
                         'reference_no'             => $request->reference_no,
@@ -344,6 +356,24 @@ class ShipmentBillController extends Controller
         ]);
 
         $byShipment = $voucher->payments->groupBy(fn ($p) => $p->itemsShipmentCost->items_shipment_id);
+
+        if (request()->boolean('pdf')) {
+            $cur = $voucher->currency !== 'bdt'
+                ? ' | Paid in ' . strtoupper($voucher->currency) . ' ' . number_format((float) $voucher->foreign_amount, 2) . ' @ ' . rtrim(rtrim(number_format((float) $voucher->exchange_rate, 4), '0'), '.') . ' = ' . number_format($voucher->amount, 2) . ' BDT'
+                : '';
+            $sheet = [
+                'title' => 'Voucher', 'heading' => 'Payment voucher ' . ($voucher->voucher_no ?? ('#' . $voucher->id)),
+                'subtitle' => 'Date ' . optional($voucher->payment_date)->format('d M Y') . ' | Method ' . ucfirst(str_replace('_', ' ', $voucher->payment_method))
+                              . ' | Ref ' . ($voucher->reference_no ?: '-') . ' | Paid to ' . (optional($voucher->agent)->name ?? '-') . $cur,
+                'headings' => ['Shipment', 'Cost type', 'Agent', 'Amount (BDT)'],
+                'rows' => $voucher->payments->map(fn ($p) => [
+                    optional($p->itemsShipmentCost->itemsShipment)->shipment_name, optional($p->itemsShipmentCost->costType)->name,
+                    optional($p->itemsShipmentCost->agent)->name, (float) $p->amount,
+                ])->all(),
+                'totals' => ['TOTAL', '', '', (float) $voucher->amount], 'money' => [3],
+            ];
+            return \App\Support\SheetsPdf::download([$sheet], 'voucher-' . ($voucher->voucher_no ?? $voucher->id) . '.pdf');
+        }
 
         return view('admin.billing.show', compact('voucher', 'byShipment'));
     }

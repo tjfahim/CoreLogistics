@@ -102,7 +102,7 @@ class ReportController extends Controller
 
         $allShipments = ItemsShipment::orderByDesc('shipment_date')->orderByDesc('id')->get(['id', 'shipment_name', 'shipment_date']);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportShipments($fin, $tot, $allLines, $this->acc->shipmentCustomers($shown), $matrix, $from, $to);
         }
 
@@ -154,7 +154,7 @@ class ReportController extends Controller
             'money' => range(1, $fin->count() + 1),
         ];
 
-        return Excel::download(new SheetsExport([$s1, $s2, $s3, $s4]), 'shipment-report-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$s1, $s2, $s3, $s4], 'shipment-report-' . date('Y-m-d') . '.xlsx');
     }
 
     // ------------------------------------------------------------------ month / date wise
@@ -173,7 +173,7 @@ class ReportController extends Controller
 
         $rep = $this->acc->periodReport($from, $to, $group);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportPeriod($rep, $from, $to, $group);
         }
 
@@ -216,7 +216,7 @@ class ReportController extends Controller
             'money' => [8],
         ];
 
-        return Excel::download(new SheetsExport([$s1, $s2, $s3]), "period-report-{$from}-to-{$to}.xlsx");
+        return SheetsExport::respond([$s1, $s2, $s3], "period-report-{$from}-to-{$to}.xlsx");
     }
 
     // ------------------------------------------------------------------ customer wise
@@ -229,7 +229,7 @@ class ReportController extends Controller
 
         $rep = $this->acc->customerReport($from, $to, $ids, $status);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportCustomers($rep, $from, $to);
         }
 
@@ -251,7 +251,7 @@ class ReportController extends Controller
             'money' => [5, 6, 7, 8, 9], 'int' => [3, 4],
         ];
 
-        return Excel::download(new SheetsExport([$s]), 'customer-report-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$s], 'customer-report-' . date('Y-m-d') . '.xlsx');
     }
 
     // ------------------------------------------------------------------ company summary
@@ -262,7 +262,7 @@ class ReportController extends Controller
 
         $sum = $this->acc->summary($from, $to);
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportSummary($sum, $from, $to);
         }
 
@@ -310,7 +310,7 @@ class ReportController extends Controller
             'money' => [2, 3, 4, 5],
         ];
 
-        return Excel::download(new SheetsExport([$s1, $s2, $s3, $s4]), 'business-summary-' . date('Y-m-d') . '.xlsx');
+        return SheetsExport::respond([$s1, $s2, $s3, $s4], 'business-summary-' . date('Y-m-d') . '.xlsx');
     }
 
     // ------------------------------------------------------------------ office expense (separate from shipments)
@@ -440,7 +440,7 @@ class ReportController extends Controller
             'this_month'   => $thisMonth,
         ];
 
-        if ($request->boolean('export')) {
+        if (($request->boolean('export') || $request->boolean('pdf'))) {
             return $this->exportOffice($matrix, $monthTotals, $warehouse, $payroll, $totals, $year);
         }
 
@@ -482,6 +482,6 @@ class ReportController extends Controller
             'money' => [2],
         ];
 
-        return Excel::download(new SheetsExport([$s1, $s2, $s3]), "office-expense-{$year}.xlsx");
+        return SheetsExport::respond([$s1, $s2, $s3], "office-expense-{$year}.xlsx");
     }
 }

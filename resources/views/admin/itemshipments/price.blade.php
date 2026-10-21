@@ -110,6 +110,20 @@
                         @csrf
                 @endcan
 
+                    @can('edit-price')
+                    <div class="border rounded p-2 mb-3 bg-light d-flex flex-wrap align-items-center">
+                        <label class="mb-0 mr-2 font-weight-bold"><input type="checkbox" id="autoSame" checked>
+                            Auto-fill same goods &amp; mark
+                        </label>
+                        <small class="text-muted mr-4">একটা বক্সে প্রাইস দিলে একই পণ্য/মার্কের সব বক্সে বসে যাবে।</small>
+                        <div class="input-group input-group-sm" style="max-width:340px">
+                            <div class="input-group-prepend"><span class="input-group-text">Price / kg for ALL</span></div>
+                            <input type="number" step="0.01" min="0" id="allPrice" class="form-control" placeholder="0.00">
+                            <div class="input-group-append"><button type="button" class="btn btn-outline-primary" id="applyAll">Apply to all</button></div>
+                        </div>
+                    </div>
+                    @endcan
+
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5>Update Item Prices (Price per KG)</h5>
 
@@ -165,6 +179,7 @@
                                                        min="0"
                                                        class="form-control form-control-sm price-per-kg"
                                                        data-item-id="{{ $item->id }}"
+                                                       data-group="{{ \Illuminate\Support\Str::lower(trim($item->goods_name_en)) }}|{{ \Illuminate\Support\Str::lower(trim($item->shipping_mark)) }}"
                                                        data-weight="{{ $item->weight_kg ?? 0 }}"
                                                        placeholder="0.00">
                                             @else
@@ -261,10 +276,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    const autoSame = document.getElementById('autoSame');
+
     priceInputs.forEach(input => {
-        input.addEventListener('input', function() { calculateTotalPrice(this); });
+        input.addEventListener('input', function() {
+            calculateTotalPrice(this);
+            // one box priced -> every other box of the same goods + shipping mark gets the same price
+            if (autoSame && autoSame.checked && this.dataset.group) {
+                const g = this.dataset.group, v = this.value;
+                priceInputs.forEach(o => {
+                    if (o !== this && o.dataset.group === g) { o.value = v; calculateTotalPrice(o); }
+                });
+            }
+        });
         calculateTotalPrice(input);
     });
+
+    const applyAll = document.getElementById('applyAll');
+    if (applyAll) {
+        applyAll.addEventListener('click', function () {
+            const v = document.getElementById('allPrice').value;
+            if (v === '') return;
+            priceInputs.forEach(o => { o.value = v; calculateTotalPrice(o); });
+        });
+    }
 });
 </script>
 @endsection

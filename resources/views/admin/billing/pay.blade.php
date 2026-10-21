@@ -64,6 +64,9 @@
                                class="form-control form-control-lg" value="{{ old('amount') }}" required>
                         <small class="text-muted">Typing an amount auto-splits it (oldest shipment first). Edit the split below if needed.</small>
                     </div>
+                    <div class="col-12">
+                        @include('admin.partials.currency-fields', ['amountId' => 'amount', 'uid' => 'pay'])
+                    </div>
                     <div class="col-md-3 form-group">
                         <label>Payment Date <span class="text-danger">*</span></label>
                         <input type="date" name="payment_date" class="form-control" value="{{ old('payment_date', date('Y-m-d')) }}" required>

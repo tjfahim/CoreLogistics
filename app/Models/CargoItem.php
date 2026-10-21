@@ -46,10 +46,31 @@ class CargoItem extends Model
         'price_per_kg',
         'customer_id',
         'box_no',
+        'third_party_id',
         'cancelled_at',
         'cancel_reason',
         'status_before_cancel',
     ];
+
+    protected static function booted(): void
+    {
+        // keep a dated trail of status changes (feeds the daily / date-range reports)
+        static::updated(function (CargoItem $item) {
+            if ($item->wasChanged('status')) {
+                CargoItemStatusLog::recordMany([$item->id], $item->status);
+            }
+        });
+    }
+
+    public function thirdParty()
+    {
+        return $this->belongsTo(ThirdParty::class);
+    }
+
+    public function statusLogs()
+    {
+        return $this->hasMany(CargoItemStatusLog::class);
+    }
 
     protected $casts = [
         'date'    => 'date',

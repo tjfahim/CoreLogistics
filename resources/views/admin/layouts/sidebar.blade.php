@@ -63,9 +63,20 @@
                 </a>
             </li>
             @endcan
-            <li class="tl-item {{ request()->routeIs('ledger.*') || request()->routeIs('payments.*') ? 'active' : '' }}">
+            <li class="tl-item {{ (request()->routeIs('ledger.*') && !request()->routeIs('ledger.agents', 'ledger.agent', 'ledger.shipment')) || request()->routeIs('payments.*') ? 'active' : '' }}">
                 <a href="{{ route('ledger.index') }}" title="Customer Ledger">
                     <span class="tl-ico"><i class="fa fa-address-book-o"></i></span><span class="tl-txt">Customer Ledger</span>
+                </a>
+            </li>
+
+            <li class="tl-item {{ request()->routeIs('ledger.agents') || request()->routeIs('ledger.agent') ? 'active' : '' }}">
+                <a href="{{ route('ledger.agents') }}" title="Agent Ledger">
+                    <span class="tl-ico"><i class="fa fa-user-circle-o"></i></span><span class="tl-txt">Agent Ledger</span>
+                </a>
+            </li>
+            <li class="tl-item {{ request()->routeIs('third-parties.*') ? 'active' : '' }}">
+                <a href="{{ route('third-parties.index') }}" title="Third Parties">
+                    <span class="tl-ico"><i class="fa fa-handshake-o"></i></span><span class="tl-txt">Third Parties</span>
                 </a>
             </li>
 
@@ -80,6 +91,7 @@
                 </a>
                 <ul class="tl-sub">
                     <li class="{{ request()->routeIs('reports.dashboard') ? 'active' : '' }}"><a href="{{ route('reports.dashboard') }}"><i class="fa fa-th-large"></i> Reports Home</a></li>
+                    <li class="{{ request()->routeIs('reports.final*') ? 'active' : '' }}"><a href="{{ route('reports.final') }}"><i class="fa fa-star"></i> Final Report</a></li>
                     <li class="{{ request()->routeIs('reports.summary') ? 'active' : '' }}"><a href="{{ route('reports.summary') }}"><i class="fa fa-pie-chart"></i> Business Summary</a></li>
                     <li class="{{ request()->routeIs('reports.period') ? 'active' : '' }}"><a href="{{ route('reports.period') }}"><i class="fa fa-calendar"></i> Month / Date wise</a></li>
                     <li class="{{ request()->routeIs('reports.shipments') ? 'active' : '' }}"><a href="{{ route('reports.shipments') }}"><i class="fa fa-ship"></i> Shipment Report</a></li>

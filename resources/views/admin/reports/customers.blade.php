@@ -9,7 +9,7 @@
     <div class="rp-head">
         <div><h1>Customer Report</h1><p class="sub">Closing due = opening due + billed in period - received in period.</p></div>
         <div class="rp-actions no-print">
-            <a class="rp-btn green" href="{{ request()->fullUrlWithQuery(['export'=>1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a>
+            <a class="rp-btn green" href="{{ request()->fullUrlWithQuery(['export'=>1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a> <a class="rp-btn red" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
             <button class="rp-btn" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
         </div>
     </div>

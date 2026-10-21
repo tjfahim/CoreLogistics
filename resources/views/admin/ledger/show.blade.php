@@ -40,7 +40,7 @@
                     <a href="{{ route('payments.receive', $customer->id) }}" class="rp-btn green"><i class="fa fa-money"></i> Receive Payment</a>
                 @endif
             @endcan
-            <a class="rp-btn" style="color:#0b7f72" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a>
+            <a class="rp-btn" style="color:#0b7f72" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a> <a class="rp-btn" style="color:#c0392b" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
             <button class="rp-btn" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
             <a href="{{ route('customers.edit', $customer->id) }}" class="rp-btn"><i class="fa fa-edit"></i> Edit</a>
         </div>
@@ -97,7 +97,7 @@
                     <tr>
                         <td style="white-space:nowrap">{{ \Carbon\Carbon::parse($e['date'])->format('d M Y') }}</td>
                         <td><span class="rp-pill {{ $e['kind'] === 'bill' ? 'pill-info' : 'pill-ok' }}">{{ $e['doc'] }}</span></td>
-                        <td>{{ $e['desc'] }}@if($e['detail'])<br><small class="muted">{{ $e['detail'] }}</small>@endif</td>
+                        <td>{{ $e['desc'] }}@if($e['detail'])<br><small class="muted">{{ $e['detail'] }}</small>@endif @if(!empty($e['cur']))<br><small class="muted">Paid in {{ $e['cur'] }}</small>@endif</td>
                         <td>{{ $methodLabel($e['method']) }}@if($e['reference'])<br><small class="muted">{{ $e['reference'] }}</small>@endif</td>
                         <td>{{ $e['user'] ?? '' }}</td>
                         <td class="num">{{ $e['debit'] > 0 ? number_format($e['debit'], 2) : '' }}</td>

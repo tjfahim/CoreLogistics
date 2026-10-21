@@ -173,6 +173,12 @@ class ItemShipmentCostController extends Controller
     // Add payment for a cost (payments are in BDT, validated against due_amount)
     public function addPayment(Request $request, $costId)
     {
+        try {
+            $cur = \App\Support\PaymentCurrency::apply($request);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
@@ -183,7 +189,7 @@ class ItemShipmentCostController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $costId) {
+            DB::transaction(function () use ($request, $costId, $cur) {
                 $itemShipmentCost = ItemsShipmentCost::lockForUpdate()->findOrFail($costId);
 
                 // Check if payment amount exceeds due amount
@@ -195,6 +201,9 @@ class ItemShipmentCostController extends Controller
                 ItemsShipmentPayment::create([
                     'items_shipment_cost_id' => $costId,
                     'amount' => $request->amount,
+                    'currency' => $cur['currency'],
+                    'foreign_amount' => $cur['foreign_amount'],
+                    'exchange_rate' => $cur['exchange_rate'],
                     'payment_date' => $request->payment_date,
                     'payment_method' => $request->payment_method,
                     'reference_no' => $request->reference_no,

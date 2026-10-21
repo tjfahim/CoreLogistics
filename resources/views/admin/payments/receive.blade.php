@@ -80,6 +80,9 @@
                             <small class="text-muted">Typing an amount auto-splits it (oldest shipment first). You can edit the split below.</small>
                         </div>
                     </div>
+                    <div class="col-12">
+                        @include('admin.partials.currency-fields', ['amountId' => 'amount', 'uid' => 'rcv'])
+                    </div>
                     <div class="col-md-3">
                         <div class="mb-3 form-group">
                             <label for="payment_date" class="form-label">Payment Date <span class="text-danger">*</span></label>

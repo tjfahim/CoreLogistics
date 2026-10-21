@@ -20,7 +20,8 @@ class CustomerPayment extends Model
         'payment_date',
         'reference_no',
         'notes',
-        'remaining_due'      // customer's total due right after this payment
+        'remaining_due',     // customer's total due right after this payment
+        'currency', 'foreign_amount', 'exchange_rate',
     ];
 
     protected $casts = [

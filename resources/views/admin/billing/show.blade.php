@@ -7,6 +7,7 @@
         <h2>Payment Voucher {{ $voucher->voucher_no ?? ('#' . $voucher->id) }}</h2>
         <div class="btn-group">
             <a href="{{ route('shipment-bills.index') }}" class="btn btn-secondary">Back to Billing</a>
+            <a href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}" class="btn btn-outline-danger"><i class="fa fa-file-pdf-o"></i> PDF</a>
             @can('delete-bill-payment')
                 <form action="{{ route('shipment-bills.destroy', $voucher->id) }}" method="POST" class="d-inline"
                       onsubmit="return confirm('Delete this voucher? All its lines are removed and shipment dues go back up.');">

@@ -16,6 +16,10 @@ class CustomerBillController extends Controller
   
     public function showShipmentBilling(ItemsShipment $itemshipment)
     {
+        if (request()->boolean('pdf')) {
+            return $this->billingPdf($itemshipment);
+        }
+
         $items = $itemshipment->cargoItems()
             ->with(['customer'])
             ->get()
@@ -148,6 +152,13 @@ class CustomerBillController extends Controller
         $invoice = Invoice::forPair($customer->id, $itemshipment->id);
     }
 
+    if (request()->boolean('pdf')) {
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.pdf.bill', compact(
+            'customer', 'itemshipment', 'invoice', 'itemDetails', 'totalItems', 'totalWeight', 'totalPrice', 'itemsWithPrice', 'itemsWithoutPrice'
+        ))->setPaper('a4')->download('invoice-' . preg_replace('/[^A-Za-z0-9_-]/', '', $customer->customer_code ?: $customer->id)
+            . ($itemshipment ? '-shipment-' . $itemshipment->id : '') . '.pdf');
+    }
+
     return view('admin.itemshipments.bill', compact(
         'customer',
         'itemshipment',
@@ -189,5 +200,36 @@ class CustomerBillController extends Controller
             return redirect()->back()
                 ->with('error', 'Error updating prices: ' . $e->getMessage());
         }
+    }
+
+    /** PDF of the whole shipment billing: every customer / third party billed, received, due. */
+    private function billingPdf(ItemsShipment $itemshipment)
+    {
+        $acc  = app(\App\Services\AccountingService::class);
+        $tpS  = app(\App\Services\ThirdPartyLedgerService::class);
+        $rows = $acc->shipmentCustomers([$itemshipment->id]);
+        $tp   = $tpS->shipmentRows(['shipment_ids' => [$itemshipment->id]]);
+        $tpNames = \App\Models\ThirdParty::whereIn('id', $tp->pluck('third_party_id'))->pluck('name', 'id');
+
+        $lines = [];
+        foreach ($rows as $r) {
+            $lines[] = [optional($r->customer)->customer_code, optional($r->customer)->name ?? ('#' . $r->customer_id), 'Customer',
+                        $r->items, (float) $r->weight, $r->billed, $r->paid, $r->due];
+        }
+        foreach ($tp as $r) {
+            $lines[] = ['', $tpNames[$r->third_party_id] ?? ('#' . $r->third_party_id), 'Third party', $r->items, (float) $r->weight, $r->billed, '', ''];
+        }
+        $billed = collect($lines)->sum(5);
+
+        $sheet = [
+            'title' => 'Billing', 'heading' => 'Shipment billing - ' . $itemshipment->shipment_name,
+            'subtitle' => 'Generated ' . now()->format('d M Y H:i') . ' | Total billed ' . number_format($billed, 2),
+            'headings' => ['Code', 'Party', 'Type', 'Items', 'Weight (kg)', 'Billed', 'Received', 'Due'],
+            'rows' => $lines,
+            'totals' => ['TOTAL', '', '', collect($lines)->sum(3), collect($lines)->sum(4), $billed, $rows->sum('paid'), $rows->sum('due')],
+            'money' => [4, 5, 6, 7], 'int' => [3],
+        ];
+
+        return \App\Support\SheetsPdf::download([$sheet], 'billing-shipment-' . $itemshipment->id . '.pdf');
     }
 }
