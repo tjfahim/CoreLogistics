@@ -62,15 +62,13 @@ public function ajaxItems(Request $request)
         'bangladesh_warehouse' => ['ready_to_deliver', 'delivered'],
     ];
 
-    $query = CargoItem::query()->with(['latestReturn', 'thirdParty:id,name']);
+    $query = CargoItem::query()->with(['latestReturn', 'customer:id,name,is_partner']);
 
     $tpFilter = $request->input('third_party', '');
     if ($tpFilter === 'any') {
-        $query->whereNotNull('third_party_id');
+        $query->where('is_third_party', true);
     } elseif ($tpFilter === 'none') {
-        $query->whereNull('third_party_id');
-    } elseif (ctype_digit((string) $tpFilter)) {
-        $query->where('third_party_id', (int) $tpFilter);
+        $query->where('is_third_party', false);
     }
 
     if ($status !== 'all' && isset($statusGroups[$status])) {
@@ -93,8 +91,9 @@ public function ajaxItems(Request $request)
 
     $data = collect($items->items())->map(function ($item) {
         $arr = $item->toArray();
-        $arr['third_party_name']  = $item->thirdParty->name ?? null;
-        $arr['third_party_color'] = $item->thirdParty->color ?? null;
+        $arr['is_third_party']    = (bool) $item->is_third_party;
+        $arr['customer_name']     = $item->customer->name ?? null;
+        $arr['customer_partner']  = (bool) ($item->customer->is_partner ?? false);
         $arr['is_returned'] = (bool) $item->latestReturn;
         $arr['return_note'] = $item->latestReturn->note ?? null;
         $arr['return_date'] = $item->latestReturn?->return_date?->format('Y-m-d');
@@ -141,7 +140,7 @@ public function ajaxItems(Request $request)
             'items.*.remark'          => ['nullable', 'string', 'max:500'],
             'items.*.warehouse'       => ['nullable', 'string', 'max:255'],
             'items.*.is_copy'         => ['nullable'],
-            'third_party_id'          => ['nullable', 'exists:third_parties,id'],
+            'is_third_party'          => ['nullable', 'boolean'],
         ]);
 
         // Check duplicates (manual entry)
@@ -167,9 +166,9 @@ foreach ($validated['items'] as $index => $itemData) {
         // If duplicate action was requested
         $duplicateAction = $request->input('duplicate_action', 'skip');
 
-        $thirdPartyId = $request->input('third_party_id') ?: null;
+        $isThirdParty = $request->boolean('is_third_party');
 
-        DB::transaction(function () use ($validated, $duplicateAction, $thirdPartyId) {
+        DB::transaction(function () use ($validated, $duplicateAction, $isThirdParty) {
             $seen = [];
             foreach ($validated['items'] as $itemData) {
                 $itemData['is_copy'] = !empty($itemData['is_copy']);
@@ -188,7 +187,7 @@ foreach ($validated['items'] as $index => $itemData) {
                     continue;
                 }
 
-                $itemData['third_party_id'] = $thirdPartyId;
+                $itemData['is_third_party'] = $isThirdParty;
                 CargoItem::create($itemData);
             }
         });
@@ -225,7 +224,7 @@ foreach ($validated['items'] as $index => $itemData) {
             'remark'           => ['nullable', 'string', 'max:500'],
             'warehouse'        => ['nullable', 'string', 'max:255'],
             'is_copy'          => ['nullable'],
-            'third_party_id'   => ['nullable', 'exists:third_parties,id'],
+            'is_third_party'   => ['nullable', 'boolean'],
             'status'           => ['nullable', 'in:pending,packed,ready_to_ship,shipping_ongoing,arrived_bd,waiting_for_customs,ready_to_deliver,delivered'],
         ]);
 
@@ -235,6 +234,7 @@ foreach ($validated['items'] as $index => $itemData) {
         }
 
         $data['is_copy'] = $request->boolean('is_copy');
+        $data['is_third_party'] = $request->boolean('is_third_party');
 
         $cargoItem->update($data);
 
@@ -450,9 +450,9 @@ foreach ($validated['items'] as $index => $itemData) {
     $importedCount = 0;
     $skippedCount = 0;
 
-    $thirdPartyId = $request->input('third_party_id') ?: null;
+    $isThirdParty = $request->boolean('is_third_party');
 
-    DB::transaction(function () use ($items, $skipDuplicates, &$importedCount, &$skippedCount, $thirdPartyId) {
+    DB::transaction(function () use ($items, $skipDuplicates, &$importedCount, &$skippedCount, $isThirdParty) {
         $seen = [];
         foreach ($items as $itemData) {
             $key = $this->buildRowKey($itemData);
@@ -467,9 +467,7 @@ foreach ($validated['items'] as $index => $itemData) {
                 continue;
             }
 
-            if ($thirdPartyId) {
-                $itemData['third_party_id'] = $thirdPartyId;
-            }
+            $itemData['is_third_party'] = $isThirdParty;
             CargoItem::create($itemData);
             $seen[$key] = true;
             $importedCount++;

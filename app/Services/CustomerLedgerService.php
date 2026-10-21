@@ -81,6 +81,18 @@ class CustomerLedgerService
         })->values();
     }
 
+    /**
+     * Advance = money received from the customer that is not (yet) applied to any shipment bill.
+     * Sum(received) - Sum(allocated). Never below 0.
+     */
+    public function advance(Customer $customer): float
+    {
+        $received  = (float) \App\Models\CustomerPayment::where('customer_id', $customer->id)->sum('amount');
+        $allocated = (float) CustomerPaymentAllocation::whereHas('payment', fn ($q) => $q->where('customer_id', $customer->id))->sum('amount');
+
+        return max(round($received - $allocated, 2), 0);
+    }
+
     public function totals(Collection $bills): array
     {
         return [

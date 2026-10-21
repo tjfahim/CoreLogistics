@@ -66,9 +66,9 @@
         <div class="rp-card"><div class="ttl">Customers who owe us <a class="no-print" href="{{ route('ledger.index', ['status' => 'due']) }}" style="font-size:12px;font-weight:600">all →</a></div><div class="rp-table-wrap"><table class="rp-table">
             <thead><tr><th>Customer</th><th class="num">Due</th></tr></thead>
             <tbody>@forelse($topDue as $c)<tr><td><a href="{{ route('ledger.customer', $c->customer_id) }}">{{ $c->name }}</a></td><td class="num"><strong>{{ number_format($c->closing,2) }}</strong></td></tr>@empty<tr><td colspan="2" class="rp-empty">No dues.</td></tr>@endforelse</tbody></table></div></div>
-        <div class="rp-card"><div class="ttl">Third parties <a class="no-print" href="{{ route('third-parties.index') }}" style="font-size:12px;font-weight:600">all →</a></div><div class="rp-table-wrap"><table class="rp-table">
-            <thead><tr><th>Company</th><th class="num">Billed</th><th class="num">Received</th><th class="num">Due</th></tr></thead>
-            <tbody>@forelse($tpRows as $r)<tr><td><a href="{{ route('third-parties.ledger', $r['id']) }}">{{ $r['name'] }}</a></td><td class="num">{{ number_format($r['billed'],2) }}</td><td class="num">{{ number_format($r['paid'],2) }}</td><td class="num"><strong>{{ number_format($r['due'],2) }}</strong></td></tr>@empty<tr><td colspan="4" class="rp-empty">No third-party business yet.</td></tr>@endforelse</tbody></table></div></div>
+        <div class="rp-card"><div class="ttl">Partners <a class="no-print" href="{{ route('ledger.index', ['partner' => 1]) }}" style="font-size:12px;font-weight:600">all →</a></div><div class="rp-table-wrap"><table class="rp-table">
+            <thead><tr><th>Partner</th><th class="num">Billed</th><th class="num">Received</th><th class="num">Due</th></tr></thead>
+            <tbody>@forelse($tpRows as $r)<tr><td><a href="{{ route('ledger.customer', $r['id']) }}">{{ $r['name'] }}</a></td><td class="num">{{ number_format($r['billed'],2) }}</td><td class="num">{{ number_format($r['paid'],2) }}</td><td class="num"><strong>{{ number_format($r['due'],2) }}</strong></td></tr>@empty<tr><td colspan="4" class="rp-empty">No partner business yet.</td></tr>@endforelse</tbody></table></div></div>
     </div>
 
     <div class="rp-grid2">

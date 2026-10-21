@@ -101,15 +101,12 @@
                     @endif
 
                     <form action="{{ route('cargo-items.store') }}" method="POST">
-                        <div class="form-inline mb-3 p-2 border rounded bg-light">
-                            <label class="font-weight-bold mr-2"><i class="fa fa-handshake-o"></i> Third party:</label>
-                            <select name="third_party_id" class="form-control form-control-sm mr-2">
-                                <option value="">— Own customers (not third party) —</option>
-                                @foreach($thirdParties as $tp)
-                                    <option value="{{ $tp->id }}" {{ old('third_party_id') == $tp->id ? 'selected' : '' }}>{{ $tp->name }}</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">If this goods belongs to a third-party company, choose it - applies to every row below.</small>
+                        <div class="mb-3 p-2 border rounded bg-light">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_third_party" value="1" id="is_third_party" class="form-check-input" {{ old('is_third_party') ? 'checked' : '' }}>
+                                <label class="form-check-label font-weight-bold" for="is_third_party"><i class="fa fa-handshake-o"></i> Third-party goods</label>
+                            </div>
+                            <small class="text-muted">Applies to every row below. Assign the partner customer to the item as usual.</small>
                         </div>
                         @csrf
 

@@ -54,9 +54,9 @@
 
     @if($dueBills->count() === 0)
         <div class="alert alert-success">
-            <i class="fa fa-check-circle"></i> This customer has no due amount. Nothing to receive.
+            <i class="fa fa-check-circle"></i> This customer has no due amount. Anything you receive now is saved as advance.
         </div>
-    @else
+    @endif
     @php
         $preselectBill = $dueBills->first(fn ($b) => $b['shipment']->id === (int) $preselect);
         $prefillAmount = old('amount', $preselectBill ? number_format($preselectBill['due'], 2, '.', '') : '');
@@ -96,9 +96,9 @@
                             <select name="payment_method" id="payment_method" class="form-control form-select" required>
                                 <option value="">Select Method</option>
                                 <option value="cash" {{ old('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
-                                <option value="bank_transfer" {{ old('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                <option value="mobile_banking" {{ old('payment_method') == 'mobile_banking' ? 'selected' : '' }}>Mobile Banking</option>
                                 <option value="cheque" {{ old('payment_method') == 'cheque' ? 'selected' : '' }}>Cheque</option>
-                                <option value="card" {{ old('payment_method') == 'card' ? 'selected' : '' }}>Card</option>
+                                <option value="bank_transfer" {{ old('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
                             </select>
                         </div>
                     </div>
@@ -117,6 +117,18 @@
                 </div>
             </div>
         </div>
+
+        @if(($advance ?? 0) > 0)
+        <div class="alert alert-info d-flex align-items-center flex-wrap">
+            <div class="mr-3 me-3"><strong>Available advance:</strong> {{ number_format($advance, 2) }} tk</div>
+            <div class="input-group input-group-sm" style="max-width:300px">
+                <span class="input-group-text input-group-prepend">Use advance</span>
+                <input type="number" step="0.01" min="0" max="{{ $advance }}" name="advance_used" id="advanceUsed"
+                       class="form-control" value="{{ old('advance_used') }}" placeholder="0">
+            </div>
+            <small class="ml-2 ms-2">Adds to the amount you can split below.</small>
+        </div>
+        @endif
 
         {{-- Allocation --}}
         <div class="card mb-4">
@@ -188,7 +200,6 @@
             </button>
         </div>
     </form>
-    @endif
 </div>
 
 <script>
@@ -202,6 +213,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const msgEl        = document.getElementById('allocMsg');
     const submitBtn    = document.getElementById('submitBtn');
     const btnAmount    = document.getElementById('btnAmount');
+    const advEl        = document.getElementById('advanceUsed');
+    const advUsed      = () => advEl ? Math.max(num(advEl.value), 0) : 0;
     const totalDue     = inputs.reduce((s, i) => s + num(i.dataset.due), 0);
 
     function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
@@ -223,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function refresh() {
         const allocated = sumAlloc();
         const amount    = r2(num(amountInput.value));
-        let ok = true, msg = '';
+        let ok = true, msg = '', info = false;
 
         inputs.forEach(i => {
             if (num(i.value) > num(i.dataset.due) + 0.005) { ok = false; i.classList.add('is-invalid'); }
@@ -231,40 +244,42 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         allocatedEl.textContent = fmt(allocated);
-        btnAmount.textContent   = fmt(allocated);
+        btnAmount.textContent   = fmt(amount);
 
         if (!ok) {
             msg = 'One or more allocations are more than that shipment\'s due.';
-        } else if (allocated <= 0) {
-            ok = false; msg = 'Enter an amount, or fill the "Pay Now" boxes.';
-        } else if (amount > totalDue + 0.005) {
-            ok = false; msg = 'Amount is more than the total due (' + fmt(totalDue) + ').';
-        } else if (Math.abs(allocated - amount) > 0.009) {
+        } else if (amount <= 0) {
+            ok = false; msg = 'Enter the amount received.';
+        } else if (allocated > amount + advUsed() + 0.009) {
             ok = false;
-            msg = amount > allocated
-                ? 'Unallocated: ' + fmt(amount - allocated) + ' tk — split the rest across shipments.'
-                : 'Allocated is ' + fmt(allocated - amount) + ' tk more than the received amount.';
+            msg = 'Allocated is ' + fmt(allocated - amount - advUsed()) + ' tk more than the received amount (+ advance).';
+        } else if (amount + advUsed() - allocated > 0.009) {
+            msg = 'Extra ' + fmt(amount + advUsed() - allocated) + ' tk will be saved as customer ADVANCE.';
+            info = true;
         }
 
+
+        msgEl.className = (info ? 'text-success' : 'text-danger') + ' fw-bold font-weight-bold';
         msgEl.textContent = msg;
         submitBtn.disabled = !ok;
     }
 
     // typing the amount -> auto split
     amountInput.addEventListener('input', function () {
-        distribute(Math.min(r2(num(amountInput.value)), totalDue));
+        distribute(Math.min(r2(num(amountInput.value)) + advUsed(), totalDue));
         refresh();
     });
+    if (advEl) advEl.addEventListener('input', function () { distribute(Math.min(r2(num(amountInput.value)) + advUsed(), totalDue)); refresh(); });
 
     // editing a split -> amount follows the total of the split
+    // (the received amount stays as typed, so extra money can be kept as advance)
     inputs.forEach(i => i.addEventListener('input', function () {
-        const s = sumAlloc();
-        amountInput.value = s > 0 ? s.toFixed(2) : '';
+        if (num(amountInput.value) <= 0) { const s = sumAlloc() - advUsed(); amountInput.value = s > 0 ? s.toFixed(2) : ''; }
         refresh();
     }));
 
     document.getElementById('autoBtn').addEventListener('click', function () {
-        distribute(Math.min(r2(num(amountInput.value)), totalDue));
+        distribute(Math.min(r2(num(amountInput.value)) + advUsed(), totalDue));
         refresh();
     });
 
@@ -276,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     form.addEventListener('submit', function (e) {
         const count = inputs.filter(i => num(i.value) > 0).length;
-        if (!confirm('Receive ' + fmt(sumAlloc()) + ' tk and allocate it to ' + count + ' shipment(s)?')) {
+        if (!confirm('Receive ' + fmt(num(amountInput.value)) + ' tk (' + count + ' shipment(s) allocated)?')) {
             e.preventDefault();
         }
     });

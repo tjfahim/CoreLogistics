@@ -71,14 +71,14 @@ class ItemShipmentController extends Controller
 
     public function show(ItemsShipment $itemshipment)
     {
-        $itemshipment->load('cargoItems.thirdParty');
+        $itemshipment->load('cargoItems.customer:id,name,is_partner');
         $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
         return view('admin.itemshipments.show', compact('itemshipment', 'groupedItems'));
     }
 
  public function edit(ItemsShipment $itemshipment)
 {
-    $itemshipment->load('cargoItems.thirdParty');
+    $itemshipment->load('cargoItems.customer:id,name,is_partner');
 
     // IDs already attached to this shipment
     $assignedIds = $itemshipment->cargoItems->pluck('id')->toArray();
@@ -465,7 +465,7 @@ public function bulkToggleItems(Request $request)
         return back()->with('success', $ids->count() . ' item(s) removed from box.');
     }
 
-    /** Mark the selected items of this shipment as belonging to a third party (blank = own customers). */
+    /** Mark / unmark the selected items of this shipment as third-party goods. */
     public function setThirdParty(Request $request, ItemsShipment $itemshipment)
     {
         \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
@@ -473,11 +473,11 @@ public function bulkToggleItems(Request $request)
         $request->validate([
             'item_ids'       => 'required|array|min:1',
             'item_ids.*'     => 'integer',
-            'third_party_id' => 'nullable|exists:third_parties,id',
+            'is_third_party' => 'required|boolean',
         ]);
 
         $ids = $itemshipment->cargoItems()->whereIn('cargo_items.id', $request->item_ids)->pluck('cargo_items.id');
-        \App\Models\CargoItem::whereIn('id', $ids)->update(['third_party_id' => $request->third_party_id ?: null]);
+        \App\Models\CargoItem::whereIn('id', $ids)->update(['is_third_party' => $request->boolean('is_third_party')]);
 
         return back()->with('success', $ids->count() . ' item(s) updated.');
     }

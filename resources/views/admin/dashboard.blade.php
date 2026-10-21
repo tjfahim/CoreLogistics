@@ -83,6 +83,47 @@
 
 <div class="pd">
 
+    {{-- ===== TODAY (top focus) ===== --}}
+    @php
+        $td = $todayData;
+        $tdUrl = fn ($type) => route('reports.final.detail', ['type' => $type, 'from' => $td['date'], 'to' => $td['date']]);
+        $tiles = [
+            ['Collected today', number_format($td['collection']), $td['collections'].' receipt(s)', 'pos', $tdUrl('collections')],
+            ['Paid out today', number_format($td['paid_out']), $td['payouts'].' payment(s)', 'neg', $tdUrl('payments')],
+            ['Cost added today', number_format($td['cost']), $td['costs'].' bill line(s)', '', $tdUrl('costs')],
+            ['Net cash today', number_format($td['net']), 'collected - paid out', $td['net'] >= 0 ? 'pos' : 'neg', null],
+            ['Goods received', $td['received'], 'China warehouse', '', $tdUrl('received')],
+            ['Shipped today', $td['shipped'], 'items', '', $tdUrl('shipped')],
+            ['Arrived in BD', $td['arrived'], 'items', '', $tdUrl('arrived')],
+            ['Delivered today', $td['delivered'], 'items', '', $tdUrl('delivered')],
+        ];
+    @endphp
+    <div class="pd-card" style="margin-bottom:22px">
+        <div class="pd-head"><div><h3>Today &middot; {{ now()->format('d M Y') }}</h3><p class="hint">What happened today</p></div>
+            <a class="lnk" href="{{ route('reports.final', ['from' => $td['date'], 'to' => $td['date']]) }}">Full report</a></div>
+        <div class="pd-grid g4" style="margin-bottom:14px">
+            @foreach($tiles as [$lbl, $val, $sub, $cls, $url])
+                <div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px">
+                    <div style="font-size:12.5px;color:var(--ink-2);font-weight:600">{{ $lbl }}</div>
+                    <div class="{{ $cls }}" style="font-size:22px;font-weight:800;margin-top:2px">
+                        @if($url)<a href="{{ $url }}" style="color:inherit;text-decoration:none">{{ $val }}</a>@else {{ $val }} @endif
+                    </div>
+                    <div style="font-size:12px;color:var(--ink-2)">{{ $sub }}</div>
+                </div>
+            @endforeach
+        </div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">Shipments updated today</div>
+        @forelse($td['updated'] as $s)
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13px">
+                <a href="{{ route('itemsshipments.show', $s->id) }}">{{ $s->shipment_name }}</a>
+                <span><span class="pd-pill pill-info">{{ ucfirst(str_replace('_',' ',$s->status)) }}</span>
+                    <span style="color:var(--ink-2);margin-left:8px">{{ $s->updated_at->format('H:i') }}</span></span>
+            </div>
+        @empty
+            <div class="pd-empty">No shipment updates today.</div>
+        @endforelse
+    </div>
+
     {{-- ===== HERO ===== --}}
     <div class="pd-hero">
         <div>
@@ -128,6 +169,8 @@
         @endforeach
     </div>
 
+    <details class="pd-more">
+        <summary style="cursor:pointer;font-weight:700;margin:6px 0 16px">More details (charts, dues, recent activity)</summary>
     {{-- ===== NEEDS ATTENTION + NOTIFICATIONS ===== --}}
     <div class="pd-grid g2">
         <div class="pd-card">
@@ -294,6 +337,7 @@
             @if($loop->last) </tbody></table> @endif
         @empty <div class="pd-empty">All agents are paid up.</div> @endforelse
     </div>
+    </details>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

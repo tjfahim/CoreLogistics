@@ -119,12 +119,39 @@ public function dashboard()
         'cost_due'    => $stats['cost_due'],
     ];
 
+    // ---------- TODAY ----------
+    $today   = now()->toDateString();
+    $startD  = now()->startOfDay();
+    $endD    = now()->endOfDay();
+    $reachedToday = fn (array $st) => (int) \App\Models\CargoItemStatusLog::whereIn('status', $st)
+        ->whereBetween('changed_at', [$startD, $endD])->distinct('cargo_item_id')->count('cargo_item_id');
+
+    $collToday = CustomerPayment::whereDate('payment_date', $today);
+    $paidToday = ItemsShipmentPayment::whereDate('payment_date', $today);
+    $costToday = ItemsShipmentCost::whereDate('cost_date', $today)->get();
+
+    $todayData = [
+        'date'        => $today,
+        'collection'  => (float) (clone $collToday)->sum('amount'),
+        'collections' => (clone $collToday)->count(),
+        'paid_out'    => (float) (clone $paidToday)->sum('amount'),
+        'payouts'     => (clone $paidToday)->count(),
+        'cost'        => round((float) $costToday->sum(fn ($c) => (float) ($c->final_bdt_cost ?: $c->amount)), 2),
+        'costs'       => $costToday->count(),
+        'received'    => CargoItem::whereRaw('DATE(COALESCE(date, created_at)) = ?', [$today])->count(),
+        'shipped'     => $reachedToday(['shipping_ongoing']),
+        'arrived'     => $reachedToday(['arrived_bd']),
+        'delivered'   => $reachedToday(['delivered']),
+        'updated'     => ItemsShipment::with('cargoItems:id')->whereDate('updated_at', $today)->latest('updated_at')->take(6)->get(),
+    ];
+    $todayData['net'] = round($todayData['collection'] - $todayData['paid_out'], 2);
+
     // ---------- Customer notification pipeline ----------
     $notifyPending = ReceiptStatusNotification::pendingCounts();
 
     return view('admin.dashboard', compact(
         'stats', 'month', 'trend', 'costByType', 'cargoStatus', 'topCustomers', 'topDue',
-        'agentDue', 'recentShipments', 'recentPayments', 'recentVouchers', 'costStatus', 'alerts', 'notifyPending'
+        'agentDue', 'recentShipments', 'recentPayments', 'recentVouchers', 'costStatus', 'alerts', 'notifyPending', 'todayData'
     ));
 }
 

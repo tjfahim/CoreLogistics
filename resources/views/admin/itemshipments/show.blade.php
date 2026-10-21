@@ -146,13 +146,13 @@
                                 formaction="{{ route('itemsshipments.remove-box', $itemshipment->id) }}">
                             <i class="fa fa-object-ungroup"></i> Remove from box
                         </button>
-                        <select name="third_party_id" class="form-control form-control-sm ml-3 mr-1" style="width:auto" title="Third party for selected items">
-                            <option value="">— none (own) —</option>
-                            @foreach($thirdParties as $tp)<option value="{{ $tp->id }}">{{ $tp->name }}</option>@endforeach
+                        <select name="is_third_party" class="form-control form-control-sm ml-3 mr-1" style="width:auto" title="Third-party flag for selected items">
+                            <option value="1">Third-party goods</option>
+                            <option value="0">Normal goods</option>
                         </select>
                         <button type="submit" class="btn btn-outline-primary btn-sm"
                                 formaction="{{ route('itemsshipments.set-third-party', $itemshipment->id) }}">
-                            <i class="fa fa-handshake-o"></i> Set third party
+                            <i class="fa fa-handshake-o"></i> Apply
                         </button>
                         <small class="text-muted ml-3">সিলেক্ট করা আইটেমগুলো একটি বক্সের গ্রুপ হিসেবে দেখাবে; আইটেমের বাকি সব কাজ আগের মতোই।</small>
                     </form>
@@ -191,7 +191,7 @@
                                         @can('edit-warehouse-item')<td><input type="checkbox" class="box-check" name="item_ids[]" value="{{ $item->id }}" form="boxForm"></td>@endcan
                                         <td>{{ $item->id }}</td>
                                         <td>@if($item->box_no)<span class="badge badge-dark">{{ $item->box_no }}</span>@endif</td>
-                                        <td>@if($item->thirdParty)<span class="badge" style="background:{{ $item->thirdParty->color }};color:#fff">3P · {{ $item->thirdParty->name }}</span>@endif</td>
+                                        <td>@if($item->is_third_party)<span class="badge" style="background:#6f42c1;color:#fff">3P</span>@endif</td>
                                         <td>{{ $item->printed_ctn_no }}</td>
                                         <td>{{ $item->written_ctn_no }}</td>
                                         <td>{{ $item->tracking_no }}</td>

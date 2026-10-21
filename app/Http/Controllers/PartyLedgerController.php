@@ -6,7 +6,6 @@ use App\Exports\SheetsExport;
 use App\Models\Agent;
 use App\Models\ItemsShipment;
 use App\Services\AccountingService;
-use App\Services\ThirdPartyLedgerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -14,11 +13,11 @@ use Illuminate\Support\Facades\Gate;
  * Ledgers for the parties that are not customers:
  *   - agents      (money we owe them: cost lines vs payments)
  *   - shipments   (one shipment: what we billed / collected vs what it cost / we paid)
- * Customers and third parties have their own ledger pages.
+ * Customers (incl. partners) and agents have their own ledger pages.
  */
 class PartyLedgerController extends Controller
 {
-    public function __construct(private AccountingService $acc, private ThirdPartyLedgerService $tp)
+    public function __construct(private AccountingService $acc)
     {
     }
 
@@ -84,7 +83,7 @@ class PartyLedgerController extends Controller
         return view('admin.ledger.agent', compact('agent', 'led', 'from', 'to'));
     }
 
-    /** One shipment: receivable side (customers + third parties) and payable side (costs). */
+    /** One shipment: receivable side (customers + partners) and payable side (costs). */
     public function shipment(Request $request, ItemsShipment $itemshipment)
     {
         abort_unless(Gate::allows('view-shipments'), 403);
@@ -93,17 +92,11 @@ class PartyLedgerController extends Controller
 
         // ---- receivable side
         $custRows = $this->acc->shipmentCustomers([$id]);
-        $tpRows   = $this->tp->shipmentRows(['shipment_ids' => [$id]]);
-        $tpNames  = \App\Models\ThirdParty::whereIn('id', $tpRows->pluck('third_party_id'))->pluck('name', 'id');
 
         $recv = collect();
         foreach ($custRows as $r) {
-            $recv->push(['party' => optional($r->customer)->name ?? ('#' . $r->customer_id), 'kind' => 'Customer',
+            $recv->push(['party' => optional($r->customer)->name ?? ('#' . $r->customer_id), 'kind' => optional($r->customer)->is_partner ? 'Partner' : 'Customer',
                          'items' => $r->items, 'weight' => $r->weight, 'billed' => $r->billed, 'paid' => $r->paid, 'due' => $r->due]);
-        }
-        foreach ($tpRows as $r) {
-            $recv->push(['party' => $tpNames[$r->third_party_id] ?? ('#' . $r->third_party_id), 'kind' => 'Third party',
-                         'items' => $r->items, 'weight' => $r->weight, 'billed' => $r->billed, 'paid' => null, 'due' => null]);
         }
 
         $receipts = \App\Models\CustomerPaymentAllocation::with('payment.customer:id,name')

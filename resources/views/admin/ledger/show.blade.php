@@ -56,6 +56,9 @@
         <div class="rp-kpi teal"><div class="l">Total received</div><div class="v pos">{{ number_format($totals['paid'], 2) }}</div><div class="s">{{ $payments->count() }} receipt(s)</div></div>
         <div class="rp-kpi coral"><div class="l">Outstanding due</div><div class="v {{ $totals['due'] > 0 ? 'neg' : 'pos' }}">{{ number_format($totals['due'], 2) }}</div>
             <div class="s">{{ $totals['shipments_due'] }} shipment(s) with due</div></div>
+        @if(($st['advance'] ?? 0) > 0)
+        <div class="rp-kpi teal"><div class="l">Advance (credit)</div><div class="v pos">{{ number_format($st['advance'], 2) }}</div><div class="s">received, not yet applied</div></div>
+        @endif
     </div>
 
     {{-- Date filter --}}
@@ -95,14 +98,14 @@
                     <td class="num"></td><td class="num"></td><td class="num">{{ number_format($st['opening'], 2) }}</td><td class="no-print"></td></tr>
                 @forelse($st['entries'] as $e)
                     <tr>
-                        <td style="white-space:nowrap">{{ \Carbon\Carbon::parse($e['date'])->format('d M Y') }}</td>
+                        <td style="white-space:nowrap">{{ \Carbon\Carbon::parse($e['date'])->format('d M Y') }}@if(!empty($e['time']))<br><small class="muted">{{ $e['time'] }}</small>@endif</td>
                         <td><span class="rp-pill {{ $e['kind'] === 'bill' ? 'pill-info' : 'pill-ok' }}">{{ $e['doc'] }}</span></td>
                         <td>{{ $e['desc'] }}@if($e['detail'])<br><small class="muted">{{ $e['detail'] }}</small>@endif @if(!empty($e['cur']))<br><small class="muted">Paid in {{ $e['cur'] }}</small>@endif</td>
                         <td>{{ $methodLabel($e['method']) }}@if($e['reference'])<br><small class="muted">{{ $e['reference'] }}</small>@endif</td>
                         <td>{{ $e['user'] ?? '' }}</td>
                         <td class="num">{{ $e['debit'] > 0 ? number_format($e['debit'], 2) : '' }}</td>
                         <td class="num pos">{{ $e['credit'] > 0 ? number_format($e['credit'], 2) : '' }}</td>
-                        <td class="num"><strong class="{{ $e['balance'] > 0.004 ? 'neg' : 'pos' }}">{{ number_format($e['balance'], 2) }}</strong></td>
+                        <td class="num"><strong class="{{ $e['balance'] > 0.004 ? 'neg' : 'pos' }}">{{ number_format(abs($e['balance']), 2) }}{{ $e['balance'] < -0.004 ? ' Adv' : '' }}</strong></td>
                         <td class="no-print">
                             @if($e['kind'] === 'receipt')
                                 @can('delete-payment')

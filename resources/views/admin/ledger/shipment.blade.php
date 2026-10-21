@@ -17,19 +17,19 @@
     </div>
     <div class="rp-card"><div class="ttl">Receivable - who we billed</div><div class="rp-table-wrap"><table class="rp-table">
         <thead><tr><th>Party</th><th>Type</th><th class="num">Items</th><th class="num">Weight</th><th class="num">Billed</th><th class="num">Received</th><th class="num">Due</th></tr></thead>
-        <tbody>@forelse($recv as $r)<tr><td>{{ $r['party'] }}</td><td>@if($r['kind']==='Third party')<span class="badge" style="background:#6f42c1;color:#fff">3rd party</span>@else Customer @endif</td>
+        <tbody>@forelse($recv as $r)<tr><td>{{ $r['party'] }}</td><td>@if($r['kind']==='Partner')<span class="badge" style="background:#6f42c1;color:#fff">Partner</span>@else Customer @endif</td>
             <td class="num">{{ $r['items'] }}</td><td class="num">{{ number_format($r['weight'],2) }}</td><td class="num">{{ number_format($r['billed'],2) }}</td>
             <td class="num">{{ $r['paid'] === null ? '—' : number_format($r['paid'],2) }}</td><td class="num">{{ $r['due'] === null ? '—' : number_format($r['due'],2) }}</td></tr>
             @empty<tr><td colspan="7" class="rp-empty">No billed items.</td></tr>@endforelse</tbody>
         <tfoot><tr><td colspan="4">TOTAL</td><td class="num">{{ number_format($sum['billed'],2) }}</td><td class="num">{{ number_format($sum['collected'],2) }}</td><td class="num">{{ number_format($sum['receivable'],2) }}</td></tr></tfoot>
-    </table></div><div class="hint" style="margin:8px 0 0">Third-party payments are account-level (see the company ledger), so they are not split per shipment.</div></div>
+    </table></div></div>
     <div class="rp-card"><div class="ttl">Customer payments received</div><div class="rp-table-wrap"><table class="rp-table">
         <thead><tr><th>Date</th><th>Customer</th><th>Method</th><th>Reference</th><th class="num">Amount</th></tr></thead>
         <tbody>@forelse($receipts as $x)<tr><td>{{ $x->payment->payment_date->format('Y-m-d') }}</td><td>{{ optional($x->payment->customer)->name }}</td><td>{{ ucfirst(str_replace('_',' ',$x->payment->payment_method)) }}</td><td>{{ $x->payment->reference_no }}</td><td class="num">{{ number_format($x->amount,2) }}</td></tr>@empty<tr><td colspan="5" class="rp-empty">No payments yet.</td></tr>@endforelse</tbody>
         <tfoot><tr><td colspan="4">TOTAL</td><td class="num">{{ number_format($sum['collected'],2) }}</td></tr></tfoot></table></div></div>
     <div class="rp-card"><div class="ttl">Costs and our payments</div><div class="rp-table-wrap"><table class="rp-table">
         <thead><tr><th>Date</th><th>Document</th><th>Description</th><th>Agent</th><th>Details</th><th class="num">Bill</th><th class="num">Paid</th><th class="num">Balance</th></tr></thead>
-        <tbody>@forelse($led['entries'] as $e)<tr><td>{{ $e['date'] }}</td><td>{{ $e['doc'] }}</td><td>{{ $e['desc'] }}</td><td>{{ $e['party'] }}</td><td><small>{{ $e['detail'] }}</small></td>
+        <tbody>@forelse($led['entries'] as $e)<tr><td style="white-space:nowrap">{{ $e['date'] }}@if(!empty($e['time']))<br><small class="text-muted">{{ $e['time'] }}</small>@endif</td><td>{{ $e['doc'] }}</td><td>{{ $e['desc'] }}</td><td>{{ $e['party'] }}</td><td><small>{{ $e['detail'] }}</small></td>
             <td class="num">{{ $e['bill'] ? number_format($e['bill'],2) : '' }}</td><td class="num text-success">{{ $e['paid'] ? number_format($e['paid'],2) : '' }}</td><td class="num"><strong>{{ number_format($e['balance'],2) }}</strong></td></tr>
             @empty<tr><td colspan="8" class="rp-empty">No costs yet.</td></tr>@endforelse</tbody>
         <tfoot><tr><td colspan="5">SUMMARY</td><td class="num">{{ number_format($led['bills'],2) }}</td><td class="num">{{ number_format($led['paid'],2) }}</td><td class="num">{{ number_format($led['closing'],2) }}</td></tr></tfoot>

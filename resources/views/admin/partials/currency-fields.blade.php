@@ -28,7 +28,7 @@
     </div>
 </div>
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     const box = document.getElementById('curBox{{ $uid }}');
     const amount = document.getElementById('{{ $amountId }}');
     if (!box || !amount) return;
@@ -48,5 +48,5 @@
     }
     [sel, fAmt, rate].forEach(e => e.addEventListener('input', sync));
     sync();
-})();
+});
 </script>

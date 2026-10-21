@@ -8,10 +8,7 @@ use App\Models\CargoItemStatusLog;
 use App\Models\CustomerPayment;
 use App\Models\ItemsShipmentCost;
 use App\Models\ItemsShipmentPayment;
-use App\Models\ThirdParty;
-use App\Models\ThirdPartyPayment;
 use App\Services\AccountingService;
-use App\Services\ThirdPartyLedgerService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -34,7 +31,7 @@ class FinalReportController extends Controller
         'collections' => 'Collections (money received)',
     ];
 
-    public function __construct(private AccountingService $acc, private ThirdPartyLedgerService $tp)
+    public function __construct(private AccountingService $acc)
     {
     }
 
@@ -107,7 +104,7 @@ class FinalReportController extends Controller
             return collect();
         }
 
-        return CargoItem::with(['customer:id,name', 'thirdParty:id,name'])
+        return CargoItem::with(['customer:id,name,is_partner'])
             ->whereIn('id', $logs->keys())->get()
             ->each(fn ($i) => $i->event_date = Carbon::parse($logs[$i->id]->first_at)->toDateString())
             ->sortBy('event_date')->values();
@@ -115,7 +112,7 @@ class FinalReportController extends Controller
 
     private function receivedItems(Carbon $from, Carbon $to): Collection
     {
-        return CargoItem::with(['customer:id,name', 'thirdParty:id,name'])
+        return CargoItem::with(['customer:id,name,is_partner'])
             ->whereRaw('DATE(COALESCE(date, created_at)) BETWEEN ? AND ?', [$from->toDateString(), $to->toDateString()])
             ->get()
             ->each(fn ($i) => $i->event_date = ($i->date ?? $i->created_at)->toDateString())
@@ -142,12 +139,8 @@ class FinalReportController extends Controller
             ->whereBetween('payment_date', [$from->toDateString(), $to->toDateString()])->get()
             ->map(fn ($p) => ['date' => $p->payment_date->toDateString(), 'party' => optional($p->customer)->name ?? '—', 'kind' => 'Customer',
                               'method' => $p->payment_method, 'reference' => $p->reference_no, 'cur' => $this->curText($p), 'amount' => (float) $p->amount]);
-        $t = ThirdPartyPayment::with('thirdParty:id,name')
-            ->whereBetween('payment_date', [$from->toDateString(), $to->toDateString()])->get()
-            ->map(fn ($p) => ['date' => $p->payment_date->toDateString(), 'party' => optional($p->thirdParty)->name ?? '—', 'kind' => 'Third party',
-                              'method' => $p->payment_method, 'reference' => $p->reference_no, 'cur' => $this->curText($p), 'amount' => (float) $p->amount]);
 
-        return $c->concat($t)->sortBy('date')->values();
+        return $c->sortBy('date')->values();
     }
 
     private function curText($p): string
@@ -230,11 +223,11 @@ class FinalReportController extends Controller
 
         // ---- who owes whom (position now)
         $agentLed   = $this->acc->payableLedger([]);
-        $tpBalances = $this->tp->balances();
-        $tpNames    = ThirdParty::pluck('name', 'id');
-        $tpRows     = $tpBalances->map(fn ($b) => ['id' => $b->third_party_id, 'name' => $tpNames[$b->third_party_id] ?? '#' . $b->third_party_id,
-                                                    'billed' => $b->billed, 'paid' => $b->paid, 'due' => $b->due])
-                                 ->sortByDesc('due')->values();
+        $partners   = \App\Models\Customer::where('is_partner', true)->pluck('name', 'id');
+        $tpRows     = $partners->isEmpty() ? collect() : $this->acc->customerBalances($partners->keys()->all())
+                        ->map(fn ($b) => ['id' => $b->customer_id, 'name' => $partners[$b->customer_id] ?? '#' . $b->customer_id,
+                                          'billed' => $b->billed, 'paid' => $b->paid, 'due' => $b->due])
+                        ->sortByDesc('due')->values();
 
         $agentIds = \App\Models\Agent::pluck('id', 'name');
 
@@ -266,7 +259,7 @@ class FinalReportController extends Controller
                 ['Billed (shipments in period)', '', '', '', $m['billed']],
                 ['Profit (billed - costing)', '', '', '', $m['profit']],
                 ['Net cash (collected - paid)', '', '', '', $m['net_cash']],
-                ['Receivable at end (customers + third parties)', '', '', '', $m['receivable']],
+                ['Receivable at end (customers + partners)', '', '', '', $m['receivable']],
                 ['Payable at end (suppliers / agents)', '', '', '', $m['payable']],
             ],
             'money' => [3, 4], 'int' => [1, 2],
@@ -280,8 +273,8 @@ class FinalReportController extends Controller
             'money' => [5, 6, 7], 'int' => [1, 2, 3, 4],
         ];
         $c = [
-            'title' => 'Third parties', 'heading' => 'Third parties - billed / received / due',
-            'headings' => ['Company', 'Billed', 'Received', 'Due'],
+            'title' => 'Partners', 'heading' => 'Partners - billed / received / due',
+            'headings' => ['Partner', 'Billed', 'Received', 'Due'],
             'rows' => $d['tpRows']->map(fn ($r) => [$r['name'], $r['billed'], $r['paid'], $r['due']])->all(),
             'totals' => ['TOTAL', $d['tpRows']->sum('billed'), $d['tpRows']->sum('paid'), $d['tpRows']->sum('due')], 'money' => [1, 2, 3],
         ];
@@ -316,10 +309,10 @@ class FinalReportController extends Controller
             };
             return [
                 'title' => 'Items', 'heading' => self::DETAIL_TYPES[$type], 'subtitle' => 'Period: ' . $period . ' | ' . $items->count() . ' items, ' . $this->boxes($items) . ' boxes',
-                'headings' => ['Date', 'ID', 'CTN', 'Box', 'Goods', 'Tracking', 'Customer / Third party', 'Weight (kg)', 'Status'],
+                'headings' => ['Date', 'ID', 'CTN', 'Box', 'Goods', 'Tracking', 'Customer', 'Weight (kg)', 'Status'],
                 'rows' => $items->map(fn ($i) => [
                     $i->event_date, $i->id, $i->printed_ctn_no, $i->box_no, $i->goods_name_en, $i->tracking_no,
-                    $i->thirdParty ? '3P: ' . $i->thirdParty->name : (optional($i->customer)->name ?? '—'),
+                    (optional($i->customer)->name ?? '—') . ($i->is_third_party ? ' [3P]' : ''),
                     (float) $i->weight_kg, ucfirst(str_replace('_', ' ', $i->status)),
                 ])->all(),
                 'totals' => ['TOTAL', $items->count(), '', '', '', '', '', round((float) $items->sum('weight_kg'), 2), ''],

@@ -255,13 +255,12 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="font-weight-bold"><i class="fa fa-handshake-o"></i> Third party</label>
-                                    <select name="third_party_id" class="form-control">
-                                        <option value="">— Own customer (not third party) —</option>
-                                        @foreach($thirdParties as $tp)
-                                            <option value="{{ $tp->id }}" {{ old('third_party_id', $cargoItem->third_party_id) == $tp->id ? 'selected' : '' }}>{{ $tp->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <label class="font-weight-bold d-block"><i class="fa fa-handshake-o"></i> Third party</label>
+                                    <div class="form-check">
+                                        <input type="checkbox" name="is_third_party" value="1" id="is_third_party" class="form-check-input"
+                                               {{ old('is_third_party', $cargoItem->is_third_party) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="is_third_party">This is third-party goods</label>
+                                    </div>
                                 </div>
                             </div>
 

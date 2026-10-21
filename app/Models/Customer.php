@@ -20,7 +20,10 @@ class Customer extends Model
         'shipping_mark3',
         'shipping_mark4',
         'address',
+        'is_partner',
     ];
+
+    protected $casts = ['is_partner' => 'boolean'];
 
     public function products()
     {

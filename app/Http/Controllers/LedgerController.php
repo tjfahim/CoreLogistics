@@ -24,7 +24,10 @@ class LedgerController extends Controller
         $search = trim((string) $request->input('search'));
         $status = $request->input('status'); // due | clear | no-billing
 
+        $partnerOnly = $request->boolean('partner');
+
         $customers = Customer::query()
+            ->when($partnerOnly, fn ($q) => $q->where('is_partner', true))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('name', 'like', "%{$search}%")
@@ -34,7 +37,7 @@ class LedgerController extends Controller
                 });
             })
             ->orderBy('name')
-            ->get(['id', 'name', 'customer_code', 'phone']);
+            ->get(['id', 'name', 'customer_code', 'phone', 'is_partner']);
 
         $bal = $this->acc->customerBalances($customers->pluck('id')->all());
 
@@ -69,7 +72,7 @@ class LedgerController extends Controller
         }
 
         return view('admin.ledger.index', compact(
-            'ledgerRows', 'grandTotalBilled', 'grandTotalPaid', 'grandTotalDue', 'search', 'status'
+            'ledgerRows', 'grandTotalBilled', 'grandTotalPaid', 'grandTotalDue', 'search', 'status', 'partnerOnly'
         ));
     }
 

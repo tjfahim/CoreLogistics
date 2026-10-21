@@ -236,13 +236,13 @@
                     </form>
 
                     <div>
-                        <select id="tpSelect" class="form-control form-control-sm d-inline-block mr-2" style="width:auto" title="Third party for ALL imported rows">
-                            <option value="">Own customers</option>
-                            @foreach($thirdParties as $tp)<option value="{{ $tp->id }}">3rd party: {{ $tp->name }}</option>@endforeach
+                        <select id="tpSelect" class="form-control form-control-sm d-inline-block mr-2" style="width:auto" title="Third-party flag for ALL imported rows">
+                            <option value="0">Normal goods</option>
+                            <option value="1">Third-party goods (all rows)</option>
                         </select>
                         <form action="{{ route('cargo-items.import.confirm', $excelFile->id) }}" method="POST" class="d-inline">
                             @csrf
-                            <input type="hidden" name="third_party_id" class="tpHidden">
+                            <input type="hidden" name="is_third_party" class="tpHidden">
                             <input type="hidden" name="skip_duplicates" value="1">
                             <button class="btn btn-primary btn-sm">
                                 <i class="fa fa-check"></i>
@@ -258,7 +258,7 @@
                             <form action="{{ route('cargo-items.import.confirm', $excelFile->id) }}" method="POST" class="d-inline"
                                   onsubmit="return confirm('This will import ALL rows including duplicates. Continue?')">
                                 @csrf
-                                <input type="hidden" name="third_party_id" class="tpHidden">
+                                <input type="hidden" name="is_third_party" class="tpHidden">
                                 <input type="hidden" name="skip_duplicates" value="0">
                                 <button class="btn btn-warning btn-sm">
                                     <i class="fa fa-exclamation-triangle"></i> Import All (Include Duplicates)

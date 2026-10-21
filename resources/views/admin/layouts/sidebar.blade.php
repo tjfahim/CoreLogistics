@@ -74,11 +74,6 @@
                     <span class="tl-ico"><i class="fa fa-user-circle-o"></i></span><span class="tl-txt">Agent Ledger</span>
                 </a>
             </li>
-            <li class="tl-item {{ request()->routeIs('third-parties.*') ? 'active' : '' }}">
-                <a href="{{ route('third-parties.index') }}" title="Third Parties">
-                    <span class="tl-ico"><i class="fa fa-handshake-o"></i></span><span class="tl-txt">Third Parties</span>
-                </a>
-            </li>
 
             {{-- Reports (dropdown) --}}
             @can('shipment-report')

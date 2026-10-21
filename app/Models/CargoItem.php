@@ -46,7 +46,7 @@ class CargoItem extends Model
         'price_per_kg',
         'customer_id',
         'box_no',
-        'third_party_id',
+        'is_third_party',
         'cancelled_at',
         'cancel_reason',
         'status_before_cancel',
@@ -62,10 +62,6 @@ class CargoItem extends Model
         });
     }
 
-    public function thirdParty()
-    {
-        return $this->belongsTo(ThirdParty::class);
-    }
 
     public function statusLogs()
     {

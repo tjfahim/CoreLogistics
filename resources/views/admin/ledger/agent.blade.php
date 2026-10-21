@@ -19,7 +19,7 @@
         <tbody>
             <tr><td colspan="7"><em>Opening balance</em></td><td class="num"><strong>{{ number_format($led['opening'],2) }}</strong></td></tr>
             @forelse($led['entries'] as $e)
-            <tr><td>{{ $e['date'] }}</td><td>{{ $e['doc'] }}</td>
+            <tr><td style="white-space:nowrap">{{ $e['date'] }}@if(!empty($e['time']))<br><small class="text-muted">{{ $e['time'] }}</small>@endif</td><td>{{ $e['doc'] }}</td>
                 <td>@if($e['shipment_id'])<a href="{{ route('ledger.shipment', $e['shipment_id']) }}">{{ $e['shipment'] }}</a>@endif</td>
                 <td>{{ $e['desc'] }}</td><td><small>{{ $e['detail'] }} {{ $e['method'] ? '· '.ucfirst(str_replace('_',' ',$e['method'])) : '' }}</small></td>
                 <td class="num">{{ $e['bill'] ? number_format($e['bill'],2) : '' }}</td>
