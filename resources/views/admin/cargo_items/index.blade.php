@@ -84,6 +84,7 @@
                     <button type="button" class="btn btn-success filter-btn" data-status="arrived_bd">Arrived BD</button>
                     <button type="button" class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
                     <button type="button" class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
+                    <button type="button" class="btn btn-outline-danger filter-btn" data-status="cancelled" style="background:#dc3545;color:#fff">Cancelled</button>
                     <button type="button" class="btn btn-warning filter-btn active" data-status="all">All</button>
                 </div>
 
@@ -281,7 +282,8 @@ $(document).ready(function () {
             'arrived_bd': 'success',
             'waiting_for_customs': 'danger',
             'ready_to_deliver': 'dark',
-            'delivered': 'success'
+            'delivered': 'success',
+            'cancelled': 'danger'
         };
 
         let html = '';
@@ -289,7 +291,7 @@ $(document).ready(function () {
 
         items.forEach(function (item) {
             const color = statusColors[item.status] || 'secondary';
-            const rowClass = item.status === 'packed' ? 'table-primary' : '';
+            const rowClass = item.status === 'packed' ? 'table-primary' : ('st-' + item.status);
             const returnedClass = item.is_returned ? 'returned-row' : '';
             const dateStr = item.date ? item.date.substring(5, 10) : '-';
             const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
@@ -341,6 +343,8 @@ $(document).ready(function () {
                         item.status.replace(/_/g, ' ').toUpperCase() +
                     '</span>' +
                     (item.is_returned ? ' <span class="badge badge-warning">RETURNED</span>' : '') +
+                        (item.box_no ? ' <span class="badge badge-dark" title="Box">' + item.box_no + '</span>' : '') +
+                        (item.status === 'cancelled' && item.cancel_reason ? '<br><small class="text-danger">' + $('<div>').text(item.cancel_reason).html() + '</small>' : '') +
                     '</td>' +
                     '<td>' + actions + '</td>' +
                     '</tr>';
@@ -666,6 +670,16 @@ $(document).ready(function () {
     #cargoItemsTable tbody tr.returned-row:hover {
         background-color: #ffe8a1 !important;
     }
+    /* Status colours (All list). Packed keeps the blue selected style; returned stays yellow. */
+    #cargoItemsTable tbody tr.st-pending             { background-color: #e9ecef !important; }
+    #cargoItemsTable tbody tr.st-ready_to_ship       { background-color: #e0cffc !important; }
+    #cargoItemsTable tbody tr.st-shipping_ongoing    { background-color: #cff4fc !important; }
+    #cargoItemsTable tbody tr.st-arrived_bd          { background-color: #d1e7dd !important; }
+    #cargoItemsTable tbody tr.st-waiting_for_customs { background-color: #ffe5d0 !important; }
+    #cargoItemsTable tbody tr.st-ready_to_deliver    { background-color: #b6e3e0 !important; }
+    #cargoItemsTable tbody tr.st-delivered           { background-color: #a3cfbb !important; }
+    #cargoItemsTable tbody tr.st-cancelled           { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; color:#842029; }
+    #cargoItemsTable tbody tr.returned-row           { background-color: #fff3cd !important; }
     .selectable-row { cursor: pointer; }
     .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
     .table-primary { background-color: #007bff !important; color: white; }

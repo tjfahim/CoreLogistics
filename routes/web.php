@@ -165,6 +165,10 @@ Route::post('itemsshipments/{itemshipment}/return-items',
     [ItemShipmentController::class, 'returnItems']
 )->name('itemsshipments.return-items');
 // NEW: Bangladesh-side routes
+Route::post('cargo-items/{cargoItem}/cancel', [CargoItemController::class, 'cancel'])->name('cargo-items.cancel');
+Route::post('cargo-items/{cargoItem}/restore', [CargoItemController::class, 'restore'])->name('cargo-items.restore');
+Route::post('itemsshipments/{itemshipment}/make-box', [ItemShipmentController::class, 'makeBox'])->name('itemsshipments.make-box');
+Route::post('itemsshipments/{itemshipment}/remove-box', [ItemShipmentController::class, 'removeBox'])->name('itemsshipments.remove-box');
 Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
 Route::get('cargo-items/{cargoItem}/edit', [CargoItemController::class, 'edit'])->name('cargo-items.edit');
 Route::get('cargo-items/bangladesh-warehouse', [CargoItemController::class, 'bangladeshWarehouseItems'])->name('cargo-items.bangladesh-warehouse');
@@ -231,17 +235,22 @@ Route::get('itemshipments/{itemshipment}/edit-ctn', [ItemShipmentCostController:
 Route::post('/itemshipments/{itemshipment}/update-ctn', 
     [ItemShipmentCostController::class, 'updateCtnNumbers']
 )->name('itemshipments.update-ctn');
+Route::post('/itemshipments/{itemshipment}/auto-assign-ctn',
+    [ItemShipmentCostController::class, 'autoAssignCtn']
+)->name('itemshipments.auto-assign-ctn');
 
 
 
 Route::resource('offices', OfficeController::class);
 Route::resource('employees', EmployeeController::class);
+Route::get('salary-history', [\App\Http\Controllers\EmployeeController::class, 'history'])->name('salary-history');
 Route::resource('office-bills', OfficeBillController::class)
      ->parameters(['office-bills' => 'office_bill']);
 Route::resource('warehouse-bills', WarehouseBillController::class)
      ->only(['index', 'store', 'destroy'])
      ->parameters(['warehouse-bills' => 'warehouse_bill']);
 
+Route::delete('warehouse-bills/summary/{summary}', [WarehouseBillController::class, 'destroySummary'])->name('warehouse-bills.summary.destroy');
 Route::get('warehouse-bills/summary', [WarehouseBillController::class, 'summary'])
      ->name('warehouse-bills.summary');
 Route::post('warehouse-bills/monthly-summary',

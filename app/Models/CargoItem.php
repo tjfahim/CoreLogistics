@@ -44,11 +44,16 @@ class CargoItem extends Model
         'status',
         'price',
         'price_per_kg',
-        'customer_id'
+        'customer_id',
+        'box_no',
+        'cancelled_at',
+        'cancel_reason',
+        'status_before_cancel',
     ];
 
     protected $casts = [
         'date'    => 'date',
+        'cancelled_at' => 'datetime',
         'is_copy' => 'boolean',
     ];
 

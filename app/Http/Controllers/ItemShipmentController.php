@@ -420,4 +420,47 @@ public function bulkToggleItems(Request $request)
 
         CargoItem::whereIn('id', $itemIds)->update(['status' => $targetStatus]);
     }
+
+    /** Group the selected items of this shipment into one box (display-only label, e.g. BOX-3). */
+    public function makeBox(Request $request, ItemsShipment $itemshipment)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        $request->validate([
+            'item_ids'   => 'required|array|min:1',
+            'item_ids.*' => 'integer',
+            'box_no'     => 'nullable|string|max:50',
+        ]);
+
+        $ids = $itemshipment->cargoItems()->whereIn('cargo_items.id', $request->item_ids)->pluck('cargo_items.id');
+        if ($ids->isEmpty()) {
+            return back()->with('error', 'No valid items selected.');
+        }
+
+        $boxNo = trim((string) $request->box_no);
+        if ($boxNo === '') {
+            $max = 0;
+            foreach ($itemshipment->cargoItems()->whereNotNull('box_no')->pluck('cargo_items.box_no') as $b) {
+                if (preg_match('/^BOX-(\d+)$/', $b, $m)) $max = max($max, (int) $m[1]);
+            }
+            $boxNo = 'BOX-' . ($max + 1);
+        }
+
+        \App\Models\CargoItem::whereIn('id', $ids)->update(['box_no' => $boxNo]);
+
+        return back()->with('success', $ids->count() . ' item(s) grouped into ' . $boxNo . '.');
+    }
+
+    /** Take the selected items out of their box. */
+    public function removeBox(Request $request, ItemsShipment $itemshipment)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        $request->validate(['item_ids' => 'required|array|min:1', 'item_ids.*' => 'integer']);
+
+        $ids = $itemshipment->cargoItems()->whereIn('cargo_items.id', $request->item_ids)->pluck('cargo_items.id');
+        \App\Models\CargoItem::whereIn('id', $ids)->update(['box_no' => null]);
+
+        return back()->with('success', $ids->count() . ' item(s) removed from box.');
+    }
 }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Exports\SheetsExport;
 use App\Models\Customer;
 use App\Models\Employee;
+use App\Models\MonthlySummary;
+use App\Models\SalaryRecord;
 use App\Models\ItemsShipment;
 use App\Models\Office;
 use App\Models\OfficeBill;
@@ -315,35 +317,62 @@ class ReportController extends Controller
 
     public function office(Request $request)
     {
-        $request->validate(['year' => 'nullable|integer|min:2000|max:2100', 'office_id' => 'nullable|integer']);
+        $request->validate([
+            'year' => 'nullable|integer|min:2000|max:2100', 'office_id' => 'nullable|integer',
+            'from' => 'nullable|date', 'to' => 'nullable|date|after_or_equal:from',
+        ]);
 
-        $year     = (int) ($request->input('year') ?: now()->year);
         $officeId = $request->integer('office_id') ?: null;
+
+        // Range: explicit from/to, else the whole selected year
+        if ($request->filled('from') || $request->filled('to')) {
+            $from = \Carbon\Carbon::parse($request->input('from') ?: ($request->input('to')))->startOfDay();
+            $to   = \Carbon\Carbon::parse($request->input('to') ?: ($request->input('from')))->endOfDay();
+            $year = (int) $from->year;
+        } else {
+            $year = (int) ($request->input('year') ?: now()->year);
+            $from = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+            $to   = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+        }
+        $customRange = $request->filled('from') || $request->filled('to');
 
         $offices = Office::orderBy('name')->get();
 
         $bills = OfficeBill::with('office:id,name')
-            ->where('year', $year)->when($officeId, fn ($q) => $q->where('office_id', $officeId))->get();
+            ->whereBetween('bill_date', [$from->toDateString(), $to->toDateString()])
+            ->when($officeId, fn ($q) => $q->where('office_id', $officeId))->get();
 
         $warehouse = WarehouseBill::with('office:id,name')
-            ->whereYear('bill_date', $year)->when($officeId, fn ($q) => $q->where('office_id', $officeId))
+            ->whereBetween('bill_date', [$from->toDateString(), $to->toDateString()])
+            ->when($officeId, fn ($q) => $q->where('office_id', $officeId))
             ->orderBy('bill_date')->get();
+
+        // salaries actually paid (month snapshots), month granularity
+        SalaryRecord::ensureCurrentMonth();
+        $fromKey = $from->year * 12 + $from->month;
+        $toKey   = $to->year * 12 + $to->month;
+        $salaries = SalaryRecord::whereRaw('(year * 12 + month) BETWEEN ? AND ?', [$fromKey, $toKey])
+            ->when($officeId, fn ($q) => $q->where('office_id', $officeId))->get();
 
         $payroll = Employee::with('office:id,name')->when($officeId, fn ($q) => $q->where('office_id', $officeId))->get();
 
-        // office x month matrix
+        // office x month matrix (months of $year inside the range)
         $matrix = [];
         foreach ($offices->when($officeId, fn ($c) => $c->where('id', $officeId)) as $o) {
             $row = array_fill(1, 12, 0.0);
             foreach ($bills->where('office_id', $o->id) as $b) {
-                $row[(int) $b->month] += (float) $b->amount;
+                if ((int) $b->bill_date->year === $year) $row[(int) $b->bill_date->month] += (float) $b->amount;
             }
             foreach ($warehouse->where('office_id', $o->id) as $w) {
-                $row[(int) $w->bill_date->format('n')] += (float) $w->total_amount;
+                if ((int) $w->bill_date->year === $year) $row[(int) $w->bill_date->format('n')] += (float) $w->total_amount;
+            }
+            foreach ($salaries->where('office_id', $o->id)->where('year', $year) as $sr) {
+                $row[(int) $sr->month] += (float) $sr->amount;
             }
             $matrix[$o->id] = ['office' => $o, 'months' => $row, 'total' => array_sum($row),
                                'office_bills' => (float) $bills->where('office_id', $o->id)->sum('amount'),
                                'warehouse' => (float) $warehouse->where('office_id', $o->id)->sum('total_amount'),
+                               'salaries' => (float) $salaries->where('office_id', $o->id)->sum('amount'),
                                'payroll' => (float) $payroll->where('office_id', $o->id)->sum('salary'),
                                'employees' => $payroll->where('office_id', $o->id)->count()];
         }
@@ -355,20 +384,70 @@ class ReportController extends Controller
             }
         }
 
+        // ---- day-wise (office bills + warehouse bills) ----
+        $daily = [];
+        foreach ($bills as $b) {
+            $d = $b->bill_date->toDateString();
+            $daily[$d]['office'] = ($daily[$d]['office'] ?? 0) + (float) $b->amount;
+        }
+        foreach ($warehouse as $w) {
+            $d = $w->bill_date->toDateString();
+            $daily[$d]['warehouse'] = ($daily[$d]['warehouse'] ?? 0) + (float) $w->total_amount;
+        }
+        krsort($daily);
+
+        // ---- month-wise over the whole range (may span years) ----
+        $monthly = [];
+        for ($c = $from->copy()->startOfMonth(); $c <= $to; $c->addMonth()) {
+            $monthly[$c->format('Y-m')] = ['label' => $c->format('M Y'), 'office' => 0.0, 'warehouse' => 0.0, 'salary' => 0.0, 'people' => 0];
+        }
+        foreach ($bills as $b)     { $k = $b->bill_date->format('Y-m'); if (isset($monthly[$k])) $monthly[$k]['office'] += (float) $b->amount; }
+        foreach ($warehouse as $w) { $k = $w->bill_date->format('Y-m'); if (isset($monthly[$k])) $monthly[$k]['warehouse'] += (float) $w->total_amount; }
+        foreach ($salaries as $sr) { $k = sprintf('%04d-%02d', $sr->year, $sr->month); if (isset($monthly[$k])) { $monthly[$k]['salary'] += (float) $sr->amount; $monthly[$k]['people']++; } }
+        foreach ($monthly as &$mm) { $mm['total'] = $mm['office'] + $mm['warehouse'] + $mm['salary']; }
+        unset($mm);
+
+        $monthsInRange = max(1, count($monthly));
+        $rangeTotal    = array_sum(array_column($monthly, 'total'));
+
+        // today / this month (office+warehouse bills are dated; salary is monthly)
+        $todayStr = now()->toDateString();
+        $todayTotal = (float) OfficeBill::whereDate('bill_date', $todayStr)->when($officeId, fn ($q) => $q->where('office_id', $officeId))->sum('amount')
+                    + (float) WarehouseBill::whereDate('bill_date', $todayStr)->when($officeId, fn ($q) => $q->where('office_id', $officeId))->sum('total_amount');
+        $thisMonth  = (float) OfficeBill::whereYear('bill_date', now()->year)->whereMonth('bill_date', now()->month)->when($officeId, fn ($q) => $q->where('office_id', $officeId))->sum('amount')
+                    + (float) WarehouseBill::whereYear('bill_date', now()->year)->whereMonth('bill_date', now()->month)->when($officeId, fn ($q) => $q->where('office_id', $officeId))->sum('total_amount')
+                    + (float) SalaryRecord::where('year', now()->year)->where('month', now()->month)->when($officeId, fn ($q) => $q->where('office_id', $officeId))->sum('amount');
+
+        // per-kg cost: from the saved Summary Bills falling inside the range
+        $perKg = MonthlySummary::whereRaw('(year * 12 + month) BETWEEN ? AND ?', [$fromKey, $toKey])->get();
+        $perKgStats = [
+            'count'   => $perKg->count(),
+            'average' => $perKg->count() ? (float) $perKg->avg('cost_per_kg') : 0.0,
+            'latest'  => optional($perKg->sortByDesc('id')->first())->cost_per_kg,
+        ];
+
         $totals = [
             'office_bills' => (float) $bills->sum('amount'),
             'warehouse'    => (float) $warehouse->sum('total_amount'),
             'warehouse_kg' => (float) $warehouse->sum('kg'),
+            'salaries'     => (float) $salaries->sum('amount'),
             'payroll'      => (float) $payroll->sum('salary'),
             'employees'    => $payroll->count(),
-            'all'          => array_sum($monthTotals),
+            'all'          => (float) $rangeTotal,
+            'avg_month'    => $rangeTotal / $monthsInRange,
+            'months'       => $monthsInRange,
+            'today'        => $todayTotal,
+            'this_month'   => $thisMonth,
         ];
 
         if ($request->boolean('export')) {
             return $this->exportOffice($matrix, $monthTotals, $warehouse, $payroll, $totals, $year);
         }
 
-        return view('admin.reports.office', compact('matrix', 'monthTotals', 'warehouse', 'payroll', 'totals', 'year', 'offices', 'officeId'));
+        return view('admin.reports.office', compact(
+            'matrix', 'monthTotals', 'warehouse', 'payroll', 'totals', 'year', 'offices', 'officeId',
+            'from', 'to', 'customRange', 'daily', 'monthly', 'perKgStats'
+        ));
     }
 
     private function exportOffice(array $matrix, array $monthTotals, $warehouse, $payroll, array $totals, int $year)

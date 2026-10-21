@@ -210,8 +210,13 @@ foreach ($validated['items'] as $index => $itemData) {
             'remark'           => ['nullable', 'string', 'max:500'],
             'warehouse'        => ['nullable', 'string', 'max:255'],
             'is_copy'          => ['nullable'],
-            'status'           => ['nullable'],
+            'status'           => ['nullable', 'in:pending,packed,ready_to_ship,shipping_ongoing,arrived_bd,waiting_for_customs,ready_to_deliver,delivered'],
         ]);
+
+        // a cancelled item must be restored via the Restore button, not the status dropdown
+        if ($cargoItem->status === 'cancelled') {
+            unset($data['status']);
+        }
 
         $data['is_copy'] = $request->boolean('is_copy');
 
@@ -220,6 +225,54 @@ foreach ($validated['items'] as $index => $itemData) {
         return redirect()
             ->route('cargo-items.index')
             ->with('success', 'Cargo item updated successfully.');
+    }
+
+    /** Cancel an item (removes it from any shipment, keeps the record in the Cancelled list). */
+    public function cancel(Request $request, CargoItem $cargoItem)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        $data = $request->validate(['cancel_reason' => ['nullable', 'string', 'max:255']]);
+
+        if ($cargoItem->status === 'cancelled') {
+            return back()->with('error', 'Item is already cancelled.');
+        }
+        if ($cargoItem->status === 'delivered') {
+            return back()->with('error', 'Delivered items cannot be cancelled.');
+        }
+
+        DB::transaction(function () use ($cargoItem, $data) {
+            $cargoItem->itemshipments()->detach();
+            $cargoItem->update([
+                'status_before_cancel' => $cargoItem->status,
+                'status'               => 'cancelled',
+                'cancelled_at'         => now(),
+                'cancel_reason'        => $data['cancel_reason'] ?? null,
+                'box_no'               => null,
+            ]);
+        });
+
+        return redirect()->route('cargo-items.status', 'cancelled')
+            ->with('success', 'Item #' . $cargoItem->id . ' cancelled.');
+    }
+
+    /** Bring a cancelled item back as pending. */
+    public function restore(CargoItem $cargoItem)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        if ($cargoItem->status !== 'cancelled') {
+            return back()->with('error', 'Item is not cancelled.');
+        }
+
+        $cargoItem->update([
+            'status'               => 'pending',
+            'cancelled_at'         => null,
+            'cancel_reason'        => null,
+            'status_before_cancel' => null,
+        ]);
+
+        return redirect()->route('cargo-items.index')->with('success', 'Item #' . $cargoItem->id . ' restored to pending.');
     }
 
     public function destroy(CargoItem $cargoItem)

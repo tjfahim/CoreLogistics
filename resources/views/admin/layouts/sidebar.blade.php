@@ -111,7 +111,7 @@
             {{-- Office & Expense (completely separate) --}}
             @can('view-office-expense')
             <li class="tl-title">Office &amp; Expense</li>
-            @php $offOpen = request()->routeIs('offices.*', 'employees.*', 'office-bills.*', 'warehouse-bills.*', 'reports.office'); @endphp
+            @php $offOpen = request()->routeIs('offices.*', 'employees.*', 'salary-history', 'office-bills.*', 'warehouse-bills.*', 'reports.office'); @endphp
             <li class="tl-item tl-has-sub {{ $offOpen ? 'active open' : '' }}">
                 <a href="#" class="tl-toggle" title="Office &amp; Expense" aria-expanded="{{ $offOpen ? 'true' : 'false' }}">
                     <span class="tl-ico"><i class="fa fa-building-o"></i></span>
@@ -121,6 +121,7 @@
                 <ul class="tl-sub">
                     <li class="{{ request()->routeIs('offices.*') ? 'active' : '' }}"><a href="{{ route('offices.index') }}"><i class="fa fa-building-o"></i> Offices</a></li>
                     <li class="{{ request()->routeIs('employees.*') ? 'active' : '' }}"><a href="{{ route('employees.index') }}"><i class="fa fa-id-badge"></i> Employees</a></li>
+                    <li class="{{ request()->routeIs('salary-history') ? 'active' : '' }}"><a href="{{ route('salary-history') }}"><i class="fa fa-history"></i> Salary History</a></li>
                     <li class="{{ request()->routeIs('office-bills.*') ? 'active' : '' }}"><a href="{{ route('office-bills.index') }}"><i class="fa fa-file-text"></i> Office Bills</a></li>
                     <li class="{{ request()->routeIs('warehouse-bills.*') ? 'active' : '' }}"><a href="{{ route('warehouse-bills.index') }}"><i class="fa fa-file-text-o"></i> Summary Bills</a></li>
                     <li class="{{ request()->routeIs('reports.office') ? 'active' : '' }}"><a href="{{ route('reports.office') }}"><i class="fa fa-bar-chart"></i> Expense Report</a></li>
