@@ -16,7 +16,7 @@ class CargoItemController extends Controller
 public function index()
 {
     return view('admin.cargo_items.index', [
-        'currentPageStatus' => 'all'
+        'currentPageStatus' => 'active'   // default: pending + packed only
     ]);
 }
 public function pendingItems()
@@ -52,6 +52,7 @@ public function ajaxItems(Request $request)
     $page = (int) $request->input('page', 1);
 
     $statusGroups = [
+        'active'               => ['pending', 'packed'],
         'pending'              => ['pending'],
         'packed'               => ['packed'],
         'shipping_ongoing'     => ['shipping_ongoing'],

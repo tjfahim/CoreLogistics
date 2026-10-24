@@ -56,7 +56,7 @@
                     <strong class="card-title">
                         Item List
                         <span class="badge badge-info ml-2" id="statusBadge">
-                            {{ strtoupper(str_replace('_', ' ', $currentPageStatus ?? 'all')) }}
+                            {{ ($currentPageStatus ?? 'active') === 'active' ? 'PENDING + PACKED' : strtoupper(str_replace('_', ' ', $currentPageStatus)) }}
                         </span>
                     </strong>
                     <div>
@@ -77,6 +77,7 @@
                 </div>
 
                 <div class="btn-group btn-group-sm flex-wrap" role="group" id="filterButtons">
+                    <button type="button" class="btn btn-outline-dark filter-btn active" data-status="active">Pending + Packed</button>
                     <button type="button" class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
                     <button type="button" class="btn btn-info filter-btn" data-status="packed">Packed</button>
                     <button type="button" class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
@@ -85,7 +86,7 @@
                     <button type="button" class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
                     <button type="button" class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
                     <button type="button" class="btn btn-outline-danger filter-btn" data-status="cancelled" style="background:#dc3545;color:#fff">Cancelled</button>
-                    <button type="button" class="btn btn-warning filter-btn active" data-status="all">All</button>
+                    <button type="button" class="btn btn-warning filter-btn" data-status="all">All</button>
                 </div>
 
                 <div class="row mt-2">
@@ -163,7 +164,7 @@
 
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="cargoItemsTable" class="table table-striped table-bordered table-hover">
+                    <table id="cargoItemsTable" class="table table-bordered">
                         <thead class="thead-dark">
                             <tr>
                                 <th style="width:40px;">
@@ -213,7 +214,7 @@ window.CARGO_PERMS = {
 };
 
 $(document).ready(function () {
-    let currentStatus = "{{ $currentPageStatus ?? 'all' }}";
+    let currentStatus = "{{ $currentPageStatus ?? 'active' }}";
     let currentPage = 1;
     let currentSearch = '';
     let isProcessing = false;
@@ -229,7 +230,7 @@ $(document).ready(function () {
 
         currentStatus = $(this).data('status');
         currentPage = 1;
-        $('#statusBadge').text(currentStatus.replace(/_/g, ' ').toUpperCase());
+        $('#statusBadge').text(currentStatus === 'active' ? 'PENDING + PACKED' : currentStatus.replace(/_/g, ' ').toUpperCase());
         loadItems();
     });
 
@@ -299,7 +300,7 @@ $(document).ready(function () {
 
         items.forEach(function (item) {
             const color = statusColors[item.status] || 'secondary';
-            const rowClass = (item.status === 'packed' ? 'table-primary' : ('st-' + item.status)) + (item.is_third_party ? ' tp-row' : '');
+            const rowClass = 'st-' + item.status + (item.is_third_party ? ' tp-row' : '');
             const returnedClass = item.is_returned ? 'returned-row' : '';
             const dateStr = item.date ? item.date.substring(5, 10) : '-';
             const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
@@ -446,11 +447,11 @@ $(document).ready(function () {
                 success: function (response) {
                     if (response.success) {
                         if (response.action === 'added') {
-                            row.addClass('table-primary').data('status', 'packed');
+                            row.removeClass('st-pending').addClass('st-packed').data('status', 'packed').attr('data-status', 'packed');
                             row.find('.status-badge').removeClass().addClass('badge badge-info status-badge').text('PACKED');
                             showToast('Item added to shipment (Packed)');
                         } else {
-                            row.removeClass('table-primary').data('status', 'pending');
+                            row.removeClass('st-packed').addClass('st-pending').data('status', 'pending').attr('data-status', 'pending');
                             row.find('.status-badge').removeClass().addClass('badge badge-secondary status-badge').text('PENDING');
                             showToast('Item removed from shipment (Pending)');
                         }
@@ -673,48 +674,44 @@ $(document).ready(function () {
         vertical-align: middle !important;
         text-align: center !important;
     }
-    #cargoItemsTable tbody tr.returned-row {
-        background-color: #fff3cd !important;
-        border-left: 4px solid #ffc107 !important;
-    }
-    #cargoItemsTable tbody tr.returned-row:hover {
-        background-color: #ffe8a1 !important;
-    }
-    /* Status colours (All list). Packed keeps the blue selected style; returned stays yellow. */
-    #cargoItemsTable tbody tr.st-pending             { background-color: #e9ecef !important; }
-    #cargoItemsTable tbody tr.st-ready_to_ship       { background-color: #e0cffc !important; }
-    #cargoItemsTable tbody tr.st-shipping_ongoing    { background-color: #cff4fc !important; }
-    #cargoItemsTable tbody tr.st-arrived_bd          { background-color: #d1e7dd !important; }
-    #cargoItemsTable tbody tr.st-waiting_for_customs { background-color: #ffe5d0 !important; }
-    #cargoItemsTable tbody tr.st-ready_to_deliver    { background-color: #b6e3e0 !important; }
-    #cargoItemsTable tbody tr.st-delivered           { background-color: #a3cfbb !important; }
-    #cargoItemsTable tbody tr.st-cancelled           { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; color:#842029; }
-    #cargoItemsTable tbody tr.returned-row           { background-color: #fff3cd !important; }
-    /* column (td) background tints */
-    #cargoItemsTable tbody td.c-date    { background-image: linear-gradient(rgba(13,110,253,.10), rgba(13,110,253,.10)); }
-    #cargoItemsTable tbody td.c-receipt { background-image: linear-gradient(rgba(111,66,193,.12), rgba(111,66,193,.12)); }
-    #cargoItemsTable tbody td.c-ctn,
-    #cargoItemsTable tbody td.c-ctn2    { background-image: linear-gradient(rgba(255,193,7,.22), rgba(255,193,7,.22)); font-weight:600; }
-    #cargoItemsTable tbody td.c-track   { background-image: linear-gradient(rgba(23,162,184,.14), rgba(23,162,184,.14)); }
-    #cargoItemsTable tbody td.c-goods   { background-image: linear-gradient(rgba(40,167,69,.12), rgba(40,167,69,.12)); }
-    #cargoItemsTable tbody td.c-qty     { background-image: linear-gradient(rgba(108,117,125,.12), rgba(108,117,125,.12)); }
-    #cargoItemsTable tbody td.c-weight  { background-image: linear-gradient(rgba(253,126,20,.18), rgba(253,126,20,.18)); font-weight:600; }
-    #cargoItemsTable tbody td.c-dim     { background-image: linear-gradient(rgba(32,201,151,.15), rgba(32,201,151,.15)); }
-    #cargoItemsTable tbody td.c-cbm     { background-image: linear-gradient(rgba(32,201,151,.25), rgba(32,201,151,.25)); }
-    #cargoItemsTable tbody td.c-mark    { background-image: linear-gradient(rgba(214,51,132,.12), rgba(214,51,132,.12)); }
-    #cargoItemsTable tbody td.c-remark  { background-image: linear-gradient(rgba(102,16,242,.07), rgba(102,16,242,.07)); }
+    /* ===== Status colours: every <td> of a row takes the colour of its status ===== */
+    #cargoItemsTable tbody tr[class*="st-"] > td { transition: background-color .15s; }
+    #cargoItemsTable tbody tr.st-pending             > td { background-color: #eceff1 !important; }
+    #cargoItemsTable tbody tr.st-packed              > td { background-color: #cfe2ff !important; }
+    #cargoItemsTable tbody tr.st-ready_to_ship       > td { background-color: #e0cffc !important; }
+    #cargoItemsTable tbody tr.st-shipping_ongoing    > td { background-color: #cff4fc !important; }
+    #cargoItemsTable tbody tr.st-waiting_for_customs > td { background-color: #ffe5d0 !important; }
+    #cargoItemsTable tbody tr.st-arrived_bd          > td { background-color: #d1e7dd !important; }
+    #cargoItemsTable tbody tr.st-ready_to_deliver    > td { background-color: #b6e3e0 !important; }
+    #cargoItemsTable tbody tr.st-delivered           > td { background-color: #a3cfbb !important; }
+    #cargoItemsTable tbody tr.st-cancelled           > td { background-color: #f8d7da !important; color: #842029; }
+    #cargoItemsTable tbody tr.st-cancelled           { border-left: 4px solid #dc3545 !important; }
+    /* status cell a little stronger so the status stands out */
+    #cargoItemsTable tbody tr.st-pending             > td.c-status { background-color: #cfd4da !important; }
+    #cargoItemsTable tbody tr.st-packed              > td.c-status { background-color: #9ec5fe !important; }
+    #cargoItemsTable tbody tr.st-ready_to_ship       > td.c-status { background-color: #cbb2fa !important; }
+    #cargoItemsTable tbody tr.st-shipping_ongoing    > td.c-status { background-color: #9eeaf9 !important; }
+    #cargoItemsTable tbody tr.st-waiting_for_customs > td.c-status { background-color: #fecba1 !important; }
+    #cargoItemsTable tbody tr.st-arrived_bd          > td.c-status { background-color: #a3cfbb !important; }
+    #cargoItemsTable tbody tr.st-ready_to_deliver    > td.c-status { background-color: #8fd3cf !important; }
+    #cargoItemsTable tbody tr.st-delivered           > td.c-status { background-color: #75b798 !important; }
+    #cargoItemsTable tbody tr.st-cancelled           > td.c-status { background-color: #f1aeb5 !important; }
+    /* returned items stay yellow */
+    #cargoItemsTable tbody tr.returned-row > td { background-color: #fff3cd !important; }
+    #cargoItemsTable tbody tr.returned-row { border-left: 4px solid #ffc107 !important; }
+    /* hover: slightly darker */
+    #cargoItemsTable tbody tr.selectable-row:hover > td { filter: brightness(.94); }
+    /* the old column tints are not used any more (status colour decides) */
+    #cargoItemsTable tbody td.c-goods, #cargoItemsTable tbody td.c-ctn, #cargoItemsTable tbody td.c-ctn2,
+    #cargoItemsTable tbody td.c-weight { font-weight: 600; }
     /* third-party goods: purple left bar + purple tinted goods cell */
     #cargoItemsTable tbody tr.tp-row { border-left: 5px solid #6f42c1 !important; }
-    #cargoItemsTable tbody tr.tp-row td.c-goods { background-image: linear-gradient(rgba(111,66,193,.28), rgba(111,66,193,.28)); }
+    #cargoItemsTable tbody tr.tp-row > td.c-goods { box-shadow: inset 0 0 0 2px #6f42c1; }
     .badge-3p { background:#6f42c1; color:#fff; }
     .selectable-row { cursor: pointer; }
     .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
-    .table-primary { background-color: #007bff !important; color: white; }
-    .selectable-row:hover { background-color: #f8f9fa !important; }
-    .table-primary:hover { background-color: #0069d9 !important; }
     .table td:last-child { cursor: default; }
     .toast { border-radius: 5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-    .table-primary .status-badge { color: #000; }
 
     /* Bulk selection */
     .bulk-check-cell { text-align: center; }
