@@ -1,0 +1,1 @@
+@include('errors._card', ['code' => 419, 'title' => 'Page Expired', 'color' => '#ffc107', 'text' => (isset($message) && $message) ? $message : 'Your session expired. Please go back, refresh and try again.'])

@@ -75,9 +75,31 @@
 })();
 </script>
 
+@if(\App\Models\Setting::get('footer_text'))
+<div style="text-align:center;color:#8a94a6;font-size:12px;padding:8px 0 16px">{{ \App\Models\Setting::get('footer_text') }}</div>
+@endif
+
+@php($__flash = collect(['error'=>'danger','success'=>'success','warning'=>'warning','info'=>'info'])->filter(fn($c,$k)=>session($k)))
+@if($__flash->isNotEmpty() || $errors->any())
+<div id="globalFlash" style="display:none;position:fixed;top:70px;right:20px;z-index:99999;max-width:420px">
+    @foreach($__flash as $k=>$c)
+        <div class="alert alert-{{ $c }} alert-dismissible" role="alert">{{ session($k) }}<button type="button" class="close" onclick="this.parentNode.remove()" style="margin-left:10px;background:none;border:0;font-size:20px;float:right">&times;</button></div>
+    @endforeach
+    @if($errors->any())
+        <div class="alert alert-danger" role="alert"><ul style="margin:0;padding-left:18px">@foreach(array_slice($errors->all(),0,5) as $__e)<li>{{ $__e }}</li>@endforeach</ul></div>
+    @endif
+</div>
 <script>
-    @stack('scripts')
+document.addEventListener('DOMContentLoaded',function(){
+    var g=document.getElementById('globalFlash');if(!g)return;
+    // only show the fallback toast when the page doesn't already render its own alert
+    var own=document.querySelectorAll('.alert:not(#globalFlash .alert)');
+    if(own.length===0){g.style.display='block';setTimeout(function(){g.style.display='none'},8000);}
+});
 </script>
+@endif
+@stack('scripts')
+@yield('scripts')
 
 </body>
 

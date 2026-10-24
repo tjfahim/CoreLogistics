@@ -4,6 +4,7 @@
 namespace Database\Seeders;
 
 use App\Models\Permission;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -54,6 +55,8 @@ class PermissionSeeder extends Seeder
             'Create Customers',
             'Edit Customers',
             'Delete Customers',
+            'Manage Partners',
+            'Assign Customers',
         ],
 
         // ---------- Warehouse ----------
@@ -65,6 +68,10 @@ class PermissionSeeder extends Seeder
             'Delete Warehouse Item',
             'View Warehouse Item',
             'Import Warehouse File',
+            'Cancel Cargo Item',
+            'Restore Cargo Item',
+            'Mark Third Party',
+            'Manage Box',
         ],
 
         // ---------- Shipment ----------
@@ -92,6 +99,7 @@ class PermissionSeeder extends Seeder
             'View CTN',
             'Edit CTN',
             'Print CTN',
+            'Auto Assign CTN',
         ],
 
         // ---------- Price ----------
@@ -173,6 +181,42 @@ class PermissionSeeder extends Seeder
         // ---------- Office & Expense ----------
         'Office Expense' => [
             'View Office Expense',
+            'Manage Offices',
+            'Manage Employees',
+            'Manage Office Bills',
+            'Manage Warehouse Bills',
+            'View Salary History',
+        ],
+
+        // ---------- Ledger ----------
+        'Ledger' => [
+            'View Customer Ledger',
+            'View Agent Ledger',
+            'View Shipment Ledger',
+            'Export Ledger',
+        ],
+
+        // ---------- Reports ----------
+        'Reports' => [
+            'View Final Report',
+            'View Business Summary',
+            'View Period Report',
+            'View Customer Report',
+            'View Shipment Report',
+            'View Office Report',
+            'Export Reports',
+        ],
+
+        // ---------- Legacy upload ----------
+        'Legacy Upload' => [
+            'View Legacy Upload',
+            'Manage Legacy Upload',
+        ],
+
+        // ---------- Settings ----------
+        'Settings' => [
+            'View Settings',
+            'Edit Settings',
         ],
     ];
 
@@ -201,5 +245,15 @@ class PermissionSeeder extends Seeder
         }
 
         $this->command->info("✅ Permissions seeded: {$totalCreated} created, {$totalSkipped} skipped.");
+
+        // Super Admin and Admin always hold EVERY permission (safe to re-run any time).
+        $all = Permission::pluck('id')->all();
+        foreach (['superadmin', 'admin'] as $slug) {
+            $role = Role::where('slug', $slug)->first();
+            if ($role) {
+                $role->permissions()->sync($all);
+                $this->command->info("   {$role->name}: " . count($all) . ' permissions');
+            }
+        }
     }
 }

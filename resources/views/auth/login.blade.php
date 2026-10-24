@@ -9,12 +9,12 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Login</title>
+    <title>Login - {{ \App\Models\Setting::get('site_title', 'Techlab33') }}</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="apple-touch-icon" href="apple-icon.png">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico')}}">
+    <link rel="shortcut icon" href="{{ \App\Models\Setting::assetUrl('favicon', 'favicon.ico') }}">
 
 
     <link rel="stylesheet" href="{{ asset('admin/vendors/bootstrap/dist/css/bootstrap.min.css')}}">
@@ -37,7 +37,7 @@
             <div class="login-content">
                 <div class="login-logo">
                     <a href="index.html">
-                        <img class="align-content" src="{{ asset('admin/images/logo.png')}}" alt="">
+                        <img class="align-content" src="{{ \App\Models\Setting::assetUrl('logo', 'admin/images/logo.png') }}" alt="">
                     </a>
                 </div>
                 @if(session('success'))

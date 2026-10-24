@@ -162,7 +162,33 @@ class AuthServiceProvider extends ServiceProvider
 
             // -------- Office & Expense (separate from shipments) --------
             'view-office-expense',
+            'manage-offices', 'manage-employees', 'manage-office-bills', 'manage-warehouse-bills', 'view-salary-history',
+
+            // -------- Warehouse extras --------
+            'cancel-cargo-item', 'restore-cargo-item', 'mark-third-party', 'manage-box',
+            'manage-partners', 'assign-customers', 'auto-assign-ctn',
+
+            // -------- Ledger --------
+            'view-customer-ledger', 'view-agent-ledger', 'view-shipment-ledger', 'export-ledger',
+
+            // -------- Reports --------
+            'view-final-report', 'view-business-summary', 'view-period-report', 'view-customer-report',
+            'view-shipment-report', 'view-office-report', 'export-reports',
+
+            // -------- Legacy upload / Settings --------
+            'view-legacy-upload', 'manage-legacy-upload',
+            'view-settings', 'edit-settings',
         ];
+
+        // Every permission stored in the database becomes a gate automatically,
+        // so a permission added in the Permission screen / seeder works with @can() at once.
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('permissions')) {
+                $permissions = array_unique(array_merge($permissions, \App\Models\Permission::pluck('slug')->all()));
+            }
+        } catch (\Throwable $e) {
+            // database not ready yet (fresh install / migrating) - static list is enough
+        }
 
         foreach ($permissions as $permission) {
             Gate::define($permission, function ($user) use ($permission) {

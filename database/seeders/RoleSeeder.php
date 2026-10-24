@@ -59,17 +59,9 @@ class RoleSeeder extends Seeder
         $this->command->info('Super Admin assigned ' . count($allPermissionIds) . ' permissions.');
 
         // ================================================================
-        // 3. Admin : everything EXCEPT role & permission management
+        // 3. Admin : ALL permissions (same as Super Admin, but can still be restricted by editing the role)
         // ================================================================
-        $adminExcludedGroups = [
-            'Role Management',
-            'Permission Management',
-        ];
-
-        $adminPermissionIds = Permission::whereNotIn('group_name', $adminExcludedGroups)
-            ->pluck('id')
-            ->toArray();
-
+        $adminPermissionIds = Permission::pluck('id')->toArray();
         $admin->permissions()->sync($adminPermissionIds);
         $this->command->info('Admin assigned ' . count($adminPermissionIds) . ' permissions.');
 
@@ -92,6 +84,8 @@ class RoleSeeder extends Seeder
             'Cost Type',
             'Customer Notification',
             'Office Expense',
+            'Ledger',
+            'Reports',
         ];
 
         $managerExcludedSlugs = [
@@ -118,7 +112,7 @@ class RoleSeeder extends Seeder
         // ================================================================
         // 5. Create one user per role
         // ================================================================
-        $superadminUser = User::updateOrCreate(
+        $superadminUser = User::firstOrCreate(
             ['email' => 'superadmin@admin.com'],
             [
                 'name'     => 'Super Admin',
@@ -130,7 +124,7 @@ class RoleSeeder extends Seeder
             ]
         );
 
-        $adminUser = User::updateOrCreate(
+        $adminUser = User::firstOrCreate(
             ['email' => 'admin@admin.com'],
             [
                 'name'     => 'Admin User',
@@ -142,7 +136,7 @@ class RoleSeeder extends Seeder
             ]
         );
 
-        $managerUser = User::updateOrCreate(
+        $managerUser = User::firstOrCreate(
             ['email' => 'manager@admin.com'],
             [
                 'name'     => 'Manager',

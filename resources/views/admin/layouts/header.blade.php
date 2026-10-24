@@ -4,12 +4,12 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Techlab33 - Custom Software</title>
-    <meta name="description" content="Techlab33 - Custom Software">
+    <title>@yield('title', \App\Models\Setting::get('site_title', 'Techlab33 - Custom Software'))</title>
+    <meta name="description" content="{{ \App\Models\Setting::get('site_tagline', \App\Models\Setting::get('site_title', 'Techlab33 - Custom Software')) }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="apple-touch-icon" href="apple-icon.png">
-    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="shortcut icon" href="{{ \App\Models\Setting::assetUrl('favicon', 'favicon.ico') }}">
 
     {{-- Remember the collapsed sidebar before first paint (no flicker) --}}
     <script>try { if (localStorage.getItem('tl-collapsed') === '1') document.documentElement.classList.add('tl-collapsed'); } catch (e) {}</script>

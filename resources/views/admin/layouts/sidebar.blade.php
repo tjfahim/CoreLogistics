@@ -1,8 +1,8 @@
 <aside id="left-panel" class="tl-sidebar">
     <div class="tl-brand">
         <a href="/admin/dashboard">
-            <img class="tl-logo-full" src="{{ asset('admin/images/logo.png') }}" alt="Logo">
-            <img class="tl-logo-mini" src="{{ asset('admin/images/logo2.png') }}" alt="Logo">
+            <img class="tl-logo-full" src="{{ \App\Models\Setting::assetUrl('logo', 'admin/images/logo.png') }}" alt="{{ \App\Models\Setting::get('site_title', 'Logo') }}">
+            <img class="tl-logo-mini" src="{{ \App\Models\Setting::assetUrl('logo_mini', 'admin/images/logo2.png') }}" alt="{{ \App\Models\Setting::get('site_title', 'Logo') }}">
         </a>
     </div>
 
@@ -63,17 +63,21 @@
                 </a>
             </li>
             @endcan
+            @can('view-customer-ledger')
             <li class="tl-item {{ (request()->routeIs('ledger.*') && !request()->routeIs('ledger.agents', 'ledger.agent', 'ledger.shipment')) || request()->routeIs('payments.*') ? 'active' : '' }}">
                 <a href="{{ route('ledger.index') }}" title="Customer Ledger">
                     <span class="tl-ico"><i class="fa fa-address-book-o"></i></span><span class="tl-txt">Customer Ledger</span>
                 </a>
             </li>
 
+            @endcan
+            @can('view-agent-ledger')
             <li class="tl-item {{ request()->routeIs('ledger.agents') || request()->routeIs('ledger.agent') ? 'active' : '' }}">
                 <a href="{{ route('ledger.agents') }}" title="Agent Ledger">
                     <span class="tl-ico"><i class="fa fa-user-circle-o"></i></span><span class="tl-txt">Agent Ledger</span>
                 </a>
             </li>
+            @endcan
 
             {{-- Reports (dropdown) --}}
             @can('shipment-report')
@@ -86,11 +90,21 @@
                 </a>
                 <ul class="tl-sub">
                     <li class="{{ request()->routeIs('reports.dashboard') ? 'active' : '' }}"><a href="{{ route('reports.dashboard') }}"><i class="fa fa-th-large"></i> Reports Home</a></li>
+                    @can('view-final-report')
                     <li class="{{ request()->routeIs('reports.final*') ? 'active' : '' }}"><a href="{{ route('reports.final') }}"><i class="fa fa-star"></i> Final Report</a></li>
+                    @endcan
+                    @can('view-business-summary')
                     <li class="{{ request()->routeIs('reports.summary') ? 'active' : '' }}"><a href="{{ route('reports.summary') }}"><i class="fa fa-pie-chart"></i> Business Summary</a></li>
+                    @endcan
+                    @can('view-period-report')
                     <li class="{{ request()->routeIs('reports.period') ? 'active' : '' }}"><a href="{{ route('reports.period') }}"><i class="fa fa-calendar"></i> Month / Date wise</a></li>
+                    @endcan
+                    @can('view-shipment-report')
                     <li class="{{ request()->routeIs('reports.shipments') ? 'active' : '' }}"><a href="{{ route('reports.shipments') }}"><i class="fa fa-ship"></i> Shipment Report</a></li>
+                    @endcan
+                    @can('view-customer-report')
                     <li class="{{ request()->routeIs('reports.customers') ? 'active' : '' }}"><a href="{{ route('reports.customers') }}"><i class="fa fa-users"></i> Customer Report</a></li>
+                    @endcan
                 </ul>
             </li>
             @endcan
@@ -126,12 +140,22 @@
                     <span class="tl-caret"><i class="fa fa-angle-down"></i></span>
                 </a>
                 <ul class="tl-sub">
+                    @can('manage-offices')
                     <li class="{{ request()->routeIs('offices.*') ? 'active' : '' }}"><a href="{{ route('offices.index') }}"><i class="fa fa-building-o"></i> Offices</a></li>
+                    @endcan
+                    @can('manage-employees')
                     <li class="{{ request()->routeIs('employees.*') ? 'active' : '' }}"><a href="{{ route('employees.index') }}"><i class="fa fa-id-badge"></i> Employees</a></li>
+                    @endcan
+                    @can('view-salary-history')
                     <li class="{{ request()->routeIs('salary-history') ? 'active' : '' }}"><a href="{{ route('salary-history') }}"><i class="fa fa-history"></i> Salary History</a></li>
+                    @endcan
+                    @can('manage-office-bills')
                     <li class="{{ request()->routeIs('office-bills.*') ? 'active' : '' }}"><a href="{{ route('office-bills.index') }}"><i class="fa fa-file-text"></i> Office Bills</a></li>
+                    @endcan
                     <li class="{{ request()->routeIs('warehouse-bills.*') ? 'active' : '' }}"><a href="{{ route('warehouse-bills.index') }}"><i class="fa fa-file-text-o"></i> Summary Bills</a></li>
+                    @can('view-office-report')
                     <li class="{{ request()->routeIs('reports.office') ? 'active' : '' }}"><a href="{{ route('reports.office') }}"><i class="fa fa-bar-chart"></i> Expense Report</a></li>
+                    @endcan
                 </ul>
             </li>
             @endcan
@@ -193,6 +217,14 @@
             <li class="tl-item {{ request()->routeIs('permissions.*') ? 'active' : '' }}">
                 <a href="{{ route('permissions.index') }}" title="Permissions">
                     <span class="tl-ico"><i class="fa fa-key"></i></span><span class="tl-txt">Permissions</span>
+                </a>
+            </li>
+            @endcan
+
+            @can('view-settings')
+            <li class="tl-item {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                <a href="{{ route('settings.index') }}" title="Settings">
+                    <span class="tl-ico"><i class="fa fa-cog"></i></span><span class="tl-txt">Settings</span>
                 </a>
             </li>
             @endcan

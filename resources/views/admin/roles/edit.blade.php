@@ -69,7 +69,7 @@
                            {{-- Permissions grouped by group_name --}}
 <div class="card mt-3">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <strong>Assign Permissions</strong>
+        <strong>Assign Permissions <small class="text-muted" id="permTotalCount"></small></strong>
         <div>
             <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllPermissions">
                 <i class="fa fa-check-square-o"></i> Select All
@@ -89,11 +89,11 @@
                 <div class="col-md-6 mb-3">
                     <div class="border rounded p-2 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong class="text-primary">{{ $groupName }}</strong>
+                            <strong class="text-primary">{{ $groupName }} <small class="text-muted group-count" data-group="{{ Str::slug($groupName) }}"></small></strong>
                             <button type="button"
                                     class="btn btn-sm btn-link toggle-group"
                                     data-group="{{ Str::slug($groupName) }}">
-                                Toggle
+                                Mark all
                             </button>
                         </div>
                         <div class="group-permissions" data-group="{{ Str::slug($groupName) }}">
@@ -141,22 +141,5 @@
 @endsection
 
 @section('scripts')
-<script>
-    $(document).ready(function () {
-        $('#selectAllPermissions').on('click', function () {
-            $('.permission-checkbox').prop('checked', true);
-        });
-
-        $('#deselectAllPermissions').on('click', function () {
-            $('.permission-checkbox').prop('checked', false);
-        });
-
-        $('.toggle-group').on('click', function () {
-            var groupId = $(this).data('group');
-            var checkboxes = $('.group-permissions[data-group="' + groupId + '"] .permission-checkbox');
-            var allChecked = checkboxes.length === checkboxes.filter(':checked').length;
-            checkboxes.prop('checked', !allChecked);
-        });
-    });
-</script>
+@include('admin.roles._permission_js')
 @endsection

@@ -38,11 +38,11 @@
                 </p>
             </div>
             <div class="inv-header-right">
-                <div class="inv-company">TechLab33</div>
+                <div class="inv-company">{{ \App\Models\Setting::get('company_name', 'TechLab33') }}</div>
                 <p class="inv-company-details">
-                    123 Street Name, Dhaka, Bangladesh<br>
-                    Phone: +880 1234 56789<br>
-                    Email: info@techlab33.com
+                    {{ \App\Models\Setting::get('company_address', '123 Street Name, Dhaka, Bangladesh') }}<br>
+                    Phone: {{ \App\Models\Setting::get('company_phone', '+880 1234 56789') }}<br>
+                    Email: {{ \App\Models\Setting::get('company_email', 'info@techlab33.com') }}
                 </p>
             </div>
         </div>

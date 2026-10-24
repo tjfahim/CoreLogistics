@@ -1,0 +1,1 @@
+@include('errors._card', ['code' => 429, 'title' => 'Too Many Requests', 'color' => '#fd7e14', 'text' => (isset($message) && $message) ? $message : 'You are doing that too often. Please wait a moment.'])

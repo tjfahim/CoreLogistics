@@ -165,8 +165,8 @@ Route::post('itemsshipments/{itemshipment}/return-items',
     [ItemShipmentController::class, 'returnItems']
 )->name('itemsshipments.return-items');
 // NEW: Bangladesh-side routes
-Route::post('cargo-items/{cargoItem}/cancel', [CargoItemController::class, 'cancel'])->name('cargo-items.cancel');
-Route::post('cargo-items/{cargoItem}/restore', [CargoItemController::class, 'restore'])->name('cargo-items.restore');
+Route::post('cargo-items/{cargoItem}/cancel', [CargoItemController::class, 'cancel'])->name('cargo-items.cancel')->middleware('can:cancel-cargo-item');
+Route::post('cargo-items/{cargoItem}/restore', [CargoItemController::class, 'restore'])->name('cargo-items.restore')->middleware('can:restore-cargo-item');
 Route::post('itemsshipments/{itemshipment}/make-box', [ItemShipmentController::class, 'makeBox'])->name('itemsshipments.make-box');
 Route::post('itemsshipments/{itemshipment}/remove-box', [ItemShipmentController::class, 'removeBox'])->name('itemsshipments.remove-box');
 Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
@@ -242,12 +242,15 @@ Route::post('/itemshipments/{itemshipment}/auto-assign-ctn',
 
 
 
-Route::resource('offices', OfficeController::class);
-Route::resource('employees', EmployeeController::class);
+Route::get('settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index')->middleware('can:view-settings');
+Route::put('settings', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update')->middleware('can:edit-settings');
+
+Route::resource('offices', OfficeController::class)->middleware('can:manage-offices');
+Route::resource('employees', EmployeeController::class)->middleware('can:manage-employees');
 Route::post('itemsshipments/{itemshipment}/set-third-party', [ItemShipmentController::class, 'setThirdParty'])->name('itemsshipments.set-third-party');
-Route::get('salary-history', [\App\Http\Controllers\EmployeeController::class, 'history'])->name('salary-history');
+Route::get('salary-history', [\App\Http\Controllers\EmployeeController::class, 'history'])->name('salary-history')->middleware('can:view-salary-history');
 Route::resource('office-bills', OfficeBillController::class)
-     ->parameters(['office-bills' => 'office_bill']);
+     ->parameters(['office-bills' => 'office_bill'])->middleware('can:manage-office-bills');
 Route::resource('warehouse-bills', WarehouseBillController::class)
      ->only(['index', 'store', 'destroy'])
      ->parameters(['warehouse-bills' => 'warehouse_bill']);
@@ -333,25 +336,25 @@ Route::get('shipment-bills/{voucher}', [ShipmentBillController::class, 'show'])-
 Route::delete('shipment-bills/{voucher}', [ShipmentBillController::class, 'destroy'])->name('shipment-bills.destroy');
 
         Route::prefix('ledger')->name('ledger.')->group(function () {
-    Route::get('/', [LedgerController::class, 'index'])->name('index');
-    Route::get('/agents', [\App\Http\Controllers\PartyLedgerController::class, 'agents'])->name('agents');
-    Route::get('/agents/{agent}', [\App\Http\Controllers\PartyLedgerController::class, 'agent'])->name('agent');
-    Route::get('/shipments/{itemshipment}', [\App\Http\Controllers\PartyLedgerController::class, 'shipment'])->name('shipment');
-    Route::get('/{customer}', [LedgerController::class, 'customer'])->name('customer');
+    Route::get('/', [LedgerController::class, 'index'])->name('index')->middleware('can:view-customer-ledger');
+    Route::get('/agents', [\App\Http\Controllers\PartyLedgerController::class, 'agents'])->name('agents')->middleware('can:view-agent-ledger');
+    Route::get('/agents/{agent}', [\App\Http\Controllers\PartyLedgerController::class, 'agent'])->name('agent')->middleware('can:view-agent-ledger');
+    Route::get('/shipments/{itemshipment}', [\App\Http\Controllers\PartyLedgerController::class, 'shipment'])->name('shipment')->middleware('can:view-shipment-ledger');
+    Route::get('/{customer}', [LedgerController::class, 'customer'])->name('customer')->middleware('can:view-customer-ledger');
 });
 
 
 
 Route::prefix('reports')->group(function () {
-    Route::get('/final', [\App\Http\Controllers\FinalReportController::class, 'index'])->name('reports.final');
-    Route::get('/final/detail/{type}', [\App\Http\Controllers\FinalReportController::class, 'detail'])->name('reports.final.detail');
+    Route::get('/final', [\App\Http\Controllers\FinalReportController::class, 'index'])->name('reports.final')->middleware('can:view-final-report');
+    Route::get('/final/detail/{type}', [\App\Http\Controllers\FinalReportController::class, 'detail'])->name('reports.final.detail')->middleware('can:view-final-report');
     Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
-    Route::get('/summary', [ReportController::class, 'summary'])->name('reports.summary');
-    Route::get('/period', [ReportController::class, 'period'])->name('reports.period');
-    Route::get('/shipments', [ReportController::class, 'shipments'])->name('reports.shipments');
-    Route::get('/customers', [ReportController::class, 'customers'])->name('reports.customers');
-    Route::get('/office', [ReportController::class, 'office'])->name('reports.office');
-    Route::get('/shipment/{id}', [ReportController::class, 'single'])->name('reports.single');
+    Route::get('/summary', [ReportController::class, 'summary'])->name('reports.summary')->middleware('can:view-business-summary');
+    Route::get('/period', [ReportController::class, 'period'])->name('reports.period')->middleware('can:view-period-report');
+    Route::get('/shipments', [ReportController::class, 'shipments'])->name('reports.shipments')->middleware('can:view-shipment-report');
+    Route::get('/customers', [ReportController::class, 'customers'])->name('reports.customers')->middleware('can:view-customer-report');
+    Route::get('/office', [ReportController::class, 'office'])->name('reports.office')->middleware('can:view-office-report');
+    Route::get('/shipment/{id}', [ReportController::class, 'single'])->name('reports.single')->middleware('can:view-shipment-report');
 });
 
 Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -362,7 +365,7 @@ Route::prefix('notifications')->name('notifications.')->group(function () {
 
 
 
-Route::prefix('legacy')->name('legacy.')->group(function () {
+Route::prefix('legacy')->name('legacy.')->middleware('can:view-legacy-upload')->group(function () {
     Route::get('/',                          [LegacyUploadController::class, 'index'])->name('index');
     Route::post('/',                         [LegacyUploadController::class, 'store'])->name('store');
     Route::get('/{upload}',                  [LegacyUploadController::class, 'show'])->name('show');

@@ -368,11 +368,19 @@ foreach ($validated['items'] as $index => $itemData) {
         // Parse file for preview
         try {
             $transformedItems = $this->parseExcel($uploadedFile);
-        } catch (\RuntimeException $e) {
+        } catch (\Throwable $e) {
             Storage::disk('local')->delete($filePath);
             $excelFile->delete();
 
-            return back()->withInput()->with('error', $e->getMessage());
+            if (!($e instanceof \RuntimeException) || $e instanceof \PhpOffice\PhpSpreadsheet\Exception) {
+                report($e);
+                $msg = 'Excel error: this file could not be read. It may be corrupt, password-protected, '
+                    . 'or not a real Excel file. Please re-save it as .xlsx and upload again.';
+            } else {
+                $msg = 'Excel error: ' . $e->getMessage();
+            }
+
+            return redirect()->route('cargo-items.create')->withInput()->with('error', $msg);
         }
 
         // Detect duplicates
@@ -475,6 +483,7 @@ foreach ($validated['items'] as $index => $itemData) {
 
     $isThirdParty = $request->boolean('is_third_party');
 
+    try {
     DB::transaction(function () use ($items, $skipDuplicates, &$importedCount, &$skippedCount, $isThirdParty) {
         $seen = [];
         foreach ($items as $itemData) {
@@ -496,6 +505,11 @@ foreach ($validated['items'] as $index => $itemData) {
             $importedCount++;
         }
     });
+    } catch (\Throwable $e) {
+        report($e);
+        return redirect()->route('cargo-items.create')
+            ->with('error', 'Import failed, no rows were saved. Please check the Excel data (dates, numbers, required columns) and try again.');
+    }
 
     $excelFile = ImportedExcelFile::findOrFail($fileId);
     $excelFile->update([
