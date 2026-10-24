@@ -106,7 +106,7 @@
                                 <input type="checkbox" name="is_third_party" value="1" id="is_third_party" class="form-check-input" {{ old('is_third_party') ? 'checked' : '' }}>
                                 <label class="form-check-label font-weight-bold" for="is_third_party"><i class="fa fa-handshake-o"></i> Third-party goods</label>
                             </div>
-                            <small class="text-muted">Applies to every row below. Assign the partner customer to the item as usual.</small>
+                            <small class="text-muted">Tick to apply to EVERY row below, or tick the 3P box on individual rows.</small>
                         </div>
                         @csrf
 
@@ -132,6 +132,7 @@
                                         <th>Ware House</th>
                                         <th>Remark</th>
                                         <th>Copy</th>
+                                        <th title="Third-party goods">3P</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -155,6 +156,7 @@
                                         <td><input type="text" name="items[0][warehouse]" class="form-control form-control-sm"></td>
                                         <td><input type="text" name="items[0][remark]" class="form-control form-control-sm"></td>
                                         <td class="text-center"><input type="checkbox" name="items[0][is_copy]" value="1"></td>
+                                        <td class="text-center"><input type="checkbox" name="items[0][is_third_party]" value="1" title="Third-party goods"></td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-danger btn-sm remove-row">
                                                 <i class="fa fa-trash"></i>
@@ -207,6 +209,7 @@
                 <td><input type="text" name="items[${rowIndex}][warehouse]" class="form-control form-control-sm"></td>
                 <td><input type="text" name="items[${rowIndex}][remark]" class="form-control form-control-sm"></td>
                 <td class="text-center"><input type="checkbox" name="items[${rowIndex}][is_copy]" value=""></td>
+                <td class="text-center"><input type="checkbox" name="items[${rowIndex}][is_third_party]" value="1" title="Third-party goods"></td>
                 <td class="text-center">
                     <button type="button" class="btn btn-danger btn-sm remove-row"><i class="fa fa-trash"></i></button>
                 </td>`;

@@ -56,7 +56,7 @@
                     <strong class="card-title">
                         Item List
                         <span class="badge badge-info ml-2" id="statusBadge">
-                            {{ strtoupper(str_replace('_', ' ', $currentPageStatus ?? 'all')) }}
+                            {{ ($currentPageStatus ?? 'active') === 'active' ? 'PENDING + PACKED' : strtoupper(str_replace('_', ' ', $currentPageStatus)) }}
                         </span>
                     </strong>
                     <div>
@@ -77,6 +77,7 @@
                 </div>
 
                 <div class="btn-group btn-group-sm flex-wrap" role="group" id="filterButtons">
+                    <button type="button" class="btn btn-outline-dark filter-btn active" data-status="active">Pending + Packed</button>
                     <button type="button" class="btn btn-secondary filter-btn" data-status="pending">Pending</button>
                     <button type="button" class="btn btn-info filter-btn" data-status="packed">Packed</button>
                     <button type="button" class="btn btn-primary filter-btn" data-status="shipping_ongoing">Shipping Ongoing</button>
@@ -85,7 +86,7 @@
                     <button type="button" class="btn btn-dark filter-btn" data-status="ready_to_deliver">Ready to Deliver</button>
                     <button type="button" class="btn btn-success filter-btn" data-status="delivered">Delivered</button>
                     <button type="button" class="btn btn-outline-danger filter-btn" data-status="cancelled" style="background:#dc3545;color:#fff">Cancelled</button>
-                    <button type="button" class="btn btn-warning filter-btn active" data-status="all">All</button>
+                    <button type="button" class="btn btn-warning filter-btn" data-status="all">All</button>
                 </div>
 
                 <div class="row mt-2">
@@ -132,6 +133,10 @@
                                 <i class="fa fa-check-square"></i> All Packed
                             </button>
 
+                            <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnSelectAll3p">
+                                <i class="fa fa-check-square"></i> All Third-party
+                            </button>
+
                             <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnClearSelection">
                                 <i class="fa fa-times"></i> Clear
                             </button>
@@ -145,10 +150,19 @@
                                 <i class="fa fa-undo"></i> Mark as Pending
                                 (<span id="selectedCount2">0</span>)
                             </button>
+
+                            {{-- Third-party mark (works on ANY selected rows, any status) --}}
+                            <button type="button" class="btn btn-sm mr-2 mb-1 text-white" style="background:#6f42c1" id="btnMark3p" disabled>
+                                <i class="fa fa-handshake-o"></i> Mark Third-party
+                                (<span id="selectedCount3">0</span>)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnUnmark3p" disabled>
+                                <i class="fa fa-times"></i> Unmark Third-party
+                            </button>
                         @endcan
 
                         <small class="text-muted ml-2 mb-1">
-                            Bulk mark only affects items on the current page.
+                            Bulk mark only affects items on the current page. Third-party mark works on any selected row.
                         </small>
                     </div>
                 </div>
@@ -163,7 +177,7 @@
 
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="cargoItemsTable" class="table table-striped table-bordered table-hover">
+                    <table id="cargoItemsTable" class="table table-bordered">
                         <thead class="thead-dark">
                             <tr>
                                 <th style="width:40px;">
@@ -213,7 +227,7 @@ window.CARGO_PERMS = {
 };
 
 $(document).ready(function () {
-    let currentStatus = "{{ $currentPageStatus ?? 'all' }}";
+    let currentStatus = "{{ $currentPageStatus ?? 'active' }}";
     let currentPage = 1;
     let currentSearch = '';
     let isProcessing = false;
@@ -229,7 +243,7 @@ $(document).ready(function () {
 
         currentStatus = $(this).data('status');
         currentPage = 1;
-        $('#statusBadge').text(currentStatus.replace(/_/g, ' ').toUpperCase());
+        $('#statusBadge').text(currentStatus === 'active' ? 'PENDING + PACKED' : currentStatus.replace(/_/g, ' ').toUpperCase());
         loadItems();
     });
 
@@ -299,7 +313,7 @@ $(document).ready(function () {
 
         items.forEach(function (item) {
             const color = statusColors[item.status] || 'secondary';
-            const rowClass = (item.status === 'packed' ? 'table-primary' : ('st-' + item.status)) + (item.is_third_party ? ' tp-row' : '');
+            const rowClass = 'st-' + item.status + (item.is_third_party ? ' tp-row' : '');
             const returnedClass = item.is_returned ? 'returned-row' : '';
             const dateStr = item.date ? item.date.substring(5, 10) : '-';
             const goodsLocal = item.goods_name_local ? '<br><small class="text-muted">(' + item.goods_name_local + ')</small>' : '';
@@ -324,9 +338,9 @@ $(document).ready(function () {
             }
 
             // Pending AND packed rows are selectable (for either direction)
-            const canSelect = P.canToggle && ['pending', 'packed'].includes(item.status);
+            const canSelect = P.canToggle && item.status !== 'cancelled';
             const checkboxCell = canSelect
-                ? '<td class="bulk-check-cell"><input type="checkbox" class="row-check" data-id="' + item.id + '" data-status="' + item.status + '"></td>'
+                ? '<td class="bulk-check-cell"><input type="checkbox" class="row-check" data-id="' + item.id + '" data-status="' + item.status + '" data-3p="' + (item.is_third_party ? 1 : 0) + '"></td>'
                 : '<td class="text-muted">—</td>';
 
             html += '<tr data-item-id="' + item.id + '" ' +
@@ -446,11 +460,11 @@ $(document).ready(function () {
                 success: function (response) {
                     if (response.success) {
                         if (response.action === 'added') {
-                            row.addClass('table-primary').data('status', 'packed');
+                            row.removeClass('st-pending').addClass('st-packed').data('status', 'packed').attr('data-status', 'packed');
                             row.find('.status-badge').removeClass().addClass('badge badge-info status-badge').text('PACKED');
                             showToast('Item added to shipment (Packed)');
                         } else {
-                            row.removeClass('table-primary').data('status', 'pending');
+                            row.removeClass('st-packed').addClass('st-pending').data('status', 'pending').attr('data-status', 'pending');
                             row.find('.status-badge').removeClass().addClass('badge badge-secondary status-badge').text('PENDING');
                             showToast('Item removed from shipment (Pending)');
                         }
@@ -526,8 +540,10 @@ $(document).ready(function () {
         const n = $('.row-check:checked').length;
         $('#selectedCount').text(n);
         $('#selectedCount2').text(n);
+        $('#selectedCount3').text(n);
         $bulkPackBtn.prop('disabled', n === 0);
         $bulkPendingBtn.prop('disabled', n === 0);
+        $('#btnMark3p, #btnUnmark3p').prop('disabled', n === 0);
     }
 
     function clearAllChecks() {
@@ -574,6 +590,28 @@ $(document).ready(function () {
         });
         updateSelectionCount();
     });
+
+    // 2c) Select all third-party rows on the current page
+    $('#btnSelectAll3p').on('click', function () {
+        $('.row-check').each(function () { $(this).prop('checked', String($(this).data('3p')) === '1'); });
+        updateSelectionCount();
+    });
+
+    // third-party bulk mark / unmark (any status)
+    function bulkThirdParty(flag) {
+        const ids = $('.row-check:checked').map(function () { return $(this).data('id'); }).get();
+        if (!ids.length) { showToast('No items selected.'); return; }
+        if (!confirm((flag ? 'Mark ' : 'Unmark ') + ids.length + ' item(s) as third-party?')) return;
+        $.ajax({
+            url: '{{ route("cargo-items.bulk-third-party") }}',
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}', item_ids: ids, is_third_party: flag ? 1 : 0 },
+            success: function (res) { showToast(res.message || 'Updated.'); loadItems(); },
+            error: function (xhr) { showToast(xhr.status === 403 ? 'You do not have permission.' : 'Bulk update failed.'); }
+        });
+    }
+    $('#btnMark3p').on('click', function () { bulkThirdParty(true); });
+    $('#btnUnmark3p').on('click', function () { bulkThirdParty(false); });
 
     // 3) Clear all
     $('#btnClearSelection').on('click', clearAllChecks);
@@ -673,48 +711,37 @@ $(document).ready(function () {
         vertical-align: middle !important;
         text-align: center !important;
     }
-    #cargoItemsTable tbody tr.returned-row {
-        background-color: #fff3cd !important;
-        border-left: 4px solid #ffc107 !important;
-    }
-    #cargoItemsTable tbody tr.returned-row:hover {
-        background-color: #ffe8a1 !important;
-    }
-    /* Status colours (All list). Packed keeps the blue selected style; returned stays yellow. */
-    #cargoItemsTable tbody tr.st-pending             { background-color: #e9ecef !important; }
-    #cargoItemsTable tbody tr.st-ready_to_ship       { background-color: #e0cffc !important; }
-    #cargoItemsTable tbody tr.st-shipping_ongoing    { background-color: #cff4fc !important; }
-    #cargoItemsTable tbody tr.st-arrived_bd          { background-color: #d1e7dd !important; }
-    #cargoItemsTable tbody tr.st-waiting_for_customs { background-color: #ffe5d0 !important; }
-    #cargoItemsTable tbody tr.st-ready_to_deliver    { background-color: #b6e3e0 !important; }
-    #cargoItemsTable tbody tr.st-delivered           { background-color: #a3cfbb !important; }
-    #cargoItemsTable tbody tr.st-cancelled           { background-color: #f8d7da !important; border-left: 4px solid #dc3545 !important; color:#842029; }
-    #cargoItemsTable tbody tr.returned-row           { background-color: #fff3cd !important; }
-    /* column (td) background tints */
-    #cargoItemsTable tbody td.c-date    { background-image: linear-gradient(rgba(13,110,253,.10), rgba(13,110,253,.10)); }
-    #cargoItemsTable tbody td.c-receipt { background-image: linear-gradient(rgba(111,66,193,.12), rgba(111,66,193,.12)); }
-    #cargoItemsTable tbody td.c-ctn,
-    #cargoItemsTable tbody td.c-ctn2    { background-image: linear-gradient(rgba(255,193,7,.22), rgba(255,193,7,.22)); font-weight:600; }
-    #cargoItemsTable tbody td.c-track   { background-image: linear-gradient(rgba(23,162,184,.14), rgba(23,162,184,.14)); }
-    #cargoItemsTable tbody td.c-goods   { background-image: linear-gradient(rgba(40,167,69,.12), rgba(40,167,69,.12)); }
-    #cargoItemsTable tbody td.c-qty     { background-image: linear-gradient(rgba(108,117,125,.12), rgba(108,117,125,.12)); }
-    #cargoItemsTable tbody td.c-weight  { background-image: linear-gradient(rgba(253,126,20,.18), rgba(253,126,20,.18)); font-weight:600; }
-    #cargoItemsTable tbody td.c-dim     { background-image: linear-gradient(rgba(32,201,151,.15), rgba(32,201,151,.15)); }
-    #cargoItemsTable tbody td.c-cbm     { background-image: linear-gradient(rgba(32,201,151,.25), rgba(32,201,151,.25)); }
-    #cargoItemsTable tbody td.c-mark    { background-image: linear-gradient(rgba(214,51,132,.12), rgba(214,51,132,.12)); }
-    #cargoItemsTable tbody td.c-remark  { background-image: linear-gradient(rgba(102,16,242,.07), rgba(102,16,242,.07)); }
+    /* ===== Status colours: every <td> of a row takes the colour of its status ===== */
+    #cargoItemsTable tbody tr[class*="st-"] > td { transition: background-color .15s; }
+    /* solid status colours */
+    #cargoItemsTable tbody tr.st-pending              > td { background-color: #adb5bd !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-packed               > td { background-color: #6ea8fe !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-ready_to_ship        > td { background-color: #a98eda !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-shipping_ongoing     > td { background-color: #4dd0e1 !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-waiting_for_customs  > td { background-color: #ffa94d !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-arrived_bd           > td { background-color: #69db7c !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-ready_to_deliver     > td { background-color: #20c997 !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-delivered            > td { background-color: #2f9e44 !important; color: #fff !important; }
+    #cargoItemsTable tbody tr.st-cancelled            > td { background-color: #e03131 !important; color: #fff !important; }
+    #cargoItemsTable tbody tr.st-delivered > td .text-muted, #cargoItemsTable tbody tr.st-cancelled > td .text-muted { color: #f1f3f5 !important; }
+    #cargoItemsTable tbody tr.st-cancelled { border-left: 4px solid #a61e4d !important; }
+    #cargoItemsTable tbody tr[class*="st-"] > td.c-status { filter: brightness(.88); }
+    /* returned items stay yellow */
+    #cargoItemsTable tbody tr.returned-row > td { background-color: #ffd43b !important; color:#000 !important; }
+    #cargoItemsTable tbody tr.returned-row { border-left: 4px solid #ffc107 !important; }
+    /* hover: slightly darker */
+    #cargoItemsTable tbody tr.selectable-row:hover > td { filter: brightness(.94); }
+    /* the old column tints are not used any more (status colour decides) */
+    #cargoItemsTable tbody td.c-goods, #cargoItemsTable tbody td.c-ctn, #cargoItemsTable tbody td.c-ctn2,
+    #cargoItemsTable tbody td.c-weight { font-weight: 600; }
     /* third-party goods: purple left bar + purple tinted goods cell */
     #cargoItemsTable tbody tr.tp-row { border-left: 5px solid #6f42c1 !important; }
-    #cargoItemsTable tbody tr.tp-row td.c-goods { background-image: linear-gradient(rgba(111,66,193,.28), rgba(111,66,193,.28)); }
+    #cargoItemsTable tbody tr.tp-row > td.c-goods { box-shadow: inset 0 0 0 2px #6f42c1; }
     .badge-3p { background:#6f42c1; color:#fff; }
     .selectable-row { cursor: pointer; }
     .filter-btn.active { box-shadow: 0 0 0 2px #007bff inset; font-weight: bold; }
-    .table-primary { background-color: #007bff !important; color: white; }
-    .selectable-row:hover { background-color: #f8f9fa !important; }
-    .table-primary:hover { background-color: #0069d9 !important; }
     .table td:last-child { cursor: default; }
     .toast { border-radius: 5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-    .table-primary .status-badge { color: #000; }
 
     /* Bulk selection */
     .bulk-check-cell { text-align: center; }

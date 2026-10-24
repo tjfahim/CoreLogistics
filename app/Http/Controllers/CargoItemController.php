@@ -16,7 +16,7 @@ class CargoItemController extends Controller
 public function index()
 {
     return view('admin.cargo_items.index', [
-        'currentPageStatus' => 'all'
+        'currentPageStatus' => 'active'   // default: pending + packed only
     ]);
 }
 public function pendingItems()
@@ -52,6 +52,7 @@ public function ajaxItems(Request $request)
     $page = (int) $request->input('page', 1);
 
     $statusGroups = [
+        'active'               => ['pending', 'packed'],
         'pending'              => ['pending'],
         'packed'               => ['packed'],
         'shipping_ongoing'     => ['shipping_ongoing'],
@@ -140,6 +141,7 @@ public function ajaxItems(Request $request)
             'items.*.remark'          => ['nullable', 'string', 'max:500'],
             'items.*.warehouse'       => ['nullable', 'string', 'max:255'],
             'items.*.is_copy'         => ['nullable'],
+            'items.*.is_third_party'  => ['nullable'],
             'is_third_party'          => ['nullable', 'boolean'],
         ]);
 
@@ -172,6 +174,7 @@ foreach ($validated['items'] as $index => $itemData) {
             $seen = [];
             foreach ($validated['items'] as $itemData) {
                 $itemData['is_copy'] = !empty($itemData['is_copy']);
+                $rowThirdParty = !empty($itemData['is_third_party']);
 
                 $key = strtolower(trim(($itemData['tracking_no'] ?? '') . '|' . ($itemData['goods_name_en'] ?? '')));
                 if (empty($itemData['tracking_no'])) continue;
@@ -187,7 +190,7 @@ foreach ($validated['items'] as $index => $itemData) {
                     continue;
                 }
 
-                $itemData['is_third_party'] = $isThirdParty;
+                $itemData['is_third_party'] = $isThirdParty || $rowThirdParty;
                 CargoItem::create($itemData);
             }
         });
@@ -241,6 +244,26 @@ foreach ($validated['items'] as $index => $itemData) {
         return redirect()
             ->route('cargo-items.index')
             ->with('success', 'Cargo item updated successfully.');
+    }
+
+    /** Mark / unmark many selected items as third-party goods (bulk mark from the item list). */
+    public function bulkThirdParty(Request $request)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('edit-warehouse-item');
+
+        $data = $request->validate([
+            'item_ids'       => 'required|array|min:1',
+            'item_ids.*'     => 'integer|exists:cargo_items,id',
+            'is_third_party' => 'required|boolean',
+        ]);
+
+        $n = CargoItem::whereIn('id', $data['item_ids'])->update(['is_third_party' => $request->boolean('is_third_party')]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $n,
+            'message' => $n . ' item(s) ' . ($request->boolean('is_third_party') ? 'marked as third-party.' : 'unmarked from third-party.'),
+        ]);
     }
 
     /** Cancel an item (removes it from any shipment, keeps the record in the Cancelled list). */
