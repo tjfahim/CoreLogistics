@@ -133,6 +133,10 @@
                                 <i class="fa fa-check-square"></i> All Packed
                             </button>
 
+                            <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnSelectAll3p">
+                                <i class="fa fa-check-square"></i> All Third-party
+                            </button>
+
                             <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnClearSelection">
                                 <i class="fa fa-times"></i> Clear
                             </button>
@@ -146,10 +150,19 @@
                                 <i class="fa fa-undo"></i> Mark as Pending
                                 (<span id="selectedCount2">0</span>)
                             </button>
+
+                            {{-- Third-party mark (works on ANY selected rows, any status) --}}
+                            <button type="button" class="btn btn-sm mr-2 mb-1 text-white" style="background:#6f42c1" id="btnMark3p" disabled>
+                                <i class="fa fa-handshake-o"></i> Mark Third-party
+                                (<span id="selectedCount3">0</span>)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnUnmark3p" disabled>
+                                <i class="fa fa-times"></i> Unmark Third-party
+                            </button>
                         @endcan
 
                         <small class="text-muted ml-2 mb-1">
-                            Bulk mark only affects items on the current page.
+                            Bulk mark only affects items on the current page. Third-party mark works on any selected row.
                         </small>
                     </div>
                 </div>
@@ -325,9 +338,9 @@ $(document).ready(function () {
             }
 
             // Pending AND packed rows are selectable (for either direction)
-            const canSelect = P.canToggle && ['pending', 'packed'].includes(item.status);
+            const canSelect = P.canToggle && item.status !== 'cancelled';
             const checkboxCell = canSelect
-                ? '<td class="bulk-check-cell"><input type="checkbox" class="row-check" data-id="' + item.id + '" data-status="' + item.status + '"></td>'
+                ? '<td class="bulk-check-cell"><input type="checkbox" class="row-check" data-id="' + item.id + '" data-status="' + item.status + '" data-3p="' + (item.is_third_party ? 1 : 0) + '"></td>'
                 : '<td class="text-muted">—</td>';
 
             html += '<tr data-item-id="' + item.id + '" ' +
@@ -527,8 +540,10 @@ $(document).ready(function () {
         const n = $('.row-check:checked').length;
         $('#selectedCount').text(n);
         $('#selectedCount2').text(n);
+        $('#selectedCount3').text(n);
         $bulkPackBtn.prop('disabled', n === 0);
         $bulkPendingBtn.prop('disabled', n === 0);
+        $('#btnMark3p, #btnUnmark3p').prop('disabled', n === 0);
     }
 
     function clearAllChecks() {
@@ -575,6 +590,28 @@ $(document).ready(function () {
         });
         updateSelectionCount();
     });
+
+    // 2c) Select all third-party rows on the current page
+    $('#btnSelectAll3p').on('click', function () {
+        $('.row-check').each(function () { $(this).prop('checked', String($(this).data('3p')) === '1'); });
+        updateSelectionCount();
+    });
+
+    // third-party bulk mark / unmark (any status)
+    function bulkThirdParty(flag) {
+        const ids = $('.row-check:checked').map(function () { return $(this).data('id'); }).get();
+        if (!ids.length) { showToast('No items selected.'); return; }
+        if (!confirm((flag ? 'Mark ' : 'Unmark ') + ids.length + ' item(s) as third-party?')) return;
+        $.ajax({
+            url: '{{ route("cargo-items.bulk-third-party") }}',
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}', item_ids: ids, is_third_party: flag ? 1 : 0 },
+            success: function (res) { showToast(res.message || 'Updated.'); loadItems(); },
+            error: function (xhr) { showToast(xhr.status === 403 ? 'You do not have permission.' : 'Bulk update failed.'); }
+        });
+    }
+    $('#btnMark3p').on('click', function () { bulkThirdParty(true); });
+    $('#btnUnmark3p').on('click', function () { bulkThirdParty(false); });
 
     // 3) Clear all
     $('#btnClearSelection').on('click', clearAllChecks);

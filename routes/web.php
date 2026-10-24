@@ -172,6 +172,7 @@ Route::post('itemsshipments/{itemshipment}/remove-box', [ItemShipmentController:
 Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
 Route::get('cargo-items/{cargoItem}/edit', [CargoItemController::class, 'edit'])->name('cargo-items.edit');
 Route::get('cargo-items/bangladesh-warehouse', [CargoItemController::class, 'bangladeshWarehouseItems'])->name('cargo-items.bangladesh-warehouse');
+Route::post('cargo-items/bulk-third-party', [CargoItemController::class, 'bulkThirdParty'])->name('cargo-items.bulk-third-party');
 Route::get('cargo-items/ajax/items', [CargoItemController::class, 'ajaxItems'])->name('cargo-items.ajax-items');
 
 // Status-specific (existing)
