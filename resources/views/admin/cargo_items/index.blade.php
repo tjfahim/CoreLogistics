@@ -676,28 +676,21 @@ $(document).ready(function () {
     }
     /* ===== Status colours: every <td> of a row takes the colour of its status ===== */
     #cargoItemsTable tbody tr[class*="st-"] > td { transition: background-color .15s; }
-    #cargoItemsTable tbody tr.st-pending             > td { background-color: #eceff1 !important; }
-    #cargoItemsTable tbody tr.st-packed              > td { background-color: #cfe2ff !important; }
-    #cargoItemsTable tbody tr.st-ready_to_ship       > td { background-color: #e0cffc !important; }
-    #cargoItemsTable tbody tr.st-shipping_ongoing    > td { background-color: #cff4fc !important; }
-    #cargoItemsTable tbody tr.st-waiting_for_customs > td { background-color: #ffe5d0 !important; }
-    #cargoItemsTable tbody tr.st-arrived_bd          > td { background-color: #d1e7dd !important; }
-    #cargoItemsTable tbody tr.st-ready_to_deliver    > td { background-color: #b6e3e0 !important; }
-    #cargoItemsTable tbody tr.st-delivered           > td { background-color: #a3cfbb !important; }
-    #cargoItemsTable tbody tr.st-cancelled           > td { background-color: #f8d7da !important; color: #842029; }
-    #cargoItemsTable tbody tr.st-cancelled           { border-left: 4px solid #dc3545 !important; }
-    /* status cell a little stronger so the status stands out */
-    #cargoItemsTable tbody tr.st-pending             > td.c-status { background-color: #cfd4da !important; }
-    #cargoItemsTable tbody tr.st-packed              > td.c-status { background-color: #9ec5fe !important; }
-    #cargoItemsTable tbody tr.st-ready_to_ship       > td.c-status { background-color: #cbb2fa !important; }
-    #cargoItemsTable tbody tr.st-shipping_ongoing    > td.c-status { background-color: #9eeaf9 !important; }
-    #cargoItemsTable tbody tr.st-waiting_for_customs > td.c-status { background-color: #fecba1 !important; }
-    #cargoItemsTable tbody tr.st-arrived_bd          > td.c-status { background-color: #a3cfbb !important; }
-    #cargoItemsTable tbody tr.st-ready_to_deliver    > td.c-status { background-color: #8fd3cf !important; }
-    #cargoItemsTable tbody tr.st-delivered           > td.c-status { background-color: #75b798 !important; }
-    #cargoItemsTable tbody tr.st-cancelled           > td.c-status { background-color: #f1aeb5 !important; }
+    /* solid status colours */
+    #cargoItemsTable tbody tr.st-pending              > td { background-color: #adb5bd !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-packed               > td { background-color: #6ea8fe !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-ready_to_ship        > td { background-color: #a98eda !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-shipping_ongoing     > td { background-color: #4dd0e1 !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-waiting_for_customs  > td { background-color: #ffa94d !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-arrived_bd           > td { background-color: #69db7c !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-ready_to_deliver     > td { background-color: #20c997 !important; color: #000 !important; }
+    #cargoItemsTable tbody tr.st-delivered            > td { background-color: #2f9e44 !important; color: #fff !important; }
+    #cargoItemsTable tbody tr.st-cancelled            > td { background-color: #e03131 !important; color: #fff !important; }
+    #cargoItemsTable tbody tr.st-delivered > td .text-muted, #cargoItemsTable tbody tr.st-cancelled > td .text-muted { color: #f1f3f5 !important; }
+    #cargoItemsTable tbody tr.st-cancelled { border-left: 4px solid #a61e4d !important; }
+    #cargoItemsTable tbody tr[class*="st-"] > td.c-status { filter: brightness(.88); }
     /* returned items stay yellow */
-    #cargoItemsTable tbody tr.returned-row > td { background-color: #fff3cd !important; }
+    #cargoItemsTable tbody tr.returned-row > td { background-color: #ffd43b !important; color:#000 !important; }
     #cargoItemsTable tbody tr.returned-row { border-left: 4px solid #ffc107 !important; }
     /* hover: slightly darker */
     #cargoItemsTable tbody tr.selectable-row:hover > td { filter: brightness(.94); }
