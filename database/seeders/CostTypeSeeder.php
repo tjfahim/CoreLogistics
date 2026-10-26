@@ -15,6 +15,7 @@ class CostTypeSeeder extends Seeder
     {
           $costTypes = [
             ['name' => 'Freight Agent Cost', 'type' => 'per_kg', 'description' => 'Cost per kg for freight forwarder', 'have_agent' => true,'have_partial_payment'=> true],
+            ['name' => 'Freight Agent Cost CBM', 'type' => 'per_kg', 'description' => 'Cost per kg for freight forwarder', 'have_agent' => true,'have_partial_payment'=> true],
             ['name' => 'CNF Agent Cost', 'type' => 'per_kg', 'description' => 'Cost per kg for CNF agent', 'have_agent' => true,'have_partial_payment'=> true],
             ['name' => 'Transport Cost Chine warehouse to freight', 'type' => 'fixed', 'description' => 'Transportation cost', 'have_agent' => false,'have_partial_payment'=> false],
             ['name' => 'Labor Cost Chine warehouse to freight', 'type' => 'fixed', 'description' => 'Loading/unloading labor cost' , 'have_agent' => false,'have_partial_payment'=> false],
