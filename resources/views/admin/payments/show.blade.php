@@ -383,7 +383,7 @@
                                         </td>
                                         <td>{{ $item->tracking_no ?? '—' }}</td>
                                         <td>{{ $item->printed_ctn_no ?? '—' }}</td>
-                                        <td class="text-right text-end">{{ number_format($item->weight_kg, 2) }}</td>
+                                        <td class="text-right text-end">{{ number_format($item->billing_weight, 2) }}</td>
                                         <td class="text-right text-end">{{ number_format($item->cbm, 3) }}</td>
                                         <td class="text-right text-end">
                                             @if($item->hasPrice())

@@ -31,7 +31,7 @@ class AccountingService
     /** Same rule as CargoItem::getTotalPriceAttribute(), written in SQL. */
     public const BILL_SQL = "CASE
         WHEN COALESCE(ci.price, 0) <> 0 THEN ci.price
-        WHEN COALESCE(ci.price_per_kg, 0) <> 0 AND COALESCE(ci.weight_kg, 0) <> 0 THEN ci.price_per_kg * ci.weight_kg
+        WHEN COALESCE(ci.price_per_kg, 0) <> 0 AND COALESCE(ci.final_weight_kg, ci.weight_kg, 0) <> 0 THEN ci.price_per_kg * COALESCE(ci.final_weight_kg, ci.weight_kg)
         ELSE 0 END";
 
     /** "RMB 100.00 @ 17.5" for payments made / received in a foreign currency, else null. */
@@ -80,7 +80,7 @@ class AccountingService
             ->selectRaw('ci.customer_id, cis.items_shipment_id as shipment_id,
                 COUNT(ci.id) as items,
                 SUM(CASE WHEN ci.price IS NOT NULL OR ci.price_per_kg IS NOT NULL THEN 1 ELSE 0 END) as priced_items,
-                SUM(COALESCE(ci.weight_kg, 0)) as weight,
+                SUM(COALESCE(ci.final_weight_kg, ci.weight_kg, 0)) as weight,
                 SUM(COALESCE(ci.cbm, 0)) as cbm,
                 SUM(' . self::BILL_SQL . ') as billed')
             ->get();
@@ -440,7 +440,7 @@ class AccountingService
             ->whereIn('cis.items_shipment_id', $shipmentIds)
             ->groupBy('cis.items_shipment_id')
             ->selectRaw('cis.items_shipment_id as shipment_id, COUNT(ci.id) as items,
-                SUM(COALESCE(ci.weight_kg, 0)) as weight, SUM(COALESCE(ci.cbm, 0)) as cbm,
+                SUM(COALESCE(ci.final_weight_kg, ci.weight_kg, 0)) as weight, SUM(COALESCE(ci.cbm, 0)) as cbm,
                 SUM(CASE WHEN ci.customer_id IS NULL THEN 1 ELSE 0 END) as unassigned,
                 SUM(CASE WHEN ci.price IS NULL AND ci.price_per_kg IS NULL THEN 1 ELSE 0 END) as unpriced')
             ->get()

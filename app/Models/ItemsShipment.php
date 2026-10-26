@@ -54,7 +54,7 @@ class ItemsShipment extends Model
     // Calculate shipment statistics
     public function getTotalWeightAttribute()
     {
-        return $this->cargoItems->sum('weight_kg');
+        return $this->cargoItems->sum('billing_weight');
     }
 
     public function getTotalCbmAttribute()

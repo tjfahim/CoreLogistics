@@ -82,7 +82,7 @@ class Customer extends Model
                 $query->whereNotNull('price')
                       ->orWhereNotNull('price_per_kg');
             })
-            ->sum(DB::raw('COALESCE(price, price_per_kg * weight_kg)'));
+            ->sum(DB::raw('COALESCE(price, price_per_kg * COALESCE(final_weight_kg, weight_kg))'));
     }
 
 

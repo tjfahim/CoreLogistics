@@ -80,7 +80,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h6>Total Weight</h6>
-                                <h4 class="text-info">{{ number_format($itemshipment->cargoItems->sum('weight_kg'), 0) }} kg</h4>
+                                <h4 class="text-info">{{ number_format($itemshipment->cargoItems->sum('billing_weight'), 0) }} kg</h4>
                             </div>
                         </div>
                     </div>
@@ -167,7 +167,7 @@
                                         <td>
                                             {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}
                                         </td>
-                                        <td class="text-right">{{ number_format($item->weight_kg ?? 0, 0) }}</td>
+                                        <td class="text-right">{{ number_format($item->billing_weight ?? 0, 0) }}</td>
                                         <td class="text-right text-info">
                                             <strong>{{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}</strong>
                                         </td>
@@ -181,7 +181,7 @@
                                                        class="form-control form-control-sm price-per-kg"
                                                        data-item-id="{{ $item->id }}"
                                                        data-group="{{ \Illuminate\Support\Str::lower(trim($item->goods_name_en)) }}|{{ \Illuminate\Support\Str::lower(trim($item->shipping_mark)) }}"
-                                                       data-weight="{{ $item->weight_kg ?? 0 }}"
+                                                       data-weight="{{ $item->billing_weight ?? 0 }}"
                                                        placeholder="0.00">
                                             @else
                                                 {{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}

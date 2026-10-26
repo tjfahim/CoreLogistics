@@ -156,7 +156,7 @@ class FinalReportController extends Controller
 
     private function stat(Collection $items): array
     {
-        return ['items' => $items->count(), 'boxes' => $this->boxes($items), 'kg' => round((float) $items->sum('weight_kg'), 2)];
+        return ['items' => $items->count(), 'boxes' => $this->boxes($items), 'kg' => round((float) $items->sum('billing_weight'), 2)];
     }
 
     // ----------------------------------------------------------------- build
@@ -313,9 +313,9 @@ class FinalReportController extends Controller
                 'rows' => $items->map(fn ($i) => [
                     $i->event_date, $i->id, $i->printed_ctn_no, $i->box_no, $i->goods_name_en, $i->tracking_no,
                     (optional($i->customer)->name ?? '—') . ($i->is_third_party ? ' [3P]' : ''),
-                    (float) $i->weight_kg, ucfirst(str_replace('_', ' ', $i->status)),
+                    (float) $i->billing_weight, ucfirst(str_replace('_', ' ', $i->status)),
                 ])->all(),
-                'totals' => ['TOTAL', $items->count(), '', '', '', '', '', round((float) $items->sum('weight_kg'), 2), ''],
+                'totals' => ['TOTAL', $items->count(), '', '', '', '', '', round((float) $items->sum('billing_weight'), 2), ''],
                 'money' => [7], 'int' => [1],
             ];
         }

@@ -94,6 +94,12 @@
                                         </a>
                                     @endcan
 
+                                    @can('view-final-weight')
+                                        <a href="{{ route('itemshipments.final-weight', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                            Final Weight
+                                        </a>
+                                    @endcan
+
                                     {{-- ✅ Prices --}}
                                     @can('view-price')
                                         <a href="{{ route('itemshipments.edit-prices', $shipment->id) }}" class="btn btn-primary btn-sm">

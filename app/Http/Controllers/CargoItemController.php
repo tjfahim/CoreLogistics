@@ -72,6 +72,13 @@ public function ajaxItems(Request $request)
         $query->where('is_third_party', false);
     }
 
+    $fw = $request->input('final_weight', '');
+    if ($fw === 'missing') {
+        $query->whereNull('final_weight_kg');
+    } elseif ($fw === 'set') {
+        $query->whereNotNull('final_weight_kg');
+    }
+
     if ($status !== 'all' && isset($statusGroups[$status])) {
         $query->whereIn('status', $statusGroups[$status]);
     } elseif ($status !== 'all') {

@@ -42,7 +42,7 @@ class CustomerBillController extends Controller
             $itemsWithoutPrice = 0;
 
             foreach ($customerItems as $item) {
-                $totalWeight += $item->weight_kg;
+                $totalWeight += $item->billing_weight;
 
                 if ($item->hasPrice()) {
                     $totalPrice += $item->total_price;
@@ -115,7 +115,7 @@ class CustomerBillController extends Controller
     $items = $query->get();
 
     $totalItems = $items->count();
-    $totalWeight = $items->sum('weight_kg');
+    $totalWeight = $items->sum('billing_weight');
     $totalPrice = 0;
     $itemsWithPrice = 0;
     $itemsWithoutPrice = 0;
@@ -136,7 +136,7 @@ class CustomerBillController extends Controller
             'id'               => $item->id,
             'goods_name_en'    => $item->goods_name_en,
             'goods_name_local' => $item->goods_name_local,
-            'weight_kg'        => $item->weight_kg,
+            'weight_kg'        => $item->billing_weight,
             'cbm'              => $item->cbm,
             'tracking_no'      => $item->tracking_no,
             'has_price'        => $hasPrice,

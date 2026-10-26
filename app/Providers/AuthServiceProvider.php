@@ -100,6 +100,8 @@ class AuthServiceProvider extends ServiceProvider
             // -------- Carton (CTN) --------
             'view-ctn',
             'edit-ctn',
+            'view-final-weight',
+            'edit-final-weight',
             'print-ctn',
 
             // -------- Price --------

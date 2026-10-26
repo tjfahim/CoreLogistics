@@ -71,7 +71,7 @@ class CustomerLedgerService
                 'total_items'    => $shipmentItems->count(),
                 'priced_items'   => $priced->count(),
                 'unpriced_items' => $shipmentItems->count() - $priced->count(),
-                'total_weight'   => (float) $shipmentItems->sum('weight_kg'),
+                'total_weight'   => (float) $shipmentItems->sum('billing_weight'),
                 'billed'         => $billed,
                 'paid'           => $paid,
                 'due'            => $due,

@@ -284,7 +284,7 @@
                                         <small class="text-muted">Tracking: {{ $item->tracking_no }}</small>
                                     </td>
                                     <td>{{ $item->customer ? $item->customer->name : 'Unassigned' }}</td>
-                                    <td>{{ number_format($item->weight_kg, 0) }}</td>
+                                    <td>{{ number_format($item->billing_weight, 0) }}</td>
                                     <td>
                                         <input type="number"
                                                name="prices[{{ $item->id }}][price]"

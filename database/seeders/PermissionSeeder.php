@@ -100,6 +100,8 @@ class PermissionSeeder extends Seeder
             'Edit CTN',
             'Print CTN',
             'Auto Assign CTN',
+            'View Final Weight',
+            'Edit Final Weight',
         ],
 
         // ---------- Price ----------

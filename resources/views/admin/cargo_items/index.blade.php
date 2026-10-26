@@ -99,6 +99,11 @@
                             <option value="any">Third-party only</option>
                             <option value="none">Normal only</option>
                         </select>
+                        <select id="fwFilter" class="form-control form-control-sm d-inline-block mr-1" style="width:auto" title="Final weight filter">
+                            <option value="">Any weight</option>
+                            <option value="missing">Final weight missing</option>
+                            <option value="set">Final weight set</option>
+                        </select>
                         <select id="perPageSelect" class="form-control form-control-sm d-inline-block " style="width: auto;">
                             <option value="25">25 per page</option>
                             <option value="100" selected>100 per page</option>
@@ -258,7 +263,7 @@ $(document).ready(function () {
         }, 350);
     });
 
-    $('#tpFilter').on('change', function () { currentPage = 1; loadItems(); });
+    $('#tpFilter, #fwFilter').on('change', function () { currentPage = 1; loadItems(); });
 
     $('#perPageSelect').on('change', function () {
         currentPage = 1;
@@ -278,7 +283,8 @@ $(document).ready(function () {
                 page: currentPage,
                 per_page: perPage,
                 search: currentSearch,
-                third_party: $('#tpFilter').val()
+                third_party: $('#tpFilter').val(),
+                final_weight: $('#fwFilter').val()
             },
             success: function (res) {
                 renderRows(res.data);

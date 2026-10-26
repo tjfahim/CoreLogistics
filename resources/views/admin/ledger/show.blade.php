@@ -209,7 +209,7 @@
     @php
         $sid = $s->shipment_id;
         $its = $itemsByShipment->get($sid, collect());
-        $wSum = $its->sum('weight_kg'); $cSum = $its->sum('cbm');
+        $wSum = $its->sum('billing_weight'); $cSum = $its->sum('cbm');
     @endphp
     <div class="lm-overlay no-print" id="itemsModal{{ $sid }}" data-lm="1">
         <div class="lm-box" role="dialog" aria-modal="true">
@@ -230,7 +230,7 @@
                             <td>{{ $item->receipt_no ?: '—' }}</td>
                             <td>{{ $item->tracking_no ?: '—' }}</td>
                             <td>{{ $item->printed_ctn_no ?: '—' }}</td>
-                            <td class="r">{{ number_format($item->weight_kg, 2) }}</td>
+                            <td class="r">{{ number_format($item->billing_weight, 2) }}</td>
                             <td class="r">{{ number_format($item->cbm, 3) }}</td>
                             <td class="r">@if($item->hasPrice()){{ number_format($item->total_price, 2) }}@else<span class="neg">No price</span>@endif</td>
                             <td><span class="rp-pill {{ $statusColors[$item->status] ?? 'pill-gray' }}">{{ ucwords(str_replace('_', ' ', $item->status ?: 'unknown')) }}</span></td>

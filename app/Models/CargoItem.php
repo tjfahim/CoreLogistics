@@ -32,6 +32,7 @@ class CargoItem extends Model
         'pack_no',
         'unit_pcs',
         'weight_kg',
+        'final_weight_kg',
         'length_cm',
         'width_cm',
         'height_cm',
@@ -118,12 +119,18 @@ public function latestReturn()
     {
         return $query->whereNotNull('customer_id');
     }
+    /** Weight used for billing & reports: final weight when set, otherwise the original weight. */
+    public function getBillingWeightAttribute()
+    {
+        return $this->final_weight_kg !== null ? (float) $this->final_weight_kg : (float) $this->weight_kg;
+    }
+
        public function getTotalPriceAttribute()
     {
         if ($this->price) {
             return $this->price;
-        } elseif ($this->price_per_kg && $this->weight_kg) {
-            return $this->price_per_kg * $this->weight_kg;
+        } elseif ($this->price_per_kg && $this->billing_weight) {
+            return $this->price_per_kg * $this->billing_weight;
         }
         return null;
     }

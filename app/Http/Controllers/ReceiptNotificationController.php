@@ -144,7 +144,7 @@ class ReceiptNotificationController extends Controller
             ->whereNotNull('ci.receipt_no')
             ->where('ci.receipt_no', '<>', '')
             ->groupBy('ci.receipt_no')
-            ->selectRaw("ci.receipt_no, COUNT(*) as items, SUM(ci.weight_kg) as weight,
+            ->selectRaw("ci.receipt_no, COUNT(*) as items, SUM(COALESCE(ci.final_weight_kg, ci.weight_kg)) as weight,
                          MIN(ci.shipping_mark) as shipping_mark, MAX(ci.updated_at) as last_update,
                          SUM(CASE WHEN ci.customer_id IS NULL THEN 1 ELSE 0 END) as unassigned, {$sums}")
             ->orderByDesc('last_update')

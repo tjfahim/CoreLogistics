@@ -236,6 +236,10 @@ Route::get('itemshipments/{itemshipment}/edit-ctn', [ItemShipmentCostController:
 Route::post('/itemshipments/{itemshipment}/update-ctn', 
     [ItemShipmentCostController::class, 'updateCtnNumbers']
 )->name('itemshipments.update-ctn');
+Route::get('itemshipments/{itemshipment}/final-weight', [ItemShipmentCostController::class, 'finalWeightPage'])
+    ->name('itemshipments.final-weight')->middleware('can:view-final-weight');
+Route::post('itemshipments/{itemshipment}/final-weight', [ItemShipmentCostController::class, 'updateFinalWeight'])
+    ->name('itemshipments.final-weight.update')->middleware('can:edit-final-weight');
 Route::post('/itemshipments/{itemshipment}/auto-assign-ctn',
     [ItemShipmentCostController::class, 'autoAssignCtn']
 )->name('itemshipments.auto-assign-ctn');

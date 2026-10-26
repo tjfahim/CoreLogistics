@@ -306,7 +306,7 @@ class ItemShipmentCostController extends Controller
                     $item = $itemshipment->cargoItems()->where('cargo_items.id', $itemId)->first();
 
                     if ($item && $pricePerKg !== null) {
-                        $totalPrice = $pricePerKg * ($item->weight_kg ?? 0);
+                        $totalPrice = $pricePerKg * ($item->billing_weight ?? 0);
 
                         $item->update([
                             'price_per_kg' => $pricePerKg,
@@ -330,6 +330,78 @@ class ItemShipmentCostController extends Controller
         $ctnSuggestion = CtnSequence::suggestion();
 
         return view('admin.itemshipments.printed_ctn', compact('itemshipment', 'groupedItems', 'ctnSuggestion'));
+    }
+
+    /** Final weight page: one row per item, grouped by printed CTN, with a filter. */
+    public function finalWeightPage(Request $request, ItemsShipment $itemshipment)
+    {
+        $filter = $request->input('filter', 'all'); // all | missing | set
+        $search = trim((string) $request->input('search'));
+
+        $items = $itemshipment->cargoItems()->get()
+            ->when($filter === 'missing', fn ($c) => $c->filter(fn ($i) => $i->final_weight_kg === null))
+            ->when($filter === 'set', fn ($c) => $c->filter(fn ($i) => $i->final_weight_kg !== null))
+            ->when($search !== '', fn ($c) => $c->filter(fn ($i) => stripos($i->printed_ctn_no . ' ' . $i->tracking_no . ' ' . $i->goods_name_en, $search) !== false));
+
+        $groupedItems = $items->groupBy(fn ($i) => $i->printed_ctn_no ?: '—');
+
+        $all = $itemshipment->cargoItems()->get();
+        $stats = [
+            'items'    => $all->count(),
+            'set'      => $all->whereNotNull('final_weight_kg')->count(),
+            'original' => round($all->sum('weight_kg'), 2),
+            'final'    => round($all->sum('billing_weight'), 2),
+        ];
+
+        return view('admin.itemshipments.final_weight', compact('itemshipment', 'groupedItems', 'filter', 'search', 'stats'));
+    }
+
+    public function updateFinalWeight(Request $request, ItemsShipment $itemshipment)
+    {
+        $request->validate([
+            'final_weight'   => 'nullable|array',
+            'final_weight.*' => 'nullable|numeric|min:0|max:100000',
+            'box_weight'     => 'nullable|array',
+            'box_weight.*'   => 'nullable|numeric|min:0|max:100000',
+        ]);
+
+        $changed = 0;
+        DB::transaction(function () use ($request, $itemshipment, &$changed) {
+            $items = $itemshipment->cargoItems()->get()->keyBy('id');
+            $new = [];
+
+            foreach ((array) $request->input('final_weight', []) as $id => $w) {
+                if ($items->has($id)) {
+                    $new[$id] = ($w === null || $w === '') ? null : round((float) $w, 3);
+                }
+            }
+
+            // "whole box" weight: split equally between the items of that printed CTN
+            foreach ((array) $request->input('box_weight', []) as $ctn => $w) {
+                if ($w === null || $w === '') continue;
+                $group = $items->filter(fn ($i) => (string) $i->printed_ctn_no === (string) $ctn);
+                if ($group->isEmpty()) continue;
+                $each = round((float) $w / $group->count(), 3);
+                foreach ($group as $i) $new[$i->id] = $each;
+            }
+
+            foreach ($new as $id => $fw) {
+                $item = $items[$id];
+                $old = $item->final_weight_kg !== null ? (float) $item->final_weight_kg : null;
+                if ($old === $fw) continue;
+
+                $item->final_weight_kg = $fw;
+                // price per kg is set -> keep the bill in step with the weight that is billed
+                if ($item->price_per_kg) {
+                    $item->price = round((float) $item->price_per_kg * $item->billing_weight, 2);
+                }
+                $item->save();
+                $changed++;
+            }
+        });
+
+        return redirect()->route('itemshipments.final-weight', $itemshipment->id)
+            ->with('success', $changed . ' item(s) updated. Bills and reports now use the final weight.');
     }
 
     public function updateCtnNumbers(Request $request, ItemsShipment $itemshipment)
