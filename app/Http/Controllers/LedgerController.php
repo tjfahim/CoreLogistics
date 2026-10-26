@@ -51,6 +51,7 @@ class LedgerController extends Controller
                 'total_billed'      => $billed,
                 'total_paid'        => (float) ($b->paid ?? 0),
                 'total_due'         => $due,
+                'advance'           => (float) ($b->advance ?? 0),
                 'shipment_count'    => (int) ($b->shipments ?? 0),
                 'shipments_due'     => (int) ($b->shipments_due ?? 0),
                 'last_payment_date' => $b->last_payment ?? null,

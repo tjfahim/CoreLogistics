@@ -65,7 +65,7 @@
             <thead>
                 <tr>
                     <th>Customer</th><th>Phone</th><th class="num">Shipments</th>
-                    <th class="num">Billed</th><th class="num">Received</th><th class="num">Due</th>
+                    <th class="num">Billed</th><th class="num">Received</th><th class="num">Advance</th><th class="num">Due</th>
                     <th>Collected</th><th>Oldest due</th><th>Last payment</th><th>Status</th><th class="no-print">Action</th>
                 </tr>
             </thead>
@@ -79,6 +79,7 @@
                         <td class="num">{{ $row['shipment_count'] }}@if($row['shipments_due'])<br><small class="neg">{{ $row['shipments_due'] }} due</small>@endif</td>
                         <td class="num" data-order="{{ $row['total_billed'] }}">{{ number_format($row['total_billed'], 2) }}</td>
                         <td class="num pos" data-order="{{ $row['total_paid'] }}">{{ number_format($row['total_paid'], 2) }}</td>
+                        <td class="num pos">{{ number_format($row['advance'] ?? 0, 2) }}</td>
                         <td class="num {{ $row['total_due'] > 0 ? 'neg' : '' }}" data-order="{{ $row['total_due'] }}"><strong>{{ number_format($row['total_due'], 2) }}</strong></td>
                         <td style="min-width:90px"><div class="rp-bar"><i style="width:{{ $pct }}%"></i></div><small class="muted">{{ $pct }}%</small></td>
                         <td>{{ $row['oldest_due_date'] ?? '—' }}</td>
@@ -104,6 +105,7 @@
                     <td colspan="3">TOTAL</td>
                     <td class="num">{{ number_format($grandTotalBilled, 2) }}</td>
                     <td class="num">{{ number_format($grandTotalPaid, 2) }}</td>
+                    <td class="num">{{ number_format($ledgerRows->sum('advance'), 2) }}</td>
                     <td class="num">{{ number_format($grandTotalDue, 2) }}</td>
                     <td colspan="5"></td>
                 </tr>

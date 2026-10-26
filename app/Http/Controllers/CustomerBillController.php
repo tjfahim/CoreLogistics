@@ -25,6 +25,7 @@ class CustomerBillController extends Controller
             ->get()
             ->groupBy('customer_id');
 
+        $acc = app(\App\Services\AccountingService::class);
         $billingSummary = [];
         $totalItems = 0;
         $totalPricedItems = 0;
@@ -51,18 +52,16 @@ class CustomerBillController extends Controller
                 }
             }
 
-            // ------------------------------------------------
-            // Calculate paid amount for this customer + shipment
-            // Using the SAME logic as PaymentController::create()
-            // ------------------------------------------------
+            // Paid = payment allocations given to THIS shipment (same source as the ledgers)
             $paidAmount = 0;
+            $prevDue    = 0;
+            $advance    = 0;
 
             if ($customerId) {
-                $paidAmount = CustomerPayment::where('customer_id', $customerId)
-                    ->whereHas('paymentItems.cargoItem.itemshipments', function ($q) use ($itemshipment) {
-                        $q->where('items_shipments.id', $itemshipment->id);
-                    })
-                    ->sum('amount');
+                $rows = $acc->customerShipmentRows(['customer_ids' => [$customerId]]);
+                $paidAmount = (float) ($rows->firstWhere('shipment_id', $itemshipment->id)->paid ?? 0);
+                $prevDue    = (float) $rows->where('shipment_id', '!=', $itemshipment->id)->sum('due');
+                $advance    = (float) ($acc->customerBalances([$customerId])->get($customerId)->advance ?? 0);
             }
 
             $billingSummary[] = [
@@ -75,6 +74,8 @@ class CustomerBillController extends Controller
                 'total_weight'        => $totalWeight,
                 'total_price'         => $totalPrice,
                 'paid_amount'         => $paidAmount,
+                'prev_due'            => $prevDue,
+                'advance'             => $advance,
                 'due_amount'          => max($totalPrice - $paidAmount, 0),
                 'items'               => $customerItems,
             ];

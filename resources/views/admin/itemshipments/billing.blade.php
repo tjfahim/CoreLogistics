@@ -96,6 +96,8 @@
                             <th>Total Price (TK)</th>
                             <th>Paid (TK)</th>
                             <th>Due (TK)</th>
+                            <th>Previous Due (TK)</th>
+                            <th>Advance (TK)</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -166,17 +168,26 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
+                                <td>@if(($bill['prev_due'] ?? 0) > 0)<strong class="text-danger">{{ number_format($bill['prev_due'], 0) }}</strong>@else <span class="text-muted">0</span>@endif</td>
+                                <td>@if(($bill['advance'] ?? 0) > 0)<strong class="text-success">{{ number_format($bill['advance'], 0) }}</strong>@else <span class="text-muted">0</span>@endif</td>
                                 <td>
                                     <a href="{{ route('ledger.customer', $bill['customer_id']) }}" class="btn btn-sm btn-secondary">
-    <i class="fa fa-book"></i> Ledger
+    <i class="fa fa-book"></i> Customer Ledger
 </a>
+                                    @if($bill['customer_id'])
+                                        @can('view-invoices')
+                                            <a href="{{ route('customers.bill', $bill['customer_id']) }}" class="btn btn-sm btn-dark" title="All shipments incl. previous dues">
+                                                <i class="fa fa-file-text-o"></i> Invoice + Previous
+                                            </a>
+                                        @endcan
+                                    @endif
                                     @if($bill['customer_id'])
                                         <div class="d-flex flex-wrap gap-1">
                                             {{-- ✅ Invoice — view-invoices --}}
                                             @can('view-invoices')
                                                 <a href="{{ route('customers.shipment.bill', ['customer' => $bill['customer_id'], 'itemshipment' => $itemshipment->id]) }}"
                                                    class="btn btn-sm btn-info">
-                                                   Invoice
+                                                   Invoice (this shipment)
                                                 </a>
                                             @endcan
 

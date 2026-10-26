@@ -101,6 +101,13 @@
                                         </a>
                                     @endcan
 
+                                    {{-- Customer invoices / ledger of this shipment --}}
+                                    @can('view-invoices')
+                                        <a href="{{ route('shipments.billing', $shipment->id) }}" class="btn btn-primary btn-sm">
+                                            Customer Ledger
+                                        </a>
+                                    @endcan
+
                                     {{-- ✅ Customer Assignment — edit-shipments --}}
                                     @can('edit-shipments')
                                         <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">
