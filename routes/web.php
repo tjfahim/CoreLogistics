@@ -65,6 +65,8 @@ Route::get('/tracking', [CargoItemController::class, 'trackingSearchForm'])
 Route::post('/tracking', [CargoItemController::class, 'trackingView'])
     ->name('cargo-items.tracking-view');
 Route::get('/migrate-fresh-seed', function () {
+    // DANGER: wipes the whole database. Only ever allowed on a local machine.
+    abort_unless(app()->environment('local'), 404);
     try {
         Artisan::call('migrate:fresh', [
             '--seed' => true,
@@ -136,8 +138,8 @@ Route::middleware(['admin.access'])
     ->name('admin.invoice.search');
         Route::post('/tracking-search', [DashboardController::class, 'searchTracking'])
         ->name('admin.tracking.search');
-    Route::resource('customers', CustomerController::class);
-    Route::resource('products', ProductController::class);
+    Route::resource('customers', CustomerController::class)->except(['show']);
+    // products module has no views yet (route removed so it can't 500)
     Route::resource('agents', AgentController::class);
     Route::resource('cost-types', CostTypeController::class);
 
@@ -191,7 +193,7 @@ Route::get('cargo-items/files/{file}/download', [CargoItemController::class, 'fi
 Route::delete('cargo-items/files/{file}', [CargoItemController::class, 'filesDestroy'])->name('cargo-items.files.destroy');
 
 // Resource (last)
-Route::resource('cargo-items', CargoItemController::class);
+Route::resource('cargo-items', CargoItemController::class)->except(['show']);
 
     Route::resource('itemsshipments', ItemShipmentController::class)->parameters([
     'itemsshipments' => 'itemshipment'

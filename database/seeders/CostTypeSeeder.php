@@ -30,7 +30,7 @@ class CostTypeSeeder extends Seeder
         ];
 
         foreach ($costTypes as $costType) {
-            CostType::create($costType);
+            CostType::updateOrCreate(['name' => $costType['name']], $costType);
         }
     }
 }

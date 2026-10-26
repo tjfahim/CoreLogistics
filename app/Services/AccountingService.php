@@ -82,7 +82,9 @@ class AccountingService
                 SUM(CASE WHEN ci.price IS NOT NULL OR ci.price_per_kg IS NOT NULL THEN 1 ELSE 0 END) as priced_items,
                 SUM(COALESCE(ci.final_weight_kg, ci.weight_kg, 0)) as weight,
                 SUM(COALESCE(ci.cbm, 0)) as cbm,
-                SUM(' . self::BILL_SQL . ') as billed')
+                SUM(' . self::BILL_SQL . ') as billed,
+                SUM(CASE WHEN ci.is_third_party = 1 THEN ' . self::BILL_SQL . ' ELSE 0 END) as tp_billed,
+                SUM(CASE WHEN ci.is_third_party = 1 THEN 1 ELSE 0 END) as tp_items')
             ->get();
 
         if ($billed->isEmpty()) {
@@ -119,6 +121,8 @@ class AccountingService
                 'weight'        => (float) $r->weight,
                 'cbm'           => (float) $r->cbm,
                 'billed'        => $b,
+                'tp_billed'     => round((float) $r->tp_billed, 2),
+                'tp_items'      => (int) $r->tp_items,
                 'paid'          => $p,
                 'due'           => $due,
                 'status'        => $b <= 0 ? 'no-billing' : ($due <= 0 ? 'paid' : ($p > 0 ? 'partial' : 'due')),
@@ -497,6 +501,8 @@ class AccountingService
                 'unpriced'     => (int) ($i->unpriced ?? 0),
                 'customers'    => $c->pluck('customer_id')->unique()->count(),
                 'billed'       => $billed,
+                'tp_billed'    => round($c->sum('tp_billed'), 2),
+                'tp_items'     => (int) $c->sum('tp_items'),
                 'received'     => $recv,
                 'receivable'   => round($c->sum('due'), 2),
                 'cost_lines'   => (int) ($k->lines ?? 0),
@@ -513,7 +519,7 @@ class AccountingService
     public function sumFinancials(Collection $rows): array
     {
         $t = [];
-        foreach (['items', 'weight', 'cbm', 'billed', 'received', 'receivable', 'cost', 'cost_paid', 'cost_due', 'profit', 'unassigned', 'unpriced'] as $k) {
+        foreach (['items', 'weight', 'cbm', 'billed', 'tp_billed', 'received', 'receivable', 'cost', 'cost_paid', 'cost_due', 'profit', 'unassigned', 'unpriced'] as $k) {
             $t[$k] = round((float) $rows->sum($k), 2);
         }
         $t['margin'] = $t['billed'] > 0 ? round($t['profit'] / $t['billed'] * 100, 1) : null;

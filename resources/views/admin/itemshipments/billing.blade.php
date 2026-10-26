@@ -72,6 +72,14 @@
         </div>
     </div>
 
+    @php $tpTotal = collect($billingSummary)->sum('tp_price'); $tpCount = collect($billingSummary)->sum('tp_items'); @endphp
+    @if($tpCount > 0)
+        <div class="alert alert-warning py-2">
+            <i class="fa fa-handshake-o"></i> Third-party goods in this shipment: <strong>{{ $tpCount }}</strong> item(s),
+            billed <strong>{{ number_format($tpTotal, 0) }} TK</strong> (included in the customer totals below, shown as "3P").
+        </div>
+    @endif
+
     <!-- Customer Bills Table -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -145,7 +153,7 @@
                                 <td>{{ number_format($bill['total_weight'], 0) }}</td>
                                 <td>
                                     @if($totalPrice > 0)
-                                        <strong>{{ number_format($totalPrice, 0) }}</strong>
+                                        <strong>{{ number_format($totalPrice, 0) }}</strong>@if(($bill['tp_price'] ?? 0) > 0)<small class="text-muted"> (3P {{ number_format($bill['tp_price'], 0) }})</small>@endif
                                     @else
                                         <span class="text-muted">Not set</span>
                                     @endif

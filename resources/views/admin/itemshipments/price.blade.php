@@ -66,6 +66,8 @@
 
                 @can('view-price')
 
+                @include('admin.itemshipments._cost_per_kg')
+
                 <!-- Shipment Summary -->
                 <div class="row mb-4">
                     <div class="col-md-3">

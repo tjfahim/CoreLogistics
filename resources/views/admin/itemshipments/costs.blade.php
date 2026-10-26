@@ -101,9 +101,23 @@
                         <div class="col-md-2">
                             <strong>Total Items:</strong> {{ $itemShipment->total_items }}
                         </div>
+                        @php $pkw = \App\Services\ShipmentCostPerKg::compute($itemShipment); @endphp
                         <div class="col-md-2">
-                            <strong>Total Weight:</strong> {{ number_format($itemShipment->total_weight, 0) }} kg
+                            <strong>Total Weight:</strong> {{ number_format($pkw['original'], 0) }} kg
                         </div>
+                        <div class="col-md-2">
+                            <strong>Final Weight:</strong> {{ number_format($pkw['final'], 0) }} kg
+                        </div>
+                        @if($pkw['freight_weight'])
+                        <div class="col-md-2">
+                            <strong>Freight Agent Weight:</strong> {{ number_format($pkw['freight_weight'], 0) }} kg
+                        </div>
+                        @endif
+                        @if($pkw['cbm_weight'])
+                        <div class="col-md-2">
+                            <strong>Freight CBM Weight:</strong> {{ number_format($pkw['cbm_weight'], 0) }} kg
+                        </div>
+                        @endif
                         <div class="col-md-2">
                             <strong>Total CBM:</strong> {{ number_format($itemShipment->total_cbm, 4) }}
                         </div>
@@ -128,6 +142,8 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-12">@include('admin.itemshipments._cost_per_kg')</div>
 
         <!-- ====================================================== -->
         <!-- Add Cost Form — ✅ ONLY if user has add-shipment-cost -->

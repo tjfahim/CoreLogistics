@@ -50,12 +50,12 @@
             @forelse($fin as $f)
                 <tr><td><a class="lnk" href="{{ route('reports.shipments',['shipment_ids'=>[$f->id]]) }}">{{ $f->name }}</a></td><td>{{ $f->date }}</td><td>{{ ucfirst(str_replace('_',' ',$f->status)) }}</td>
                     <td class="num">{{ $f->items }}</td><td class="num">{{ number_format($f->weight,2) }}</td>
-                    <td class="num">{{ number_format($f->billed,2) }}</td><td class="num pos">{{ number_format($f->received,2) }}</td><td class="num {{ $f->receivable>0?'neg':'' }}">{{ number_format($f->receivable,2) }}</td>
+                    <td class="num">{{ number_format($f->billed,2) }}@if(($f->tp_billed ?? 0) > 0)<small class="text-muted"> (3P {{ number_format($f->tp_billed, 2) }})</small>@endif</td><td class="num pos">{{ number_format($f->received,2) }}</td><td class="num {{ $f->receivable>0?'neg':'' }}">{{ number_format($f->receivable,2) }}</td>
                     <td class="num">{{ number_format($f->cost,2) }}</td><td class="num {{ $f->cost_due>0?'neg':'' }}">{{ number_format($f->cost_due,2) }}</td>
                     <td class="num {{ $f->profit<0?'neg':'pos' }}"><strong>{{ number_format($f->profit,2) }}</strong></td><td class="num">{{ $f->margin !== null ? $f->margin.'%' : '—' }}</td></tr>
             @empty<tr><td colspan="12" class="rp-empty">No shipments found.</td></tr>@endforelse
             </tbody>
-            <tfoot><tr><td colspan="3">TOTAL</td><td class="num">{{ $tot['items'] }}</td><td class="num">{{ number_format($tot['weight'],2) }}</td><td class="num">{{ number_format($tot['billed'],2) }}</td><td class="num">{{ number_format($tot['received'],2) }}</td><td class="num">{{ number_format($tot['receivable'],2) }}</td><td class="num">{{ number_format($tot['cost'],2) }}</td><td class="num">{{ number_format($tot['cost_due'],2) }}</td><td class="num">{{ number_format($tot['profit'],2) }}</td><td class="num">{{ $tot['margin'] ?? '—' }}</td></tr></tfoot>
+            <tfoot><tr><td colspan="3">TOTAL</td><td class="num">{{ $tot['items'] }}</td><td class="num">{{ number_format($tot['weight'],2) }}</td><td class="num">{{ number_format($tot['billed'],2) }}@if(($tot['tp_billed'] ?? 0) > 0)<small> (3P {{ number_format($tot['tp_billed'],2) }})</small>@endif</td><td class="num">{{ number_format($tot['received'],2) }}</td><td class="num">{{ number_format($tot['receivable'],2) }}</td><td class="num">{{ number_format($tot['cost'],2) }}</td><td class="num">{{ number_format($tot['cost_due'],2) }}</td><td class="num">{{ number_format($tot['profit'],2) }}</td><td class="num">{{ $tot['margin'] ?? '—' }}</td></tr></tfoot>
         </table></div>
     </div>
 

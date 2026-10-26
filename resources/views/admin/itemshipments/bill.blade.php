@@ -4,7 +4,7 @@
 <div class="invoice-container">
 
     <div class="no-print">
-        <a href="{{ route('shipments.billing', $itemshipment->id) }}" class="btn btn-outline-secondary btn-sm">Back</a>
+        <a href="{{ $itemshipment ? route('shipments.billing', $itemshipment->id) : route('ledger.customer', $customer->id) }}" class="btn btn-outline-secondary btn-sm">Back</a>
 
         {{-- ✅ Print — view-invoices --}}
         @can('view-invoices')
@@ -69,6 +69,19 @@
                 </div>
             @endif
         </div>
+
+        @if(!$itemshipment && !empty($shipRows) && $shipRows->count())
+            <div class="inv-party-label" style="margin-top:10px">All shipments of this customer (current + previous)</div>
+            <table class="table table-bordered table-sm">
+                <thead><tr><th>Shipment</th><th>Date</th><th style="text-align:right">Billed</th><th style="text-align:right">Received</th><th style="text-align:right">Due</th></tr></thead>
+                <tbody>
+                @foreach($shipRows as $r)
+                    <tr><td>{{ $r->shipment_name }}</td><td>{{ $r->date }}</td><td style="text-align:right">{{ number_format($r->billed, 2) }}</td><td style="text-align:right">{{ number_format($r->paid, 2) }}</td><td style="text-align:right"><strong>{{ number_format($r->due, 2) }}</strong></td></tr>
+                @endforeach
+                </tbody>
+                <tfoot><tr><th colspan="2">TOTAL</th><th style="text-align:right">{{ number_format($shipRows->sum('billed'), 2) }}</th><th style="text-align:right">{{ number_format($shipRows->sum('paid'), 2) }}</th><th style="text-align:right">{{ number_format($shipRows->sum('due'), 2) }}</th></tr></tfoot>
+            </table>
+        @endif
 
         {{-- Summary strip --}}
         <table class="inv-summary">

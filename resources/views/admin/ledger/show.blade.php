@@ -152,7 +152,7 @@
                         <td>{{ $s->date }}</td>
                         <td>{{ $s->items }}@if($s->items > $s->priced_items) <small class="neg">({{ $s->items - $s->priced_items }} no price)</small>@endif</td>
                         <td class="num">{{ number_format($s->weight, 2) }}</td>
-                        <td class="num">{{ number_format($s->billed, 2) }}</td>
+                        <td class="num">{{ number_format($s->billed, 2) }}@if(($s->tp_billed ?? 0) > 0)<small class="text-muted"> (3P {{ number_format($s->tp_billed, 2) }})</small>@endif</td>
                         <td class="num pos">{{ number_format($s->paid, 2) }}</td>
                         <td class="num {{ $s->due > 0 ? 'neg' : '' }}"><strong>{{ number_format($s->due, 2) }}</strong></td>
                         <td><span class="rp-pill {{ $billPill[$s->status] }}">{{ $billLabel[$s->status] }}</span></td>
@@ -215,7 +215,7 @@
         <div class="lm-box" role="dialog" aria-modal="true">
             <div class="lm-head">
                 <h5>{{ $s->shipment_name }} &mdash; {{ $customer->name }}
-                    <br><small>{{ $its->count() }} item(s) &middot; Billed {{ number_format($s->billed, 2) }} &middot; Received {{ number_format($s->paid, 2) }} &middot; Due {{ number_format($s->due, 2) }}</small></h5>
+                    <br><small>{{ $its->count() }} item(s) &middot; Billed {{ number_format($s->billed, 2) }}@if(($s->tp_billed ?? 0) > 0)<small class="text-muted"> (3P {{ number_format($s->tp_billed, 2) }})</small>@endif &middot; Received {{ number_format($s->paid, 2) }} &middot; Due {{ number_format($s->due, 2) }}</small></h5>
                 <button type="button" class="lm-x" data-lm-close="1" aria-label="Close">&times;</button>
             </div>
             <div class="lm-body">

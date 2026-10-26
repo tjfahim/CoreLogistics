@@ -75,6 +75,8 @@ class CustomerBillController extends Controller
                 'total_price'         => $totalPrice,
                 'paid_amount'         => $paidAmount,
                 'prev_due'            => $prevDue,
+                'tp_price'            => (float) $customerItems->where('is_third_party', true)->sum(fn ($i) => $i->hasPrice() ? $i->total_price : 0),
+                'tp_items'            => $customerItems->where('is_third_party', true)->count(),
                 'advance'             => $advance,
                 'due_amount'          => max($totalPrice - $paidAmount, 0),
                 'items'               => $customerItems,
@@ -160,7 +162,10 @@ class CustomerBillController extends Controller
             . ($itemshipment ? '-shipment-' . $itemshipment->id : '') . '.pdf');
     }
 
+    $shipRows = $itemshipment ? collect() : app(\App\Services\AccountingService::class)->customerShipmentRows(['customer_ids' => [$customer->id]]);
+
     return view('admin.itemshipments.bill', compact(
+        'shipRows',
         'customer',
         'itemshipment',
         'invoice',
