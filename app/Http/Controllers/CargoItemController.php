@@ -500,6 +500,7 @@ foreach ($validated['items'] as $index => $itemData) {
             }
 
             $itemData['is_third_party'] = $isThirdParty;
+            unset($itemData['tracking_auto']);
             CargoItem::create($itemData);
             $seen[$key] = true;
             $importedCount++;
@@ -745,12 +746,60 @@ private function rowExistsInDatabase($item)
         }
 
         $spreadsheet = $reader->load($path);
-        $rows = $spreadsheet->getSheet(0)->toArray(null, false, false, false);
+        $sheet = $spreadsheet->getSheet(0);
+        $rows  = $sheet->toArray(null, false, false, false);
+
+        // Merged cells (e.g. one Printed CTN spanning rows 41-50 = ONE box): PhpSpreadsheet keeps the
+        // value only in the top-left cell, so copy it into every row of the merge.
+        foreach ($this->xlsxMergeRanges($path) as $range) {
+            [[$c1, $r1], [$c2, $r2]] = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::rangeBoundaries($range);
+            if ($r2 <= $r1) continue;
+            $value = $rows[$r1 - 1][$c1 - 1] ?? null;
+            if ($value === null || $value === '') continue;
+            for ($r = $r1 + 1; $r <= $r2; $r++) {
+                for ($c = $c1; $c <= $c2; $c++) {
+                    if (isset($rows[$r - 1]) && ($rows[$r - 1][$c - 1] ?? null) === null) {
+                        $rows[$r - 1][$c - 1] = $value;
+                    }
+                }
+            }
+        }
 
         $spreadsheet->disconnectWorksheets();
         unset($spreadsheet);
 
         return $rows;
+    }
+
+    /**
+     * Merged ranges of the first sheet (read straight from the .xlsx XML, because the
+     * data-only reader skips merge info). Returns [] for .xls or on any problem.
+     */
+    private function xlsxMergeRanges(string $path): array
+    {
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($path) !== true) return [];
+
+            $target = 'xl/worksheets/sheet1.xml';
+            $wb   = $zip->getFromName('xl/workbook.xml');
+            $rels = $zip->getFromName('xl/_rels/workbook.xml.rels');
+            if ($wb && $rels && preg_match('/<sheet\b[^>]*r:id="([^"]+)"/', $wb, $m1)
+                && preg_match('/<Relationship\b[^>]*Id="' . preg_quote($m1[1], '/') . '"[^>]*>/', $rels, $m2)
+                && preg_match('/Target="([^"]+)"/', $m2[0], $m3)) {
+                $t = ltrim($m3[1], '/');
+                $target = str_starts_with($t, 'xl/') ? $t : 'xl/' . $t;
+            }
+
+            $xml = $zip->getFromName($target);
+            $zip->close();
+            if (!$xml) return [];
+
+            preg_match_all('/<mergeCell\b[^>]*ref="([A-Z]+\d+:[A-Z]+\d+)"/', $xml, $m);
+            return $m[1] ?? [];
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**
@@ -800,11 +849,19 @@ private function rowExistsInDatabase($item)
             $row = array_values($row);
             $get = fn (string $field) => isset($map[$field]) ? ($row[$map[$field]] ?? null) : null;
 
-            if ($this->cellText($get('tracking')) === null || $this->cellText($get('goods_name')) === null) {
+            if ($this->cellText($get('goods_name')) === null) {
                 continue; // empty / incomplete row
             }
 
-            $items[] = $this->transformRow($get);
+            $item = $this->transformRow($get);
+
+            // Tracking is mandatory: generate one when the sheet has none (flagged for a warning)
+            if (empty($item['tracking_no'])) {
+                $item['tracking_no']   = 'AUTO-' . strtoupper(\Illuminate\Support\Str::random(8));
+                $item['tracking_auto'] = true;
+            }
+
+            $items[] = $item;
         }
 
         return $items;

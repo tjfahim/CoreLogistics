@@ -53,6 +53,36 @@
                 </div>
             </div>
 
+            @php
+                $autoTrack = collect($items)->where('tracking_auto', true)->count();
+                $boxes = collect($items)->filter(fn($i) => !empty($i['printed_ctn_no']))
+                    ->groupBy('printed_ctn_no')->filter(fn($g) => $g->count() > 1);
+                $wboxes = collect($items)->filter(fn($i) => !empty($i['written_ctn_no']))
+                    ->groupBy('written_ctn_no')->filter(fn($g) => $g->count() > 1);
+            @endphp
+            @if($autoTrack > 0)
+                <div class="alert alert-warning">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <strong>{{ $autoTrack }} row(s) had no Tracking number.</strong>
+                    A tracking number (<code>AUTO-XXXXXXXX</code>) was generated automatically for each of them
+                    (marked <span class="badge badge-warning">auto</span> below). You can edit them later from the item page.
+                </div>
+            @endif
+            @if($boxes->count() || $wboxes->count())
+                <div class="alert alert-info">
+                    <i class="fa fa-cubes"></i>
+                    <strong>Multi-row boxes detected</strong> (merged / repeated CTN cells in the sheet &mdash; all these rows will share the same CTN number, i.e. one box):
+                    <ul class="mb-0 mt-1">
+                        @foreach($boxes as $ctn => $g)
+                            <li>Printed CTN <strong>{{ $ctn }}</strong> &rarr; {{ $g->count() }} items, {{ number_format($g->sum('weight_kg'), 2) }} kg</li>
+                        @endforeach
+                        @foreach($wboxes as $ctn => $g)
+                            <li>Written CTN <strong>{{ $ctn }}</strong> &rarr; {{ $g->count() }} items</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             {{-- Unique rows --}}
             <div class="card mb-3 border-success">
                 <div class="card-header bg-success text-white">
@@ -95,9 +125,9 @@
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $item['date'] ?? '' }}</td>
                     <td>{{ $item['receipt_no'] ?? '' }}</td>
-                    <td>{{ $item['printed_ctn_no'] ?? '' }}</td>
+                    <td>{{ $item['printed_ctn_no'] ?? '' }}@if(!empty($item['printed_ctn_no']) && isset($boxes[$item['printed_ctn_no']])) <span class="badge badge-info">box&times;{{ $boxes[$item['printed_ctn_no']]->count() }}</span>@endif</td>
                     <td>{{ $item['written_ctn_no'] ?? '' }}</td>
-                    <td>{{ $item['tracking_no'] ?? '' }}</td>
+                    <td>{{ $item['tracking_no'] ?? '' }}@if(!empty($item['tracking_auto'])) <span class="badge badge-warning">auto</span>@endif</td>
                     <td>{{ $item['goods_name_en'] ?? '' }}</td>
                     <td>{{ $item['goods_name_local'] ?? '' }}</td>
                     <td>{{ $item['pack_no'] ?? '' }}</td>
