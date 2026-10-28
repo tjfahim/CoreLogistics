@@ -268,83 +268,46 @@ class CustomerController extends Controller
         return redirect()->back()->with('success', $message);
     }
 
-    // Helper function to find customer by shipping mark
+    /**
+     * Find the customer for an item's shipping mark.
+     * Customer marks are often only a prefix ("MTL", "JP", "TF") while items carry
+     * "MTL/0207", "JP/SHAHIN SHIRAJ", "TF/Seven" ... so a customer mark matches when
+     * it equals the item mark OR equals the first part(s) of it. The most specific
+     * match wins; two different customers with an equally specific match = ambiguous (no auto assign).
+     */
     private function findCustomerByShippingMark($productMark, $customers)
     {
-        $productMark = trim($productMark);
-        if (empty($productMark)) {
+        $productParts = $this->markParts((string) $productMark);
+        if (!$productParts) {
             return null;
         }
-        
-        $productMark = $this->normalizeShippingMark($productMark);
-        
+
+        $bestScore = 0;
+        $best = [];
+
         foreach ($customers as $customer) {
-            $customerMarks = $customer->all_shipping_marks;
-            
-            foreach ($customerMarks as $customerMark) {
-                if (!empty($customerMark)) {
-                    $normalizedCustomerMark = $this->normalizeShippingMark($customerMark);
-                    if ($this->exactShippingMarkMatch($productMark, $normalizedCustomerMark)) {
-                        return $customer;
-                    }
-                }
+            foreach ($customer->all_shipping_marks as $customerMark) {
+                $cp = $this->markParts((string) $customerMark);
+                if (!$cp || count($cp) > count($productParts)) continue;
+
+                if (array_slice($productParts, 0, count($cp)) !== $cp) continue;
+
+                // exact (all parts) beats prefix; longer prefix beats shorter
+                $score = count($cp) === count($productParts) ? 1000 : count($cp);
+                if ($score > $bestScore) { $bestScore = $score; $best = [$customer->id => $customer]; }
+                elseif ($score === $bestScore) { $best[$customer->id] = $customer; }
             }
         }
-        
-        return null;
+
+        return count($best) === 1 ? reset($best) : null;
     }
 
-    // Normalize shipping mark for consistent comparison
-    private function normalizeShippingMark($mark)
+    /** "JP / Shahin  Shiraj" -> ['JP', 'SHAHIN SHIRAJ'] (case, spaces and - _ . separators ignored) */
+    private function markParts(string $mark): array
     {
-        $mark = trim($mark);
-        $mark = preg_replace('/\s+/', ' ', $mark);
-        $mark = preg_replace('/[\/\.\-_]+/', '/', $mark);
-        $mark = preg_replace('/\s*\/\s*/', '/', $mark);
-        $mark = strtoupper($mark);
-        return $mark;
-    }
-
-    // Exact shipping mark matching with variations
-    private function exactShippingMarkMatch($productMark, $customerMark)
-    {
-        if (empty($productMark) || empty($customerMark)) {
-            return false;
-        }
-        
-        if ($productMark === $customerMark) {
-            return true;
-        }
-        
-        $productParts = explode('/', $productMark);
-        $customerParts = explode('/', $customerMark);
-        
-        $productParts = array_filter($productParts);
-        $customerParts = array_filter($customerParts);
-        
-        if (count($productParts) === count($customerParts)) {
-            $allPartsMatch = true;
-            for ($i = 0; $i < count($productParts); $i++) {
-                $prodPart = preg_replace('/\s+/', '', $productParts[$i]);
-                $custPart = preg_replace('/\s+/', '', $customerParts[$i]);
-                
-                if ($prodPart !== $custPart) {
-                    $allPartsMatch = false;
-                    break;
-                }
-            }
-            if ($allPartsMatch) {
-                return true;
-            }
-        }
-        
-        $productNoSpaces = preg_replace('/\s+/', '', $productMark);
-        $customerNoSpaces = preg_replace('/\s+/', '', $customerMark);
-        
-        if ($productNoSpaces === $customerNoSpaces) {
-            return true;
-        }
-        
-        return false;
+        $mark = strtoupper(trim($mark));
+        $mark = preg_replace('/[\\\\\/]+/', '/', $mark);
+        $parts = array_map(fn ($p) => trim(preg_replace('/\s+/', ' ', $p)), explode('/', $mark));
+        return array_values(array_filter($parts, fn ($p) => $p !== ''));
     }
 }
