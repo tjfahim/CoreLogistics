@@ -68,6 +68,14 @@
                     (marked <span class="badge badge-warning">auto</span> below). You can edit them later from the item page.
                 </div>
             @endif
+            @php $noName = collect($items)->where('goods_name_missing', true)->count(); @endphp
+            @if($noName > 0)
+                <div class="alert alert-warning">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <strong>{{ $noName }} row(s) had no Goods Name.</strong> They are imported with the name
+                    <code>No name</code> (or the Chinese name if present) &mdash; please fix them later from the item page.
+                </div>
+            @endif
             @if($boxes->count() || $wboxes->count())
                 <div class="alert alert-info">
                     <i class="fa fa-cubes"></i>

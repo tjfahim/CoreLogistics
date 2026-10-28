@@ -507,7 +507,7 @@ foreach ($validated['items'] as $index => $itemData) {
             }
 
             $itemData['is_third_party'] = $isThirdParty;
-            unset($itemData['tracking_auto']);
+            unset($itemData['tracking_auto'], $itemData['goods_name_missing']);
             CargoItem::create($itemData);
             $seen[$key] = true;
             $importedCount++;
@@ -856,11 +856,22 @@ private function rowExistsInDatabase($item)
             $row = array_values($row);
             $get = fn (string $field) => isset($map[$field]) ? ($row[$map[$field]] ?? null) : null;
 
-            if ($this->cellText($get('goods_name')) === null) {
-                continue; // empty / incomplete row
+            // A row counts when it has ANY real data (name, tracking, CTN, weight ...)
+            $hasData = false;
+            foreach (['goods_name', 'goods_name_local', 'tracking', 'printed_ctn_no', 'written_ctn_no', 'receipt_no', 'weight_kg', 'unit_pcs'] as $f) {
+                if ($this->cellText($get($f)) !== null) { $hasData = true; break; }
+            }
+            if (!$hasData) {
+                continue; // really empty row
             }
 
             $item = $this->transformRow($get);
+
+            // Goods name missing: use the local name, else a placeholder, and flag it for a warning
+            if (empty($item['goods_name_en'])) {
+                $item['goods_name_en']      = $item['goods_name_local'] ?: 'No name';
+                $item['goods_name_missing'] = true;
+            }
 
             // Tracking is mandatory: generate one when the sheet has none (flagged for a warning)
             if (empty($item['tracking_no'])) {
