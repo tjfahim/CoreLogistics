@@ -37,7 +37,7 @@
             <div class="login-content">
                 <div class="login-logo">
                     <a href="index.html">
-                        <img class="align-content" src="{{ \App\Models\Setting::assetUrl('logo', 'admin/images/logo.png') }}" alt="">
+                        <img class="align-content" style="max-width:150px;max-height:70px;height:auto;width:auto" src="{{ \App\Models\Setting::assetUrl('logo', 'admin/images/logo.png') }}" alt="">
                     </a>
                 </div>
                 @if(session('success'))

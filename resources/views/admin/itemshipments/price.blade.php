@@ -144,6 +144,7 @@
                                         <th>#</th>
                                         <th>CTN NO.</th>
                                         <th>Goods Name</th>
+                                        <th>Customer</th>
                                         <th>Shipping Mark</th>
                                         <th>CBM</th>
                                         <th>Weight (kg)</th>
@@ -165,6 +166,7 @@
                                             @endif
                                         </td>
                                         <td>{{ $item->goods_name_en }}</td>
+                                        <td>{{ optional($item->customer)->name ?? '—' }}</td>
                                         <td>{{ $item->shipping_mark }}</td>
                                         <td>
                                             {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}

@@ -289,7 +289,7 @@ class ItemShipmentCostController extends Controller
 
     public function pricepage(ItemsShipment $itemshipment)
     {
-        $itemshipment->load('cargoItems');
+        $itemshipment->load('cargoItems.customer');
         return view('admin.itemshipments.price', compact('itemshipment'));
     }
 
@@ -338,7 +338,7 @@ class ItemShipmentCostController extends Controller
         $filter = $request->input('filter', 'all'); // all | missing | set
         $search = trim((string) $request->input('search'));
 
-        $items = $itemshipment->cargoItems()->get()
+        $items = $itemshipment->cargoItems()->with('customer:id,name')->get()
             ->when($filter === 'missing', fn ($c) => $c->filter(fn ($i) => $i->final_weight_kg === null))
             ->when($filter === 'set', fn ($c) => $c->filter(fn ($i) => $i->final_weight_kg !== null))
             ->when($search !== '', fn ($c) => $c->filter(fn ($i) => stripos($i->printed_ctn_no . ' ' . $i->tracking_no . ' ' . $i->goods_name_en, $search) !== false));

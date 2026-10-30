@@ -46,14 +46,14 @@
         <div class="table-responsive">
         <table class="table table-bordered table-sm">
             <thead class="thead-dark">
-                <tr><th>Printed CTN</th><th>Tracking</th><th>Goods</th><th class="text-right">Original (kg)</th><th style="width:160px">Final (kg)</th><th class="text-right">Billed (kg)</th></tr>
+                <tr><th>Printed CTN</th><th>Customer</th><th>Shipping Mark</th><th>Tracking</th><th>Goods</th><th class="text-right">Original (kg)</th><th style="width:160px">Final (kg)</th><th class="text-right">Billed (kg)</th></tr>
             </thead>
             <tbody>
             @forelse($groupedItems as $ctn => $items)
                 @php $multi = $items->count() > 1; $bg = $multi ? $colors[$ci++ % count($colors)] : ''; @endphp
                 @if($multi)
                     <tr style="background: {{ $bg }}">
-                        <td colspan="3"><strong>Box {{ $ctn }}</strong> &mdash; {{ $items->count() }} items</td>
+                        <td colspan="5"><strong>Box {{ $ctn }}</strong> &mdash; {{ $items->count() }} items</td>
                         <td class="text-right">{{ number_format($items->sum('weight_kg'), 2) }}</td>
                         <td>@can('edit-final-weight')<input type="number" step="0.001" min="0" name="box_weight[{{ $ctn }}]" class="form-control form-control-sm" placeholder="whole box (split equally)">@endcan</td>
                         <td class="text-right"><strong>{{ number_format($items->sum('billing_weight'), 2) }}</strong></td>
@@ -62,6 +62,8 @@
                 @foreach($items as $item)
                     <tr style="background: {{ $bg }}">
                         <td>{{ $item->printed_ctn_no ?? '-' }}</td>
+                        <td>{{ optional($item->customer)->name ?? '—' }}</td>
+                        <td>{{ $item->shipping_mark }}</td>
                         <td>{{ $item->tracking_no }}</td>
                         <td>{{ $item->goods_name_en }}</td>
                         <td class="text-right">{{ number_format($item->weight_kg, 2) }}</td>
@@ -77,7 +79,7 @@
                     </tr>
                 @endforeach
             @empty
-                <tr><td colspan="6" class="text-center text-muted">No items.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted">No items.</td></tr>
             @endforelse
             </tbody>
         </table>

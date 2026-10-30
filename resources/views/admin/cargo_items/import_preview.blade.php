@@ -68,6 +68,16 @@
                     (marked <span class="badge badge-warning">auto</span> below). You can edit them later from the item page.
                 </div>
             @endif
+            @php
+                $custNames = collect($items)->map(fn($i) => trim((string)($i['customer_name'] ?? '')) ?: 'Unknown Customer')->countBy();
+                $existing = \App\Models\Customer::whereIn(\DB::raw('LOWER(TRIM(name))'), $custNames->keys()->map(fn($n) => mb_strtolower($n))->all())->pluck('name')->map(fn($n) => mb_strtolower(trim($n)))->all();
+            @endphp
+            <div class="alert alert-secondary">
+                <i class="fa fa-users"></i> <strong>Customers in this file</strong> (matched by name; new names are created, empty = Unknown Customer):
+                @foreach($custNames as $n => $c)
+                    <span class="badge badge-{{ in_array(mb_strtolower($n), $existing) ? 'success' : 'warning' }}">{{ $n }} &times; {{ $c }}{{ in_array(mb_strtolower($n), $existing) ? '' : ' (new)' }}</span>
+                @endforeach
+            </div>
             @php $noName = collect($items)->where('goods_name_missing', true)->count(); @endphp
             @if($noName > 0)
                 <div class="alert alert-warning">

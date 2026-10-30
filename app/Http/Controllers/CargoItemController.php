@@ -507,7 +507,8 @@ foreach ($validated['items'] as $index => $itemData) {
             }
 
             $itemData['is_third_party'] = $isThirdParty;
-            unset($itemData['tracking_auto'], $itemData['goods_name_missing']);
+            $itemData['customer_id'] = $this->resolveImportCustomer($itemData['customer_name'] ?? null, $itemData['shipping_mark'] ?? null)->id;
+            unset($itemData['tracking_auto'], $itemData['goods_name_missing'], $itemData['customer_name']);
             CargoItem::create($itemData);
             $seen[$key] = true;
             $importedCount++;
@@ -715,6 +716,7 @@ private function rowExistsInDatabase($item)
         'height_cm'      => ['h_cm', 'h', 'height_cm', 'height'],
         'cbm'            => ['cbm'],
         'shipping_mark'  => ['shipping_mark', 'shippingmark'],
+        'customer'       => ['customer', 'customer_name', 'customername', 'client'],
         'remark'         => ['remark', 'remark_for_liquidbattery_or_powder'],
         'copy'           => ['copy', 'copy_or_no'],
         'warehouse'      => ['warehouse', 'ware_house'],
@@ -885,6 +887,53 @@ private function rowExistsInDatabase($item)
         return $items;
     }
 
+    /** @var array<string,\App\Models\Customer> per-import cache: lower(name) => customer */
+    private array $importCustomers = [];
+
+    /**
+     * Excel "Customer" column -> customer (found by name, or created). Empty name = "Unknown Customer".
+     * The row's shipping mark is added to the customer when he doesn't have it yet.
+     */
+    private function resolveImportCustomer(?string $name, ?string $mark): \App\Models\Customer
+    {
+        $name = trim((string) $name) !== '' ? preg_replace('/\s+/', ' ', trim($name)) : 'Unknown Customer';
+        $key  = mb_strtolower($name);
+
+        if (!isset($this->importCustomers[$key])) {
+            $customer = \App\Models\Customer::with('extraShippingMarks')
+                ->whereRaw('LOWER(TRIM(name)) = ?', [$key])->first();
+
+            if (!$customer) {
+                $n = (int) \App\Models\Customer::max('id') + 1;
+                do {
+                    $code = $key === 'unknown customer' ? 'UNKNOWN' : 'CUST' . str_pad((string) $n++, 4, '0', STR_PAD_LEFT);
+                } while (\App\Models\Customer::where('customer_code', $code)->exists() && $key !== 'unknown customer');
+
+                $customer = \App\Models\Customer::create([
+                    'name'          => $name,
+                    'customer_code' => $code,
+                    'email'         => strtolower($code) . '@noemail.local',
+                    'phone'         => 'NA-' . $code,
+                ]);
+                $customer->load('extraShippingMarks');
+            }
+            $this->importCustomers[$key] = $customer;
+        }
+
+        $customer = $this->importCustomers[$key];
+
+        $mark = trim((string) $mark);
+        if ($mark !== '' && strtolower($customer->name) !== 'unknown customer') {
+            $have = array_map('mb_strtolower', $customer->all_shipping_marks);
+            if (!in_array(mb_strtolower($mark), $have, true)) {
+                \App\Models\CustomerExtraShippingMark::create(['customer_id' => $customer->id, 'shipping_mark' => $mark]);
+                $customer->load('extraShippingMarks');
+            }
+        }
+
+        return $customer;
+    }
+
     /** Cell -> trimmed string or null (also fixes big numbers like 7.7E+14). */
     private function cellText($value): ?string
     {
@@ -973,6 +1022,7 @@ private function rowExistsInDatabase($item)
             'height_cm'        => $height,
             'cbm'              => $cbm,
             'shipping_mark'    => $this->cellText($get('shipping_mark')),
+            'customer_name'    => $this->cellText($get('customer')),
             'remark'           => $remark,
             'warehouse'        => $this->cellText($get('warehouse')),
             'is_copy'          => $isCopy,
