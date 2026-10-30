@@ -117,6 +117,7 @@
                                         <th width="50">
                                             <input type="checkbox" id="selectAll">
                                         </th>
+                                        <th>SN</th>
                                         <th>ID</th>
                                         <th>Printed CTN</th>
                                         <th>Goods Name</th>
@@ -137,6 +138,7 @@
                                         <td>
                                             <input type="checkbox" name="product_ids[]" value="{{ $product->id }}" class="product-checkbox">
                                         </td>
+                                        <td class="sn-cell">{{ $loop->iteration }}</td>
                                         <td>{{ $product->id }}</td>
                                         <td>{{ $product->printed_ctn_no }}</td>
                                         <td>{{ $product->goods_name_en }}</td>
@@ -222,7 +224,7 @@
             if (!x && y) return 1; if (x && !y) return -1;
             return x.localeCompare(y, undefined, {numeric: true}) * dir || a.dataset.orig - b.dataset.orig;
         });
-        sorted.forEach(function (r) { tbody.appendChild(r); });
+        sorted.forEach(function (r, i) { tbody.appendChild(r); var c = r.querySelector('.sn-cell'); if (c) c.textContent = i + 1; });
     }
     document.getElementById('sortBy').addEventListener('change', apply);
     document.getElementById('sortDir').addEventListener('change', apply);
