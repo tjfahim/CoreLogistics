@@ -97,6 +97,19 @@
                     </div>
 
                     @if($products->count() > 0)
+                        <div class="form-inline mb-2">
+                            <label class="mr-2 font-weight-bold" for="sortBy"><i class="fa fa-sort"></i> Sort by:</label>
+                            <select id="sortBy" class="form-control form-control-sm mr-2">
+                                <option value="">Default (newest first)</option>
+                                <option value="mark">Shipping Mark</option>
+                                <option value="goods">Goods Name</option>
+                                <option value="customer">Customer Name</option>
+                            </select>
+                            <select id="sortDir" class="form-control form-control-sm">
+                                <option value="asc">A &rarr; Z</option>
+                                <option value="desc">Z &rarr; A</option>
+                            </select>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-striped table-bordered">
                                 <thead class="thead-dark">
@@ -117,7 +130,10 @@
                                 </thead>
                                 <tbody>
                                     @foreach($products as $product)
-                                    <tr class="{{ (is_null($product->customer_id) || optional($product->customer)->customer_code === 'UNKNOWN') ? 'table-warning' : '' }}">
+                                    <tr data-mark="{{ \Illuminate\Support\Str::lower($product->shipping_mark) }}"
+                                        data-goods="{{ \Illuminate\Support\Str::lower($product->goods_name_en) }}"
+                                        data-customer="{{ \Illuminate\Support\Str::lower(optional($product->customer)->name) }}"
+                                        class="{{ (is_null($product->customer_id) || optional($product->customer)->customer_code === 'UNKNOWN') ? 'table-warning' : '' }}">
                                         <td>
                                             <input type="checkbox" name="product_ids[]" value="{{ $product->id }}" class="product-checkbox">
                                         </td>
@@ -190,6 +206,28 @@
     }
 </style>
 
+<script>
+(function () {
+    var tbody = document.querySelector('#assignmentForm table tbody');
+    if (!tbody) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    rows.forEach(function (r, i) { r.dataset.orig = i; });
+    function apply() {
+        var key = document.getElementById('sortBy').value;
+        var dir = document.getElementById('sortDir').value === 'desc' ? -1 : 1;
+        var sorted = rows.slice().sort(function (a, b) {
+            if (!key) return a.dataset.orig - b.dataset.orig;
+            var x = a.dataset[key] || '', y = b.dataset[key] || '';
+            // empty values always last
+            if (!x && y) return 1; if (x && !y) return -1;
+            return x.localeCompare(y, undefined, {numeric: true}) * dir || a.dataset.orig - b.dataset.orig;
+        });
+        sorted.forEach(function (r) { tbody.appendChild(r); });
+    }
+    document.getElementById('sortBy').addEventListener('change', apply);
+    document.getElementById('sortDir').addEventListener('change', apply);
+})();
+</script>
 <script>
 // Select all checkboxes
 document.getElementById('selectAll').addEventListener('change', function() {
