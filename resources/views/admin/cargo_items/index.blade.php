@@ -190,6 +190,7 @@
                                 </th>
                                 <th>ID</th>
                                 <th>Date</th>
+                                <th>Customer</th>
                                 <th>Receipt NO.</th>
                                 <th>Printed CTN NO.</th>
                                 <th>Written CTN NO.</th>
@@ -207,7 +208,7 @@
                             </tr>
                         </thead>
                         <tbody id="tableBody">
-                            <tr><td colspan="17" class="text-center">Loading...</td></tr>
+                            <tr><td colspan="18" class="text-center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -273,7 +274,7 @@ $(document).ready(function () {
     function loadItems() {
         const perPage = $('#perPageSelect').val();
 
-        $('#tableBody').html('<tr><td colspan="17" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
+        $('#tableBody').html('<tr><td colspan="18" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>');
 
         $.ajax({
             url: '{{ route("cargo-items.ajax-items") }}',
@@ -291,14 +292,14 @@ $(document).ready(function () {
                 renderPagination(res.meta);
             },
             error: function () {
-                $('#tableBody').html('<tr><td colspan="17" class="text-center text-danger">Failed to load items.</td></tr>');
+                $('#tableBody').html('<tr><td colspan="18" class="text-center text-danger">Failed to load items.</td></tr>');
             }
         });
     }
 
     function renderRows(items) {
         if (!items || items.length === 0) {
-            $('#tableBody').html('<tr><td colspan="17" class="text-center text-muted">No items found.</td></tr>');
+            $('#tableBody').html('<tr><td colspan="18" class="text-center text-muted">No items found.</td></tr>');
             return;
         }
 
@@ -355,6 +356,7 @@ $(document).ready(function () {
                     checkboxCell +
                     '<td>' + item.id + '</td>' +
                     '<td class="c-date">' + dateStr + '</td>' +
+                    '<td class="c-customer">' + (item.customer_name ? $('<div>').text(item.customer_name).html() : '<span class="text-muted">—</span>') + '</td>' +
                     '<td class="c-receipt">' + (item.receipt_no ? '<strong>' + item.receipt_no + '</strong>' : '') + '</td>' +
                     '<td class="c-ctn">' + (item.printed_ctn_no ?? '') + '</td>' +
                     '<td class="c-ctn2">' + (item.written_ctn_no ?? '') + '</td>' +

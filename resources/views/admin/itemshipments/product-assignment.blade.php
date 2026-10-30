@@ -52,7 +52,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h6>Assigned Items</h6>
-                                <h4 class="text-success">{{ $itemshipment->cargoItems->whereNotNull('customer_id')->count() }}</h4>
+                                <h4 class="text-success">{{ $itemshipment->cargoItems->whereNotNull('customer_id')->filter(fn($i) => optional($i->customer)->customer_code !== 'UNKNOWN')->count() }}</h4>
                             </div>
                         </div>
                     </div>
@@ -60,7 +60,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h6>Unassigned Items</h6>
-                                <h4 class="text-warning">{{ $itemshipment->cargoItems->whereNull('customer_id')->count() }}</h4>
+                                <h4 class="text-warning">{{ $itemshipment->cargoItems->filter(fn($i) => is_null($i->customer_id) || optional($i->customer)->customer_code === 'UNKNOWN')->count() }}</h4>
                             </div>
                         </div>
                     </div>
@@ -117,7 +117,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach($products as $product)
-                                    <tr class="{{ is_null($product->customer_id) ? 'table-warning' : '' }}">
+                                    <tr class="{{ (is_null($product->customer_id) || optional($product->customer)->customer_code === 'UNKNOWN') ? 'table-warning' : '' }}">
                                         <td>
                                             <input type="checkbox" name="product_ids[]" value="{{ $product->id }}" class="product-checkbox">
                                         </td>

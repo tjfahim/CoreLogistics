@@ -508,6 +508,19 @@ foreach ($validated['items'] as $index => $itemData) {
             if ($isDuplicate && $skipDuplicates) {
                 $seen[$key] = true;
                 $skippedCount++;
+
+                // Same row uploaded again WITH a customer name: give the existing item that customer
+                // (only when it has none / is still "Unknown Customer").
+                if ($exists && trim((string) ($itemData['customer_name'] ?? '')) !== '') {
+                    $cust = $this->resolveImportCustomer($itemData['customer_name'], $itemData['shipping_mark'] ?? null);
+                    $unknownId = \App\Models\Customer::where('customer_code', 'UNKNOWN')->value('id');
+                    $this->existingRowQuery($itemData)
+                        ->where(function ($q) use ($unknownId) {
+                            $q->whereNull('customer_id');
+                            if ($unknownId) $q->orWhere('customer_id', $unknownId);
+                        })
+                        ->update(['customer_id' => $cust->id]);
+                }
                 continue;
             }
 
@@ -632,9 +645,15 @@ private function buildRowKey($item)
  */
 private function rowExistsInDatabase($item)
 {
+    $q = $this->existingRowQuery($item);
+    return $q ? $q->exists() : false;
+}
+
+private function existingRowQuery($item)
+{
     $tracking = trim((string)($item['tracking_no'] ?? ''));
     if ($tracking === '') {
-        return false;
+        return null;
     }
 
     return CargoItem::whereRaw('TRIM(tracking_no) = ?', [$tracking])
@@ -642,8 +661,7 @@ private function rowExistsInDatabase($item)
         ->whereRaw('TRIM(COALESCE(printed_ctn_no, "")) = ?', [trim((string)($item['printed_ctn_no'] ?? ''))])
         ->whereRaw('TRIM(COALESCE(written_ctn_no, "")) = ?', [trim((string)($item['written_ctn_no'] ?? ''))])
         ->where('pack_no', intval($item['pack_no'] ?? 0))
-        ->where('weight_kg', floatval($item['weight_kg'] ?? 0))
-        ->exists();
+        ->where('weight_kg', floatval($item['weight_kg'] ?? 0));
 }
     // ============================================
     // IMPORTED FILES MANAGEMENT (view / delete only)

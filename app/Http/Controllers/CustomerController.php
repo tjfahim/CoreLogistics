@@ -218,8 +218,13 @@ class CustomerController extends Controller
         $noMatchCount = 0;
         
         // Get all products in this shipment that don't have customers assigned
+        // "Unassigned" = no customer OR the placeholder "Unknown Customer" (what Excel / manual upload gives by default)
+        $unknownId = Customer::where('customer_code', 'UNKNOWN')->value('id');
         $products = $itemshipment->cargoItems()
-            ->whereNull('customer_id')
+            ->where(function ($q) use ($unknownId) {
+                $q->whereNull('customer_id');
+                if ($unknownId) $q->orWhere('customer_id', $unknownId);
+            })
             ->whereNotNull('shipping_mark')
             ->get();
         
@@ -231,7 +236,7 @@ class CustomerController extends Controller
                       ->orWhereNotNull('shipping_mark3')
                       ->orWhereNotNull('shipping_mark4')
                       ->orWhereHas('extraShippingMarks');
-            })->get();
+            })->when($unknownId, fn ($q) => $q->where('customers.id', '!=', $unknownId))->get();
         
         \Log::info("Auto-assignment started for shipment {$itemshipment->id}");
         \Log::info("Found {$products->count()} unassigned products with shipping marks");
@@ -243,7 +248,7 @@ class CustomerController extends Controller
         }
         
         foreach ($products as $product) {
-            if (!is_null($product->customer_id)) {
+            if (!is_null($product->customer_id) && $product->customer_id != $unknownId) {
                 $skippedCount++;
                 continue;
             }
