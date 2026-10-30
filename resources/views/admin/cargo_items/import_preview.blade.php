@@ -134,6 +134,7 @@
                 <th>Remark</th>
                 <th>Copy</th>
                 <th>Status</th>
+                <th>Customer</th>
             </tr>
         </thead>
                                 <tbody>
@@ -166,6 +167,7 @@
                             <span class="badge badge-success">New</span>
                         @endif
                     </td>
+                    <td>{{ trim((string) ($item['customer_name'] ?? '')) ?: 'Unknown Customer' }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -241,6 +243,7 @@
                                     <th>Shipping Mark</th>
                                     <th>Warehouse</th>
                                     <th>Status</th>
+                                    <th>Customer</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -265,6 +268,7 @@
                                                 <span class="badge badge-success">New</span>
                                             @endif
                                         </td>
+                                        <td>{{ trim((string) ($item['customer_name'] ?? '')) ?: 'Unknown Customer' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

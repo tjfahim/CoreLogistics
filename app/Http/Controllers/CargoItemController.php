@@ -122,7 +122,9 @@ public function ajaxItems(Request $request)
 }
     public function create()
     {
-        return view('admin.cargo_items.create');
+        $unknown   = $this->resolveImportCustomer(null, null);
+        $customers = \App\Models\Customer::orderBy('name')->get(['id', 'name', 'customer_code']);
+        return view('admin.cargo_items.create', compact('customers', 'unknown'));
     }
 
     public function store(Request $request)
@@ -150,6 +152,7 @@ public function ajaxItems(Request $request)
             'items.*.is_copy'         => ['nullable'],
             'items.*.is_third_party'  => ['nullable'],
             'is_third_party'          => ['nullable', 'boolean'],
+            'customer_id'             => ['nullable', 'exists:customers,id'],
         ]);
 
         // Check duplicates (manual entry)
@@ -176,8 +179,9 @@ foreach ($validated['items'] as $index => $itemData) {
         $duplicateAction = $request->input('duplicate_action', 'skip');
 
         $isThirdParty = $request->boolean('is_third_party');
+        $customerId   = $request->input('customer_id') ?: $this->resolveImportCustomer(null, null)->id;
 
-        DB::transaction(function () use ($validated, $duplicateAction, $isThirdParty) {
+        DB::transaction(function () use ($validated, $duplicateAction, $isThirdParty, $customerId) {
             $seen = [];
             foreach ($validated['items'] as $itemData) {
                 $itemData['is_copy'] = !empty($itemData['is_copy']);
@@ -198,6 +202,7 @@ foreach ($validated['items'] as $index => $itemData) {
                 }
 
                 $itemData['is_third_party'] = $isThirdParty || $rowThirdParty;
+                $itemData['customer_id'] = $customerId;
                 CargoItem::create($itemData);
             }
         });

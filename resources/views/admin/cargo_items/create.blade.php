@@ -110,6 +110,16 @@
                         </div>
                         @csrf
 
+                        <div class="mb-3 p-2 border rounded bg-light">
+                            <label class="font-weight-bold mb-1" for="customer_id"><i class="fa fa-user"></i> Customer (for all rows below)</label>
+                            <select name="customer_id" id="customer_id" class="form-control" style="max-width:420px">
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}" {{ (string) old('customer_id', $unknown->id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }} ({{ $c->customer_code }})</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Default is "Unknown Customer".</small>
+                        </div>
+
                         <div class="table-responsive">
                             <table class="table table-bordered table-sm" id="itemsTable">
                                 <thead class="thead-dark">
