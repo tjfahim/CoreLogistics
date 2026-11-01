@@ -172,8 +172,10 @@
                                     <th>Pack No.</th>
                                     <th>Unit Pcs</th>
                                     <th>Weight (kg)</th>
+                                    <th>Final Weight (kg)</th>
                                     <th>CBM</th>
                                     <th>Shipping Mark</th>
+                                    <th>Customer</th>
                                     <th>Remark</th>
                                     <th>Copy</th>
                                     <th>Warehouse</th>
@@ -199,12 +201,14 @@
                                         <td>{{ $item->pack_no }}</td>
                                         <td>{{ $item->unit_pcs }}</td>
                                         <td>{{ $item->weight_kg ?? '0.000' }}</td>
+                                        <td>{{ $item->final_weight_kg !== null ? $item->final_weight_kg : '-' }}</td>
                                         <td>{{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}</td>
                                         <td>{{ $item->shipping_mark }}</td>
+                                        <td>{{ optional($item->customer)->name ?? '-' }}</td>
                                         <td>{{ $item->remark }}</td>
                                         <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
                                         <td>{{ $item->warehouse ?? '-' }}</td>
-                                        <td>{{ $item->price ?? '-' }}</td>
+                                        <td>{{ $item->total_price !== null ? number_format($item->total_price, 2) : '-' }}</td>
                                     </tr>
                                     @endforeach
                                 @endforeach

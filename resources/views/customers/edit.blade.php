@@ -198,6 +198,12 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="font-weight-bold">Opening balance (old system)</label>
+                            <input type="number" step="0.01" name="opening_balance" class="form-control" style="max-width:260px" value="{{ old('opening_balance', $customer->opening_balance ?? 0) }}">
+                            <small class="text-muted">Balance carried from the old system. <strong>+ amount = customer owes us (old due)</strong>, <strong>&minus; amount = advance we hold</strong>. Leave 0 for a new customer. It starts his ledger.</small>
+                        </div>
+
+                        <div class="form-group">
                             <div class="custom-control custom-checkbox form-check">
                                 <input type="checkbox" name="is_partner" value="1" id="is_partner" class="form-check-input"
                                        {{ old('is_partner', $customer->is_partner ?? false) ? 'checked' : '' }}>

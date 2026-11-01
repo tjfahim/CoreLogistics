@@ -13,6 +13,11 @@ use App\Models\ItemsShipmentPayment;
 use App\Models\ReceiptStatusNotification;
 use App\Models\ShipmentBillPayment;
 use App\Services\AccountingService;
+use App\Services\CashBookService;
+use App\Models\Agent;
+use App\Models\OfficeBill;
+use App\Models\WarehouseBill;
+use App\Models\SalaryRecord;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -99,6 +104,9 @@ public function dashboard()
             'due'   => (float) $g->sum('due_amount'),
         ])
         ->filter(fn ($a) => $a['due'] > 0)->sortByDesc('due')->take(5)->values();
+    // + old (opening) dues of agents who may have no cost lines yet
+    $agentOpen = (float) Agent::where('opening_balance', '>', 0)->sum('opening_balance');
+    $stats['cost_due'] = round($stats['cost_due'] + $agentOpen, 2);
 
     // ---------- Recent activity ----------
     $recentShipments = $fin->sortByDesc('date')->take(6)->values();
@@ -144,14 +152,28 @@ public function dashboard()
         'delivered'   => $reachedToday(['delivered']),
         'updated'     => ItemsShipment::with('cargoItems:id')->whereDate('updated_at', $today)->latest('updated_at')->take(6)->get(),
     ];
+    $officeToday = OfficeBill::whereDate('bill_date', $today)->sum('amount');
+    $whToday     = WarehouseBill::whereDate('bill_date', $today)->sum('total_amount');
+    $salToday    = SalaryRecord::whereDate('created_at', $today)->sum('amount');
+    $todayData['office_bills']    = round((float) $officeToday, 2);
+    $todayData['warehouse_bills'] = round((float) $whToday, 2);
+    $todayData['salary']          = round((float) $salToday, 2);
+    $todayData['expense']         = round($officeToday + $whToday + $salToday, 2);
     $todayData['net'] = round($todayData['collection'] - $todayData['paid_out'], 2);
+
+    // ---------- Cash book (cumulative: cash in hand / bank carry over day to day) ----------
+    $book = app(CashBookService::class);
+    $bookTx = $book->transactions();
+    $cashBook = $book->balances(null, $bookTx);
+    $cashBook['today'] = $book->day($today, $bookTx);
+    $cashBook['yesterday_close'] = $book->balances(now()->subDay()->toDateString(), $bookTx);
 
     // ---------- Customer notification pipeline ----------
     $notifyPending = ReceiptStatusNotification::pendingCounts();
 
     return view('admin.dashboard', compact(
         'stats', 'month', 'trend', 'costByType', 'cargoStatus', 'topCustomers', 'topDue',
-        'agentDue', 'recentShipments', 'recentPayments', 'recentVouchers', 'costStatus', 'alerts', 'notifyPending', 'todayData'
+        'agentDue', 'recentShipments', 'recentPayments', 'recentVouchers', 'costStatus', 'alerts', 'notifyPending', 'todayData', 'cashBook'
     ));
 }
 

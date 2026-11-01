@@ -78,6 +78,13 @@
                 </a>
             </li>
             @endcan
+            @can('view-cash-book')
+            <li class="tl-item {{ request()->routeIs('cashbook.*') ? 'active' : '' }}">
+                <a href="{{ route('cashbook.index') }}" title="Cash Book">
+                    <span class="tl-ico"><i class="fa fa-university"></i></span><span class="tl-txt">Cash Book</span>
+                </a>
+            </li>
+            @endcan
 
             {{-- Reports (dropdown) --}}
             @can('shipment-report')

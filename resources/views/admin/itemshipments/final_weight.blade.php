@@ -26,7 +26,9 @@
             The original weight is never changed. Leave a box empty to go back to the original weight.
         </div>
 
+        @include('admin.itemshipments._sort_bar')
         <form method="GET" class="form-inline mb-3">
+            <input type="hidden" name="sort" value="{{ request('sort') }}"><input type="hidden" name="dir" value="{{ request('dir') }}">
             <select name="filter" class="form-control mr-2" onchange="this.form.submit()">
                 <option value="all" {{ $filter === 'all' ? 'selected' : '' }}>All items</option>
                 <option value="missing" {{ $filter === 'missing' ? 'selected' : '' }}>Final weight missing</option>

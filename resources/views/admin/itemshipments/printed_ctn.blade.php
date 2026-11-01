@@ -116,6 +116,7 @@
                     $colorIndex = 0;
                 @endphp
 
+                @include('admin.itemshipments._sort_bar')
                 @if($groupedItems->count() > 0)
                 <div class="table-responsive" id="ctnTableToPrint">
                     <table class="table table-bordered table-striped">
@@ -125,6 +126,7 @@
                                 <th>Old Printed CTN</th>
                                 <th>New Printed CTN</th>
                                 <th>Written CTN</th>
+                                <th>Customer</th>
                                 <th>Goods Name</th>
                                 <th>Weight</th>
                                 <th>Status</th>
@@ -159,6 +161,7 @@
                                         @endcan
                                     </td>
                                     <td>{{ $item->written_ctn_no ?? '-' }}</td>
+                                    <td>{{ optional($item->customer)->name ?? '—' }}</td>
                                     <td>{{ $item->goods_name_en }}</td>
                                     <td>{{ number_format($item->weight_kg, 0) }} kg</td>
                                     <td>

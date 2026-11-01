@@ -85,6 +85,7 @@
                             </div>
                         </div>
 
+                        @include('admin.itemshipments._sort_bar')
                         <div class="table-responsive">
                             <table id="itemsTable" class="table table-striped table-bordered table-hover">
                                 <thead class="thead-dark">
@@ -97,6 +98,7 @@
                                         <th>ID</th>
                                         <th>Printed CTN</th>
                                         <th>Written CTN</th>
+                                        <th>Customer</th>
                                         <th>Tracking No.</th>
                                         <th>Goods Name</th>
                                         <th>Pack No.</th>
@@ -108,7 +110,7 @@
                                 </thead>
 
                                 <tbody>
-                                    @foreach($itemshipment->cargoItems as $item)
+                                    @foreach($items as $item)
                                         <tr data-item-id="{{ $item->id }}"
                                             class="{{ $item->latestReturn ? 'returned-row' : '' }}"
                                             @if($item->latestReturn)
@@ -122,6 +124,7 @@
                                             <td>{{ $item->id }}</td>
                                             <td>{{ $item->printed_ctn_no }}</td>
                                             <td>{{ $item->written_ctn_no }}</td>
+                                            <td>{{ optional($item->customer)->name ?? '—' }}</td>
                                             <td>{{ $item->tracking_no }}</td>
                                             <td>
                                                 {{ $item->goods_name_en }}

@@ -341,6 +341,10 @@ Route::post('shipment-bills/pay', [ShipmentBillController::class, 'store'])->nam
 Route::get('shipment-bills/{voucher}', [ShipmentBillController::class, 'show'])->name('shipment-bills.show');
 Route::delete('shipment-bills/{voucher}', [ShipmentBillController::class, 'destroy'])->name('shipment-bills.destroy');
 
+        Route::get('cash-book', [\App\Http\Controllers\CashBookController::class, 'index'])->name('cashbook.index')->middleware('can:view-cash-book');
+        Route::post('cash-book', [\App\Http\Controllers\CashBookController::class, 'store'])->name('cashbook.store')->middleware('can:manage-cash-book');
+        Route::delete('cash-book/{movement}', [\App\Http\Controllers\CashBookController::class, 'destroy'])->name('cashbook.destroy')->middleware('can:manage-cash-book');
+
         Route::prefix('ledger')->name('ledger.')->group(function () {
     Route::get('/', [LedgerController::class, 'index'])->name('index')->middleware('can:view-customer-ledger');
     Route::get('/agents', [\App\Http\Controllers\PartyLedgerController::class, 'agents'])->name('agents')->middleware('can:view-agent-ledger');

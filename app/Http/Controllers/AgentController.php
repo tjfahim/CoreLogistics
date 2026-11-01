@@ -31,8 +31,10 @@ class AgentController extends Controller
             'phone'         => 'nullable|string|max:50',
             'address'       => 'nullable|string',
             'notes'         => 'nullable|string',
+            'opening_balance' => 'nullable|numeric',
         ]);
 
+        $validated['opening_balance'] = round((float) ($validated['opening_balance'] ?? 0), 2);
         Agent::create($validated);
 
         return redirect()->route('agents.index')->with('success', 'Agent created successfully.');
@@ -58,8 +60,10 @@ class AgentController extends Controller
             'phone'         => 'nullable|string|max:50',
             'address'       => 'nullable|string',
             'notes'         => 'nullable|string',
+            'opening_balance' => 'nullable|numeric',
         ]);
 
+        $validated['opening_balance'] = round((float) ($validated['opening_balance'] ?? 0), 2);
         $agent->update($validated);
 
         return redirect()->route('agents.index')->with('success', 'Agent updated successfully.');

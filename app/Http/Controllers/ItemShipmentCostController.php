@@ -287,10 +287,33 @@ class ItemShipmentCostController extends Controller
         ]);
     }
 
-    public function pricepage(ItemsShipment $itemshipment)
+    public function pricepage(Request $request, ItemsShipment $itemshipment)
     {
         $itemshipment->load('cargoItems.customer');
-        return view('admin.itemshipments.price', compact('itemshipment'));
+        $items = self::sortItems($itemshipment->cargoItems, $request->input('sort'), $request->input('dir'));
+        return view('admin.itemshipments.price', compact('itemshipment', 'items'));
+    }
+
+    /** Shared by the shipment pages: sort a collection of cargo items (customer keeps its items together). */
+    public static function sortItems($items, ?string $sort, ?string $dir = 'asc')
+    {
+        $key = match ($sort) {
+            'customer' => fn ($i) => mb_strtolower((string) optional($i->customer)->name) ?: "\u{10FFFF}",
+            'goods'    => fn ($i) => mb_strtolower((string) $i->goods_name_en),
+            'mark'     => fn ($i) => mb_strtolower((string) $i->shipping_mark) ?: "\u{10FFFF}",
+            'ctn'      => fn ($i) => mb_strtolower((string) $i->printed_ctn_no) ?: "\u{10FFFF}",
+            'id'       => fn ($i) => (int) $i->id,
+            default    => null,
+        };
+        if (!$key) return $items->values();
+
+        $desc = $dir === 'desc';
+        return $items->sort(function ($a, $b) use ($key, $desc) {
+            $x = $key($a); $y = $key($b);
+            $c = is_int($x) ? $x <=> $y : strnatcmp($x, $y);
+            if ($c === 0) $c = strnatcmp((string) $a->printed_ctn_no, (string) $b->printed_ctn_no) ?: ($a->id <=> $b->id);
+            return $desc ? -$c : $c;
+        })->values();
     }
 
     public function updatePrices(Request $request, ItemsShipment $itemshipment)
@@ -322,10 +345,11 @@ class ItemShipmentCostController extends Controller
         }
     }
 
-    public function ctn_update(ItemsShipment $itemshipment)
+    public function ctn_update(Request $request, ItemsShipment $itemshipment)
     {
-        $itemshipment->load('cargoItems');
-        $groupedItems = $itemshipment->cargoItems->groupBy('printed_ctn_no');
+        $itemshipment->load('cargoItems.customer');
+        $sorted = self::sortItems($itemshipment->cargoItems, $request->input('sort'), $request->input('dir'));
+        $groupedItems = $sorted->groupBy('printed_ctn_no');
 
         $ctnSuggestion = CtnSequence::suggestion();
 
@@ -343,6 +367,7 @@ class ItemShipmentCostController extends Controller
             ->when($filter === 'set', fn ($c) => $c->filter(fn ($i) => $i->final_weight_kg !== null))
             ->when($search !== '', fn ($c) => $c->filter(fn ($i) => stripos($i->printed_ctn_no . ' ' . $i->tracking_no . ' ' . $i->goods_name_en, $search) !== false));
 
+        $items = self::sortItems($items, $request->input('sort'), $request->input('dir'));
         $groupedItems = $items->groupBy(fn ($i) => $i->printed_ctn_no ?: '—');
 
         $all = $itemshipment->cargoItems()->get();

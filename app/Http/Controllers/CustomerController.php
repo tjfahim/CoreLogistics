@@ -38,6 +38,7 @@ class CustomerController extends Controller
             'shipping_mark3' => 'nullable',
             'shipping_mark4' => 'nullable',
             'is_partner' => 'nullable|boolean',
+            'opening_balance' => 'nullable|numeric',
             'extra_shipping_marks' => 'nullable|array',
             'extra_shipping_marks.*' => 'nullable|string|max:255',
         ]);
@@ -54,6 +55,7 @@ class CustomerController extends Controller
             'shipping_mark3' => $validated['shipping_mark3'] ?? null,
             'shipping_mark4' => $validated['shipping_mark4'] ?? null,
             'is_partner' => $request->boolean('is_partner'),
+            'opening_balance' => round((float) ($request->input('opening_balance') ?? 0), 2),
         ]);
 
         // Save extra shipping marks
@@ -94,6 +96,7 @@ class CustomerController extends Controller
             'shipping_mark3' => 'nullable',
             'shipping_mark4' => 'nullable',
             'is_partner' => 'nullable|boolean',
+            'opening_balance' => 'nullable|numeric',
             'extra_shipping_marks' => 'nullable|array',
             'extra_shipping_marks.*' => 'nullable|string|max:255',
         ]);
@@ -110,6 +113,7 @@ class CustomerController extends Controller
             'shipping_mark3' => $validated['shipping_mark3'] ?? null,
             'shipping_mark4' => $validated['shipping_mark4'] ?? null,
             'is_partner' => $request->boolean('is_partner'),
+            'opening_balance' => round((float) ($request->input('opening_balance') ?? 0), 2),
         ]);
 
         // Delete existing extra shipping marks

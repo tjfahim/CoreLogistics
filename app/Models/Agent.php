@@ -16,6 +16,7 @@ class Agent extends Model
         'phone',
         'address',
         'notes',
+        'opening_balance',
     ];
      
 

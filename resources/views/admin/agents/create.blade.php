@@ -122,6 +122,12 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="font-weight-bold">Opening balance (old system)</label>
+                            <input type="number" step="0.01" name="opening_balance" class="form-control" style="max-width:260px" value="{{ old('opening_balance', 0) }}">
+                            <small class="text-muted"><strong>+ amount = we owe the agent (old due)</strong>, <strong>&minus; amount = agent owes us / advance paid</strong>. It starts his ledger.</small>
+                        </div>
+
+                        <div class="form-group">
                             <label class="font-weight-bold">Notes</label>
                             <textarea name="notes" rows="3"
                                       class="form-control @error('notes') is-invalid @enderror"

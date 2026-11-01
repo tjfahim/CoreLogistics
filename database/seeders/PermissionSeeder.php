@@ -196,6 +196,8 @@ class PermissionSeeder extends Seeder
             'View Agent Ledger',
             'View Shipment Ledger',
             'Export Ledger',
+            'View Cash Book',
+            'Manage Cash Book',
         ],
 
         // ---------- Reports ----------

@@ -141,6 +141,8 @@ class CustomerBillController extends Controller
             'weight_kg'        => $item->billing_weight,
             'cbm'              => $item->cbm,
             'tracking_no'      => $item->tracking_no,
+            'printed_ctn_no'   => $item->printed_ctn_no,
+            'shipping_mark'    => $item->shipping_mark,
             'has_price'        => $hasPrice,
             'price'            => $item->price,
             'price_per_kg'     => $item->price_per_kg,

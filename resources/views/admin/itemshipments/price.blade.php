@@ -90,7 +90,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <h6>Current Total</h6>
-                                <h4 class="text-success">{{ number_format($itemshipment->cargoItems->sum('price'), 0) }}</h4>
+                                <h4 class="text-success">{{ number_format($items->sum(fn($i) => $i->total_price ?? 0), 0) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -137,6 +137,7 @@
                     </div>
 
                     @if($itemshipment->cargoItems->count() > 0)
+                        @include('admin.itemshipments._sort_bar')
                         <div class="table-responsive">
                             <table class="table table-striped table-bordered">
                                 <thead class="thead-dark">
@@ -147,7 +148,8 @@
                                         <th>Customer</th>
                                         <th>Shipping Mark</th>
                                         <th>CBM</th>
-                                        <th>Weight (kg)</th>
+                                        <th>Original Wt (kg)</th>
+                                        <th>Final Wt (kg)</th>
                                         <th>Current Price/KG (৳)</th>
                                         <th>New Price/KG (৳)</th>
                                         @can('edit-price')<th title="Keep this box's own price (don't follow the same-goods group)">Override</th>@endcan
@@ -156,7 +158,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($itemshipment->cargoItems as $index => $item)
+                                    @foreach($items as $index => $item)
                                     <tr>
                                         <td>{{ $index + 1 }}</td>
                                         <td>
@@ -171,7 +173,14 @@
                                         <td>
                                             {{ number_format($item->length_cm, 0) }}x{{ number_format($item->width_cm, 0) }}x{{ number_format($item->height_cm, 0) }} = {{ number_format($item->cbm ?? 0, 6) }}
                                         </td>
-                                        <td class="text-right">{{ number_format($item->billing_weight ?? 0, 0) }}</td>
+                                        <td class="text-right text-muted">{{ number_format($item->weight_kg ?? 0, 2) }}</td>
+                                        <td class="text-right">
+                                            @if($item->final_weight_kg !== null)
+                                                <strong>{{ number_format($item->final_weight_kg, 2) }}</strong>
+                                            @else
+                                                <span class="text-muted" title="No final weight yet: the original weight is used for the price">—</span>
+                                            @endif
+                                        </td>
                                         <td class="text-right text-info">
                                             <strong>{{ $item->price_per_kg ? number_format($item->price_per_kg, 2) : '0.00' }}</strong>
                                         </td>
@@ -197,7 +206,7 @@
                                         </td>
                                         @endcan
                                         <td class="text-right total-price" id="total-price-{{ $item->id }}">
-                                            <strong class="text-success">{{ number_format($item->price ?? 0, 0) }}</strong>
+                                            <strong class="text-success">{{ number_format($item->total_price ?? 0, 2) }}</strong>
                                         </td>
                                         <td>
                                             <span class="badge badge-{{ $item->status === 'shipping_ongoing' ? 'warning' : ($item->status === 'packed' ? 'info' : 'secondary') }}">
@@ -209,12 +218,12 @@
                                 </tbody>
                                 <tfoot class="table-info">
                                     <tr>
-                                        <td colspan="4" class="text-right"><strong>Grand Totals:</strong></td>
+                                        <td colspan="8" class="text-right"><strong>Grand Totals:</strong></td>
                                         <td class="text-right">
                                             <strong>{{ number_format($itemshipment->cargoItems->avg('price_per_kg'), 0) }}</strong>
                                         </td>
                                         <td></td>
-                                        <td class="text-right"><strong id="grand-total">{{ number_format($itemshipment->cargoItems->sum('price'), 0) }}</strong></td>
+                                        <td class="text-right"><strong id="grand-total">{{ number_format($items->sum(fn($i) => $i->total_price ?? 0), 2) }}</strong></td>
                                         <td></td>
                                     </tr>
                                 </tfoot>

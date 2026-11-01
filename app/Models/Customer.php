@@ -21,6 +21,7 @@ class Customer extends Model
         'shipping_mark4',
         'address',
         'is_partner',
+        'opening_balance',
     ];
 
     protected $casts = ['is_partner' => 'boolean'];
@@ -82,7 +83,7 @@ class Customer extends Model
                 $query->whereNotNull('price')
                       ->orWhereNotNull('price_per_kg');
             })
-            ->sum(DB::raw('COALESCE(price, price_per_kg * COALESCE(final_weight_kg, weight_kg))'));
+            ->sum(DB::raw('CASE WHEN COALESCE(price_per_kg, 0) <> 0 THEN price_per_kg * COALESCE(final_weight_kg, weight_kg, 0) ELSE COALESCE(price, 0) END'));
     }
 
 

@@ -107,8 +107,8 @@
                                 <td>{{ $item->tracking_no }}</td>
                                 <td>{{ number_format($item->billing_weight, 0) }}</td>
                                 <td>
-                                    @if($item->price)
-                                    {{ number_format($item->price, 0) }}
+                                    @if($item->total_price)
+                                    {{ number_format($item->total_price, 0) }}
                                     @else
                                     <span class="text-muted">-</span>
                                     @endif

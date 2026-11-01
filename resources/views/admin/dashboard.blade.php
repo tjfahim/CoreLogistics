@@ -92,6 +92,7 @@
             ['Paid out today', number_format($td['paid_out']), $td['payouts'].' payment(s)', 'neg', $tdUrl('payments')],
             ['Cost added today', number_format($td['cost']), $td['costs'].' bill line(s)', '', $tdUrl('costs')],
             ['Net cash today', number_format($td['net']), 'collected - paid out', $td['net'] >= 0 ? 'pos' : 'neg', null],
+            ['Expense today', number_format($td['expense']), 'office '.number_format($td['office_bills']).' + warehouse '.number_format($td['warehouse_bills']).' + salary '.number_format($td['salary']), 'neg', route('reports.office')],
             ['Goods received', $td['received'], 'China warehouse', '', $tdUrl('received')],
             ['Shipped today', $td['shipped'], 'items', '', $tdUrl('shipped')],
             ['Arrived in BD', $td['arrived'], 'items', '', $tdUrl('arrived')],
@@ -124,6 +125,20 @@
         @endforelse
     </div>
 
+    {{-- ===== CASH IN HAND / BANK (carries over every day) ===== --}}
+    <div class="pd-grid g3" style="margin-bottom:22px">
+        @php $cbT = $cashBook['today']; @endphp
+        <div class="pd-card"><div style="font-size:12.5px;color:var(--ink-2);font-weight:600">Cash in hand</div>
+            <div class="{{ $cashBook['cash'] < 0 ? 'neg' : 'pos' }}" style="font-size:24px;font-weight:800">{{ number_format($cashBook['cash']) }}</div>
+            <div style="font-size:12px;color:var(--ink-2)">Today: +{{ number_format($cbT['cash']['in']) }} / -{{ number_format($cbT['cash']['out']) }} &middot; yesterday close {{ number_format($cashBook['yesterday_close']['cash']) }}</div></div>
+        <div class="pd-card"><div style="font-size:12.5px;color:var(--ink-2);font-weight:600">Cash in bank</div>
+            <div class="{{ $cashBook['bank'] < 0 ? 'neg' : 'pos' }}" style="font-size:24px;font-weight:800">{{ number_format($cashBook['bank']) }}</div>
+            <div style="font-size:12px;color:var(--ink-2)">Today: +{{ number_format($cbT['bank']['in']) }} / -{{ number_format($cbT['bank']['out']) }} &middot; yesterday close {{ number_format($cashBook['yesterday_close']['bank']) }}</div></div>
+        <div class="pd-card"><div style="font-size:12.5px;color:var(--ink-2);font-weight:600">Total money</div>
+            <div style="font-size:24px;font-weight:800">{{ number_format($cashBook['total']) }}</div>
+            @can('view-cash-book')<div style="font-size:12px"><a href="{{ route('cashbook.index') }}">Open Cash Book (transfer cash to bank)</a></div>@endcan</div>
+    </div>
+
     {{-- ===== HERO ===== --}}
     <div class="pd-hero">
         <div>
@@ -136,7 +151,7 @@
             <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['billed']) }}">0</span></div><div class="l">Total billed</div></div>
             <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['received']) }}">0</span></div><div class="l">Received from customers</div></div>
             <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['cost']) }}">0</span></div><div class="l">Shipment costs</div></div>
-            <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($stats['cash']) }}">0</span></div><div class="l">Cash (received - paid out)</div></div>
+            <div class="pd-mini"><div class="v"><span class="count" data-val="{{ round($cashBook['total']) }}">0</span></div><div class="l">Cash + bank in hand</div></div>
         </div>
     </div>
 
@@ -169,8 +184,7 @@
         @endforeach
     </div>
 
-    <details class="pd-more">
-        <summary style="cursor:pointer;font-weight:700;margin:6px 0 16px">More details (charts, dues, recent activity)</summary>
+    <h3 style="font-weight:700;margin:6px 0 16px">More details (charts, dues, recent activity)</h3>
     {{-- ===== NEEDS ATTENTION + NOTIFICATIONS ===== --}}
     <div class="pd-grid g2">
         <div class="pd-card">
@@ -337,7 +351,6 @@
             @if($loop->last) </tbody></table> @endif
         @empty <div class="pd-empty">All agents are paid up.</div> @endforelse
     </div>
-    </details>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

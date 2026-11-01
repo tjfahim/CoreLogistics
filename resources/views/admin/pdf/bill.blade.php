@@ -24,7 +24,6 @@
     <td class="right">
         @if($invoice)<div><strong>{{ $invoice->invoice_number }}</strong></div>@endif
         <div class="muted">Date: {{ now()->format('d M Y') }}</div>
-        @if($itemshipment)<div class="muted">Shipment: {{ $itemshipment->shipment_name }}</div>@endif
     </td>
 </tr></table>
 
@@ -35,20 +34,20 @@
 </div>
 
 <table class="items">
-    <thead><tr><th>#</th><th>Goods</th><th>Tracking</th><th class="num">Weight (kg)</th><th class="num">Price / kg</th><th class="num">Fixed price</th><th class="num">Total (BDT)</th></tr></thead>
+    <thead><tr><th>#</th><th>Product</th><th>CTN No.</th><th>Shipping Mark</th><th>Tracking</th><th class="num">Weight (kg)</th><th class="num">Total Price (BDT)</th></tr></thead>
     <tbody>
     @foreach($itemDetails as $i => $d)
         <tr>
             <td>{{ $i + 1 }}</td>
             <td>{{ $d['goods_name_en'] }}</td>
+            <td>{{ $d['printed_ctn_no'] }}</td>
+            <td>{{ $d['shipping_mark'] }}</td>
             <td>{{ $d['tracking_no'] }}</td>
             <td class="num">{{ number_format($d['weight_kg'], 2) }}</td>
-            <td class="num">{{ $d['price_per_kg'] ? number_format($d['price_per_kg'], 2) : '' }}</td>
-            <td class="num">{{ $d['price'] ? number_format($d['price'], 2) : '' }}</td>
             <td class="num">{{ $d['has_price'] ? number_format($d['total_price'], 2) : 'not priced' }}</td>
         </tr>
     @endforeach
-    <tr class="total"><td colspan="3">TOTAL ({{ $totalItems }} items)</td><td class="num">{{ number_format($totalWeight, 2) }}</td><td></td><td></td><td class="num">{{ number_format($totalPrice, 2) }}</td></tr>
+    <tr class="total"><td colspan="5">TOTAL ({{ $totalItems }} items)</td><td class="num">{{ number_format($totalWeight, 2) }}</td><td class="num">{{ number_format($totalPrice, 2) }}</td></tr>
     </tbody>
 </table>
 @if($itemsWithoutPrice > 0)<p class="muted">{{ $itemsWithoutPrice }} item(s) are not priced yet and are not included in the total.</p>@endif

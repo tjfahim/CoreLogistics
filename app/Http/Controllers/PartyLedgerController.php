@@ -27,19 +27,20 @@ class PartyLedgerController extends Controller
         abort_unless(Gate::allows('view-shipment-cost'), 403);
 
         $led = $this->acc->payableLedger([]);
-        $agents = Agent::orderBy('name')->get(['id', 'name', 'company_name', 'type']);
+        $agents = Agent::orderBy('name')->get(['id', 'name', 'company_name', 'type', 'opening_balance']);
         $pos = $led['by_agent'];   // name keyed, aggregate by agent name
 
         $rows = $agents->map(function ($a) use ($pos) {
             $p = $pos->firstWhere('name', $a->name);
-            return ['agent' => $a, 'lines' => $p['lines'] ?? 0, 'bill' => $p['bill'] ?? 0, 'paid' => $p['paid'] ?? 0, 'due' => $p['due'] ?? 0];
+            $ob = (float) $a->opening_balance;
+            return ['agent' => $a, 'opening' => $ob, 'lines' => $p['lines'] ?? 0, 'bill' => $p['bill'] ?? 0, 'paid' => $p['paid'] ?? 0, 'due' => round(($p['due'] ?? 0) + $ob, 2)];
         });
 
         if ($request->boolean('export') || $request->boolean('pdf')) {
             $sheet = [
                 'title' => 'Agents', 'heading' => 'Agent ledger - all agents',
                 'subtitle' => 'Generated ' . now()->format('d M Y H:i'),
-                'headings' => ['Agent', 'Company', 'Cost lines', 'Total bill', 'Paid', 'Due'],
+                'headings' => ['Agent', 'Company', 'Cost lines', 'Total bill', 'Paid', 'Due (incl. old balance)'],
                 'rows' => $rows->map(fn ($r) => [$r['agent']->name, $r['agent']->company_name, $r['lines'], $r['bill'], $r['paid'], $r['due']])->all(),
                 'totals' => ['TOTAL', '', $rows->sum('lines'), $rows->sum('bill'), $rows->sum('paid'), $rows->sum('due')],
                 'money' => [3, 4, 5], 'int' => [2],

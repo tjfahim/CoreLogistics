@@ -111,14 +111,11 @@
                 <tr>
                     <th class="col-num">#</th>
                     <th>Product</th>
+                    <th>CTN No.</th>
+                    <th>Shipping Mark</th>
                     <th>Tracking</th>
                     <th class="col-num">Weight (kg)</th>
-                    <th class="col-num">CBM</th>
-                    <th class="col-num">Fixed Price</th>
-                    <th class="col-num">Price / kg</th>
-                    <th class="col-num">Total</th>
-                    <th class="col-status">Status</th>
-                    <th>Shipment</th>
+                    <th class="col-num">Total Price</th>
                 </tr>
             </thead>
             <tbody>
@@ -131,11 +128,10 @@
                                 <div class="inv-sub">{{ $item['goods_name_local'] }}</div>
                             @endif
                         </td>
+                        <td>{{ $item['printed_ctn_no'] }}</td>
+                        <td>{{ $item['shipping_mark'] }}</td>
                         <td>{{ $item['tracking_no'] }}</td>
-                        <td class="col-num">{{ number_format($item['weight_kg'], 0) }}</td>
-                        <td class="col-num">{{ number_format($item['cbm'], 3) }}</td>
-                        <td class="col-num">{{ $item['price'] ? number_format($item['price'], 2) : '—' }}</td>
-                        <td class="col-num">{{ $item['price_per_kg'] ? number_format($item['price_per_kg'], 2) : '—' }}</td>
+                        <td class="col-num">{{ number_format($item['weight_kg'], 2) }}</td>
                         <td class="col-num">
                             @if($item['has_price'])
                                 <strong>{{ number_format($item['total_price'], 2) }}</strong>
@@ -143,24 +139,14 @@
                                 <span class="inv-muted">—</span>
                             @endif
                         </td>
-                        <td class="col-status">
-                            <span class="inv-tag {{ $item['has_price'] ? 'inv-tag-priced' : 'inv-tag-unpriced' }}">
-                                {{ $item['has_price'] ? 'Priced' : 'No Price' }}
-                            </span>
-                        </td>
-                        <td>{{ $item['shipments'] }}</td>
                     </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3" class="inv-total-label">TOTAL</td>
-                    <td class="col-num">{{ number_format($totalWeight, 0) }} kg</td>
-                    <td class="col-num"></td>
-                    <td class="col-num"></td>
-                    <td class="col-num"></td>
+                    <td colspan="5" class="inv-total-label">TOTAL</td>
+                    <td class="col-num">{{ number_format($totalWeight, 2) }} kg</td>
                     <td class="col-num"><strong>{{ number_format($totalPrice, 2) }}</strong></td>
-                    <td colspan="2"></td>
                 </tr>
             </tfoot>
         </table>

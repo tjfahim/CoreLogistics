@@ -91,10 +91,11 @@ class ItemShipmentController extends Controller
 
     return view('admin.itemshipments.edit', compact('itemshipment', 'availableItems'));
 }
-public function manageReturns(ItemsShipment $itemshipment)
+public function manageReturns(Request $request, ItemsShipment $itemshipment)
 {
-    $itemshipment->load('cargoItems.latestReturn');
-    return view('admin.itemshipments.returns', compact('itemshipment'));
+    $itemshipment->load('cargoItems.latestReturn', 'cargoItems.customer');
+    $items = \App\Http\Controllers\ItemShipmentCostController::sortItems($itemshipment->cargoItems, $request->input('sort'), $request->input('dir'));
+    return view('admin.itemshipments.returns', compact('itemshipment', 'items'));
 }
 
 /**

@@ -56,7 +56,7 @@ class LedgerController extends Controller
                 'shipments_due'     => (int) ($b->shipments_due ?? 0),
                 'last_payment_date' => $b->last_payment ?? null,
                 'oldest_due_date'   => $b->oldest_due_date ?? null,
-                'status'            => $billed == 0 ? 'no-billing' : ($due <= 0 ? 'clear' : 'due'),
+                'status'            => ($billed == 0 && $due == 0) ? 'no-billing' : ($due <= 0 ? 'clear' : 'due'),
             ];
         });
 

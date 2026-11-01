@@ -127,12 +127,15 @@ public function latestReturn()
 
        public function getTotalPriceAttribute()
     {
-        if ($this->price) {
-            return $this->price;
-        } elseif ($this->price_per_kg && $this->billing_weight) {
-            return $this->price_per_kg * $this->billing_weight;
+        // Price is ALWAYS per-kg x billing weight (final weight; original when no final weight yet).
+        // Weight 0 => price 0. A fixed price is only used for items that have no price per kg.
+        if ((float) $this->price_per_kg != 0.0) {
+            return round((float) $this->price_per_kg * $this->billing_weight, 2);
         }
-        return null;
+        if ($this->price !== null) {
+            return (float) $this->price;
+        }
+        return $this->price_per_kg !== null ? 0.0 : null;
     }
 
     public function hasPrice()

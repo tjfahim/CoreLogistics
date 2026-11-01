@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Agent;
 use App\Models\Customer;
 use App\Models\CustomerPayment;
 use App\Models\Invoice;
@@ -30,9 +31,8 @@ class AccountingService
 {
     /** Same rule as CargoItem::getTotalPriceAttribute(), written in SQL. */
     public const BILL_SQL = "CASE
-        WHEN COALESCE(ci.price, 0) <> 0 THEN ci.price
-        WHEN COALESCE(ci.price_per_kg, 0) <> 0 AND COALESCE(ci.final_weight_kg, ci.weight_kg, 0) <> 0 THEN ci.price_per_kg * COALESCE(ci.final_weight_kg, ci.weight_kg)
-        ELSE 0 END";
+        WHEN COALESCE(ci.price_per_kg, 0) <> 0 THEN ROUND(ci.price_per_kg * COALESCE(ci.final_weight_kg, ci.weight_kg, 0), 2)
+        ELSE COALESCE(ci.price, 0) END";
 
     /** "RMB 100.00 @ 17.5" for payments made / received in a foreign currency, else null. */
     public static function curNote($p): ?string
@@ -144,20 +144,34 @@ class AccountingService
             ->get()
             ->keyBy('customer_id');
 
-        return $rows->groupBy('customer_id')->map(function ($g, $cid) use ($paidAll) {
-            $p = $paidAll->get($cid);
-            return (object) [
+        // balance carried from the old system: + = he owes us, - = advance we hold
+        $opening = Customer::query()
+            ->when($customerIds, fn ($q) => $q->whereIn('id', $customerIds))
+            ->where('opening_balance', '<>', 0)
+            ->pluck('opening_balance', 'id')
+            ->map(fn ($v) => (float) $v);
+
+        $byCustomer = $rows->groupBy('customer_id');
+        $ids = $byCustomer->keys()->merge($opening->keys())->unique();
+
+        return $ids->mapWithKeys(function ($cid) use ($byCustomer, $paidAll, $opening) {
+            $g  = $byCustomer->get($cid, collect());
+            $p  = $paidAll->get($cid);
+            $ob = (float) ($opening[$cid] ?? 0);
+
+            return [(int) $cid => (object) [
                 'customer_id'    => (int) $cid,
                 'shipments'      => $g->count(),
                 'items'          => $g->sum('items'),
                 'billed'         => round($g->sum('billed'), 2),
                 'paid'           => round((float) ($p->total ?? 0), 2),
-                'due'            => round($g->sum('due'), 2),
-                'advance'        => max(round((float) ($p->total ?? 0) - $g->sum('paid'), 2), 0),
+                'opening'        => $ob,
+                'due'            => round($g->sum('due') + max($ob, 0), 2),
+                'advance'        => round(max((float) ($p->total ?? 0) - $g->sum('paid'), 0) + max(-$ob, 0), 2),
                 'shipments_due'  => $g->where('due', '>', 0)->count(),
                 'last_payment'   => $p->last_date ?? null,
                 'oldest_due_date'=> optional($g->where('due', '>', 0)->sortBy('date')->first())->date,
-            ];
+            ]];
         });
     }
 
@@ -226,7 +240,8 @@ class AccountingService
 
         $all = $all->sortBy([['date', 'asc'], ['ts', 'asc'], ['order', 'asc'], ['sid', 'asc']])->values();
 
-        $opening = 0.0;
+        // start of the customer's account = balance carried from the old system
+        $opening = round((float) $customer->opening_balance, 2);
         $entries = collect();
         $balance = 0.0;
 
@@ -263,11 +278,12 @@ class AccountingService
             'debit'     => $debit,
             'credit'    => $credit,
             'closing'   => round($opening + $debit - $credit, 2),
-            'advance'   => max(round((float) $payments->sum('amount') - (float) $rows->sum('paid'), 2), 0),
+            'advance'   => round(max((float) $payments->sum('amount') - (float) $rows->sum('paid'), 0) + max(-(float) $customer->opening_balance, 0), 2),
+            'old_balance' => round((float) $customer->opening_balance, 2),
             'totals'    => [
                 'billed'        => round($rows->sum('billed'), 2),
                 'paid'          => round($rows->sum('paid'), 2),
-                'due'           => round($rows->sum('due'), 2),
+                'due'           => round($rows->sum('due') + max((float) $customer->opening_balance, 0), 2),
                 'shipments'     => $rows->count(),
                 'shipments_due' => $rows->where('due', '>', 0)->count(),
             ],
@@ -363,7 +379,8 @@ class AccountingService
 
         $all = $all->sortBy([['ts', 'asc'], ['date', 'asc'], ['order', 'asc'], ['sid', 'asc']])->values();
 
-        $opening = 0.0;
+        // old-system balance of the agent (we owe him if +) starts the account
+        $opening = $agentId ? round((float) Agent::whereKey($agentId)->value('opening_balance'), 2) : 0.0;
         $entries = collect();
 
         foreach ($all as $e) {
@@ -721,11 +738,11 @@ class AccountingService
         $allRows = $this->customerShipmentRows();
         $upTo    = $to ? $allRows->where('date', '<=', $to) : $allRows;
         $paidUpTo = DB::table('customer_payments')->when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))->sum('amount');
-        $receivable = round($upTo->sum('billed') - (float) $paidUpTo, 2);
+        $receivable = round($upTo->sum('billed') - (float) $paidUpTo + (float) DB::table('customers')->sum('opening_balance'), 2);
 
         $allCosts = ItemsShipmentCost::when($to, fn ($q) => $q->whereDate('cost_date', '<=', $to))->get();
         $paidCostUpTo = ItemsShipmentPayment::when($to, fn ($q) => $q->whereDate('payment_date', '<=', $to))->sum('amount');
-        $payable = round($allCosts->sum($costVal) - (float) $paidCostUpTo, 2);
+        $payable = round($allCosts->sum($costVal) - (float) $paidCostUpTo + (float) DB::table('agents')->sum('opening_balance'), 2);
 
         $byType = $costs->groupBy(fn ($c) => optional($c->costType)->name ?? 'Other')
             ->map(fn ($g) => round($g->sum($costVal), 2))->sortDesc();
