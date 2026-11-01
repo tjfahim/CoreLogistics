@@ -228,7 +228,7 @@
                         </div>
 
                         <div class="row" id="rate_row" style="display:none;">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label>Rate per KG <small class="text-muted currency-label"></small></label>
                                     <input type="number" step="0.01" name="rate_per_kg" id="rate_per_kg"
@@ -240,17 +240,21 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Total Weight (KG)</label>
-                                    <input type="number" step="0.01" name="total_weight" id="total_weight"
-                                           value="{{ old('total_weight', $itemShipment->total_weight) }}"
-                                           class="form-control @error('total_weight') is-invalid @enderror">
-                                    @error('total_weight')
-                                        <small class="text-danger d-block">{{ $message }}</small>
-                                    @enderror
-                                </div>
-                            </div>
+                        </div>
+
+                        <div class="form-group" id="weight_row">
+                            <label>Weight for this bill (KG) <small class="text-muted">(freight agent / CBM weight - any value, no limit)</small></label>
+                            <input type="number" step="0.01" min="0" name="total_weight" id="total_weight"
+                                   value="{{ old('total_weight') }}"
+                                   class="form-control @error('total_weight') is-invalid @enderror">
+                            <small class="text-muted">
+                                Normal weight: <a href="#" class="use-w" data-w="{{ round($pkw['original'], 2) }}">{{ number_format($pkw['original'], 2) }}</a> kg
+                                &middot; Final weight: <a href="#" class="use-w" data-w="{{ round($pkw['final'], 2) }}">{{ number_format($pkw['final'], 2) }}</a> kg
+                                (click to use). You can type any other weight, e.g. the weight the freight agent gives.
+                            </small>
+                            @error('total_weight')
+                                <small class="text-danger d-block">{{ $message }}</small>
+                            @enderror
                         </div>
 
                         <div class="form-group" id="amount_row">
@@ -766,6 +770,9 @@ document.addEventListener("DOMContentLoaded", function () {
     costTypeDropdown.addEventListener("change", updateFormUI);
     rateInput.addEventListener("input", calculateAmount);
     weightInput.addEventListener("input", calculateAmount);
+    document.querySelectorAll(".use-w").forEach(a => a.addEventListener("click", e => {
+        e.preventDefault(); weightInput.value = a.dataset.w; calculateAmount();
+    }));
     amountInput.addEventListener("input", updateFinalCost);
     exRateInput.addEventListener("input", updateFinalCost);
     currencySelect.addEventListener("change", updateCurrencyUI);
