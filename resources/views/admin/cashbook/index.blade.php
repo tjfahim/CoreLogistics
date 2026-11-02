@@ -5,6 +5,11 @@
     <h3><i class="fa fa-university"></i> Cash Book</h3>
     <p class="text-muted">Cash in hand and bank are cumulative: money stays in its account until you spend, transfer or withdraw it.</p>
 
+    @if(!$startDate)
+        <div class="alert alert-warning"><strong>Set the starting balance first.</strong> Add an entry of type "Opening balance" (how much cash in hand and in bank you have now, with today's date). Cash book counts only from that date, so old customer dues and old payments do not make cash negative.</div>
+    @else
+        <div class="alert alert-info py-2">Cash book starts from <strong>{{ $startDate }}</strong> (opening balance date). Customer / agent dues are not cash: cash changes only when money is actually received or paid.</div>
+    @endif
     <div class="row mb-3">
         <div class="col-md-4"><div class="card"><div class="card-body text-center"><small>Cash in hand (now)</small><h3 class="{{ $now['cash'] < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($now['cash'], 2) }}</h3></div></div></div>
         <div class="col-md-4"><div class="card"><div class="card-body text-center"><small>Bank / mobile banking (now)</small><h3 class="{{ $now['bank'] < 0 ? 'text-danger' : 'text-primary' }}">{{ number_format($now['bank'], 2) }}</h3></div></div></div>

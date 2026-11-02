@@ -26,7 +26,8 @@ class CashBookController extends Controller
         $now = $this->book->balances();
         $movements = FundMovement::with('user:id,name')->latest('movement_date')->latest('id')->take(30)->get();
 
-        return view('admin.cashbook.index', compact('st', 'now', 'from', 'to', 'movements'));
+        $startDate = $this->book->startDate();
+        return view('admin.cashbook.index', compact('st', 'now', 'from', 'to', 'movements', 'startDate'));
     }
 
     public function store(Request $request)

@@ -64,7 +64,19 @@ class CashBookService
             }
         }
 
+        // Cash book starts on the date of the first "Opening balance" entry: older receipts / payments
+        // (before you started using the cash book) must not push cash below zero.
+        $start = $this->startDate();
+        $t = $t->filter(fn ($r) => $r['kind'] === 'manual' || ($start && $r['date'] >= $start));
+
         return $t->sortBy([['date', 'asc'], ['ts', 'asc']])->values();
+    }
+
+    /** Date of the first opening-balance entry (null = cash book not set up yet). */
+    public function startDate(): ?string
+    {
+        $d = FundMovement::where('type', 'opening')->min('movement_date');
+        return $d ? \Carbon\Carbon::parse($d)->toDateString() : null;
     }
 
     private function row($date, $created, string $account, float $in, float $out, string $desc, string $kind, ?int $movementId = null): array

@@ -136,7 +136,7 @@
             <div style="font-size:12px;color:var(--ink-2)">Today: +{{ number_format($cbT['bank']['in']) }} / -{{ number_format($cbT['bank']['out']) }} &middot; yesterday close {{ number_format($cashBook['yesterday_close']['bank']) }}</div></div>
         <div class="pd-card"><div style="font-size:12.5px;color:var(--ink-2);font-weight:600">Total money</div>
             <div style="font-size:24px;font-weight:800">{{ number_format($cashBook['total']) }}</div>
-            @can('view-cash-book')<div style="font-size:12px"><a href="{{ route('cashbook.index') }}">Open Cash Book (transfer cash to bank)</a></div>@endcan</div>
+            @can('view-cash-book')<div style="font-size:12px"><a href="{{ route('cashbook.index') }}">Open Cash Book (opening balance, transfer cash to bank)</a></div>@endcan</div>
     </div>
 
     {{-- ===== HERO ===== --}}

@@ -12,10 +12,10 @@ class FundMovement extends Model
 
     public const ACCOUNTS = ['cash' => 'Cash in hand', 'bank' => 'Bank / mobile banking'];
     public const TYPES = [
-        'opening'  => 'Opening balance',
+        'opening'  => 'Opening balance (cash/bank you have when you start)',
         'transfer' => 'Transfer (cash <-> bank)',
-        'deposit'  => 'Deposit (money added)',
-        'withdraw' => 'Withdraw (money taken out)',
+        'deposit'  => 'Money added (boss / owner / loan)',
+        'withdraw' => 'Money taken out (owner withdraw)',
     ];
 
     public function user()
