@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class Customer extends Model
 {
+    /** Name for invoices: "Mr. " is added unless the name already starts with Mr / Mrs / Ms / Miss / Md / Dr. */
+    public function getInvoiceNameAttribute(): string
+    {
+        $n = trim((string) $this->name);
+        return preg_match('/^(mr|mrs|ms|miss|md|dr)\b\.?/i', $n) ? $n : 'Mr. ' . $n;
+    }
+
     use HasFactory;
 
     protected $fillable = [

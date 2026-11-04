@@ -114,6 +114,12 @@
                                         </a>
                                     @endcan
 
+                                    @can('view-extra-bills')
+                                        <a href="{{ route('extra-bills.index', ['shipment_id' => $shipment->id]) }}" class="btn btn-warning btn-sm">
+                                            Extra Bill
+                                        </a>
+                                    @endcan
+
                                     {{-- ✅ Customer Assignment — edit-shipments --}}
                                     @can('edit-shipments')
                                         <a href="{{ route('itemshipments.customer.assignment', $shipment->id) }}" class="btn btn-primary btn-sm">

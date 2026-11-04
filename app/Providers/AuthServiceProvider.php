@@ -171,7 +171,7 @@ class AuthServiceProvider extends ServiceProvider
             'manage-partners', 'assign-customers', 'auto-assign-ctn',
 
             // -------- Ledger --------
-            'view-customer-ledger', 'view-agent-ledger', 'view-shipment-ledger', 'export-ledger', 'view-cash-book', 'manage-cash-book',
+            'view-customer-ledger', 'view-agent-ledger', 'view-shipment-ledger', 'export-ledger', 'view-cash-book', 'manage-cash-book', 'view-extra-bills', 'manage-extra-bills',
 
             // -------- Reports --------
             'view-final-report', 'view-business-summary', 'view-period-report', 'view-customer-report',

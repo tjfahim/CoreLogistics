@@ -278,6 +278,23 @@ foreach ($validated['items'] as $index => $itemData) {
         ]);
     }
 
+    /** Permanently delete many selected items. Items that are inside a shipment are skipped (cancel / remove them from the shipment first). */
+    public function bulkDelete(Request $request)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('delete-warehouse-item');
+
+        $data = $request->validate(['item_ids' => 'required|array|min:1', 'item_ids.*' => 'integer']);
+
+        $items = CargoItem::whereIn('id', $data['item_ids'])->withCount('itemshipments')->get();
+        $deletable = $items->where('itemshipments_count', 0);
+        $skipped = $items->count() - $deletable->count();
+
+        DB::transaction(fn () => CargoItem::whereIn('id', $deletable->pluck('id'))->delete());
+
+        $msg = $deletable->count() . ' item(s) deleted.' . ($skipped ? ' ' . $skipped . ' skipped because they are inside a shipment.' : '');
+        return response()->json(['success' => true, 'deleted' => $deletable->count(), 'skipped' => $skipped, 'message' => $msg]);
+    }
+
     /** Cancel an item (removes it from any shipment, keeps the record in the Cancelled list). */
     public function cancel(Request $request, CargoItem $cargoItem)
     {

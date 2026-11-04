@@ -56,10 +56,13 @@ class CustomerBillController extends Controller
             $paidAmount = 0;
             $prevDue    = 0;
             $advance    = 0;
+            $extraBill  = 0;
 
             if ($customerId) {
                 $rows = $acc->customerShipmentRows(['customer_ids' => [$customerId]]);
                 $paidAmount = (float) ($rows->firstWhere('shipment_id', $itemshipment->id)->paid ?? 0);
+                $extraBill  = (float) ($rows->firstWhere('shipment_id', $itemshipment->id)->extra ?? 0);
+                $totalPrice += $extraBill;
                 $prevDue    = (float) $rows->where('shipment_id', '!=', $itemshipment->id)->sum('due');
                 $advance    = (float) ($acc->customerBalances([$customerId])->get($customerId)->advance ?? 0);
             }
@@ -73,6 +76,7 @@ class CustomerBillController extends Controller
                 'items_without_price' => $itemsWithoutPrice,
                 'total_weight'        => $totalWeight,
                 'total_price'         => $totalPrice,
+                'extra_bill'          => $extraBill,
                 'paid_amount'         => $paidAmount,
                 'prev_due'            => $prevDue,
                 'tp_price'            => (float) $customerItems->where('is_third_party', true)->sum(fn ($i) => $i->hasPrice() ? $i->total_price : 0),
@@ -91,6 +95,21 @@ class CustomerBillController extends Controller
             } else {
                 $totalUnassignedItems += count($customerItems);
             }
+        }
+
+        // customers who only have an extra bill in this shipment (no item)
+        $listed = collect($billingSummary)->pluck('customer_id')->filter()->all();
+        foreach ($acc->customerShipmentRows(['shipment_ids' => [$itemshipment->id]])->where('extra', '>', 0) as $r) {
+            if (in_array($r->customer_id, $listed)) continue;
+            $cu = Customer::find($r->customer_id);
+            $billingSummary[] = [
+                'customer_id' => $r->customer_id, 'customer_name' => $cu->name ?? ('#' . $r->customer_id), 'customer_code' => $cu->customer_code ?? '',
+                'total_items' => 0, 'items_with_price' => 0, 'items_without_price' => 0, 'total_weight' => 0,
+                'total_price' => $r->billed, 'extra_bill' => $r->extra, 'paid_amount' => $r->paid,
+                'prev_due' => (float) $acc->customerShipmentRows(['customer_ids' => [$r->customer_id]])->where('shipment_id', '!=', $itemshipment->id)->sum('due'),
+                'tp_price' => 0, 'tp_items' => 0, 'advance' => (float) ($acc->customerBalances([$r->customer_id])->get($r->customer_id)->advance ?? 0),
+                'due_amount' => $r->due, 'items' => collect(),
+            ];
         }
 
         return view('admin.itemshipments.billing', compact(
@@ -147,9 +166,37 @@ class CustomerBillController extends Controller
             'price'            => $item->price,
             'price_per_kg'     => $item->price_per_kg,
             'total_price'      => $itemPrice,
+            'rate_per_kg'      => (float) $item->price_per_kg != 0.0
+                                    ? (float) $item->price_per_kg
+                                    : ($hasPrice && $item->billing_weight > 0 ? round($itemPrice / $item->billing_weight, 2) : null),
             'shipments'        => $item->itemshipments->pluck('shipment_name')->implode(', '),
         ];
     }
+
+    // ---- extra bills of this customer (fixed, or rate x his final kg in that shipment) ----
+    $extraBills = collect();
+    if (\Illuminate\Support\Facades\Schema::hasTable('customer_extra_bills')) {
+        $kgByShipment = [];
+        foreach ($items as $it) {
+            foreach ($it->itemshipments as $sh) {
+                $kgByShipment[$sh->id] = ($kgByShipment[$sh->id] ?? 0) + (float) $it->billing_weight;
+            }
+        }
+        $extraBills = \App\Models\CustomerExtraBill::with('itemshipment:id,shipment_name')
+            ->where('customer_id', $customer->id)
+            ->when($itemshipment, fn ($q) => $q->where('items_shipment_id', $itemshipment->id))
+            ->orderBy('id')->get()
+            ->map(function ($b) use ($kgByShipment) {
+                $kg = (float) ($kgByShipment[$b->items_shipment_id] ?? 0);
+                return [
+                    'title' => $b->title, 'type' => $b->bill_type, 'kg' => $kg, 'rate' => $b->rate_per_kg,
+                    'shipment' => \App\Models\ItemsShipment::cleanName(optional($b->itemshipment)->shipment_name),
+                    'amount' => $b->amountFor($kg),
+                ];
+            });
+    }
+    $extraTotal = round((float) $extraBills->sum('amount'), 2);
+    $totalPrice += $extraTotal;
 
     // Invoice: only when scoped to a shipment
     $invoice = null;
@@ -159,7 +206,7 @@ class CustomerBillController extends Controller
 
     if (request()->boolean('pdf')) {
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.pdf.bill', compact(
-            'customer', 'itemshipment', 'invoice', 'itemDetails', 'totalItems', 'totalWeight', 'totalPrice', 'itemsWithPrice', 'itemsWithoutPrice'
+            'customer', 'itemshipment', 'invoice', 'itemDetails', 'totalItems', 'totalWeight', 'totalPrice', 'itemsWithPrice', 'itemsWithoutPrice', 'extraBills', 'extraTotal'
         ))->setPaper('a4')->download('invoice-' . preg_replace('/[^A-Za-z0-9_-]/', '', $customer->customer_code ?: $customer->id)
             . ($itemshipment ? '-shipment-' . $itemshipment->id : '') . '.pdf');
     }
@@ -176,7 +223,9 @@ class CustomerBillController extends Controller
         'totalWeight',
         'totalPrice',
         'itemsWithPrice',
-        'itemsWithoutPrice'
+        'itemsWithoutPrice',
+        'extraBills',
+        'extraTotal'
     ));
 }
     

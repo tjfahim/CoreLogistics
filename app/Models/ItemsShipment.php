@@ -52,6 +52,17 @@ class ItemsShipment extends Model
     }
 
     // Calculate shipment statistics
+    /** "GZ0442 (188 GZ)" -> "GZ0442" (text from the first bracket is dropped; used on invoices). */
+    public static function cleanName(?string $name): string
+    {
+        return trim(explode('(', (string) $name)[0]);
+    }
+
+    public function getInvoiceNameAttribute(): string
+    {
+        return self::cleanName($this->shipment_name);
+    }
+
     public function getTotalWeightAttribute()
     {
         return $this->cargoItems->sum('billing_weight');

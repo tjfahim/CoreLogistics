@@ -51,7 +51,7 @@
         <div class="inv-parties">
             <div class="inv-party">
                 <div class="inv-party-label">Billed To</div>
-                <div class="inv-party-name">{{ $customer->name }}</div>
+                <div class="inv-party-name">{{ $customer->invoice_name }}</div>
                 <div class="inv-party-details">
                     Code: {{ $customer->customer_code }}<br>
                     Email: {{ $customer->email }}<br>
@@ -62,7 +62,7 @@
             @if($itemshipment)
                 <div class="inv-party">
                     <div class="inv-party-label">Shipment</div>
-                    <div class="inv-party-name">{{ $itemshipment->shipment_name }}</div>
+                    <div class="inv-party-name">{{ $itemshipment->invoice_name }}</div>
                     <div class="inv-party-details">
                         Date: {{ $itemshipment->shipment_date }}
                     </div>
@@ -76,7 +76,7 @@
                 <thead><tr><th>Shipment</th><th>Date</th><th style="text-align:right">Billed</th><th style="text-align:right">Received</th><th style="text-align:right">Due</th></tr></thead>
                 <tbody>
                 @foreach($shipRows as $r)
-                    <tr><td>{{ $r->shipment_name }}</td><td>{{ $r->date }}</td><td style="text-align:right">{{ number_format($r->billed, 2) }}</td><td style="text-align:right">{{ number_format($r->paid, 2) }}</td><td style="text-align:right"><strong>{{ number_format($r->due, 2) }}</strong></td></tr>
+                    <tr><td>{{ \App\Models\ItemsShipment::cleanName($r->shipment_name) }}</td><td>{{ $r->date }}</td><td style="text-align:right">{{ number_format($r->billed, 2) }}</td><td style="text-align:right">{{ number_format($r->paid, 2) }}</td><td style="text-align:right"><strong>{{ number_format($r->due, 2) }}</strong></td></tr>
                 @endforeach
                 </tbody>
                 <tfoot><tr><th colspan="2">TOTAL</th><th style="text-align:right">{{ number_format($shipRows->sum('billed'), 2) }}</th><th style="text-align:right">{{ number_format($shipRows->sum('paid'), 2) }}</th><th style="text-align:right">{{ number_format($shipRows->sum('due'), 2) }}</th></tr></tfoot>
@@ -115,6 +115,7 @@
                     <th>Shipping Mark</th>
                     <th>Tracking</th>
                     <th class="col-num">Weight (kg)</th>
+                    <th class="col-num">Rate / kg</th>
                     <th class="col-num">Total Price</th>
                 </tr>
             </thead>
@@ -132,6 +133,7 @@
                         <td>{{ $item['shipping_mark'] }}</td>
                         <td>{{ $item['tracking_no'] }}</td>
                         <td class="col-num">{{ number_format($item['weight_kg'], 2) }}</td>
+                        <td class="col-num">{{ $item['rate_per_kg'] !== null ? number_format($item['rate_per_kg'], 2) : '' }}</td>
                         <td class="col-num">
                             @if($item['has_price'])
                                 <strong>{{ number_format($item['total_price'], 2) }}</strong>
@@ -141,11 +143,21 @@
                         </td>
                     </tr>
                 @endforeach
+                @foreach($extraBills as $eb)
+                    <tr>
+                        <td class="col-num">+</td>
+                        <td colspan="4"><strong>{{ $eb['title'] }}</strong> <span class="inv-sub">(extra bill{{ !$itemshipment && $eb['shipment'] ? ' - ' . $eb['shipment'] : '' }})</span></td>
+                        <td class="col-num">{{ $eb['type'] === 'per_kg' ? number_format($eb['kg'], 2) : '' }}</td>
+                        <td class="col-num">{{ $eb['type'] === 'per_kg' ? number_format($eb['rate'], 2) : '' }}</td>
+                        <td class="col-num"><strong>{{ number_format($eb['amount'], 2) }}</strong></td>
+                    </tr>
+                @endforeach
             </tbody>
             <tfoot>
                 <tr>
                     <td colspan="5" class="inv-total-label">TOTAL</td>
                     <td class="col-num">{{ number_format($totalWeight, 2) }} kg</td>
+                    <td></td>
                     <td class="col-num"><strong>{{ number_format($totalPrice, 2) }}</strong></td>
                 </tr>
             </tfoot>

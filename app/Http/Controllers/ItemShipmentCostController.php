@@ -97,7 +97,7 @@ class ItemShipmentCostController extends Controller
             return redirect()->back()->with('success', 'Cost added successfully.');
         } catch (\Exception $e) {
             // DB failed -> remove files already written to disk
-            Storage::disk('public')->delete($storedPaths);
+            ItemsShipmentCostAttachment::deleteStored($storedPaths);
             return redirect()->back()->withInput()->with('error', 'Error adding cost: ' . $e->getMessage());
         }
     }
@@ -124,7 +124,7 @@ class ItemShipmentCostController extends Controller
 
             return redirect()->back()->with('success', 'Attachments uploaded successfully.');
         } catch (\Exception $e) {
-            Storage::disk('public')->delete($storedPaths);
+            ItemsShipmentCostAttachment::deleteStored($storedPaths);
             return redirect()->back()->with('error', 'Error uploading attachments: ' . $e->getMessage());
         }
     }
@@ -141,7 +141,7 @@ class ItemShipmentCostController extends Controller
 
             $path = $attachment->file_path;
             $attachment->delete();
-            Storage::disk('public')->delete($path);
+            ItemsShipmentCostAttachment::deleteStored([$path]);
 
             return redirect()->back()->with('success', 'Attachment deleted successfully.');
         } catch (\Exception $e) {
@@ -158,7 +158,7 @@ class ItemShipmentCostController extends Controller
             $mime         = $file->getMimeType();
             $size         = $file->getSize();
 
-            $path = $file->store("shipment-costs/{$cost->id}", 'public');
+            $path = ItemsShipmentCostAttachment::storeUpload($file, (int) $cost->id);
             $storedPaths[] = $path;
 
             $cost->attachments()->create([
@@ -237,7 +237,7 @@ class ItemShipmentCostController extends Controller
             });
 
             // only after the DB delete succeeded
-            Storage::disk('public')->delete($filePaths);
+            ItemsShipmentCostAttachment::deleteStored($filePaths);
             Storage::disk('public')->deleteDirectory("shipment-costs/{$costId}");
 
             return redirect()->route('itemshipments.costs.show', $itemShipmentId)

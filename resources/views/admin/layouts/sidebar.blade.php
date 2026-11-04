@@ -78,6 +78,13 @@
                 </a>
             </li>
             @endcan
+            @can('view-extra-bills')
+            <li class="tl-item {{ request()->routeIs('extra-bills.*') ? 'active' : '' }}">
+                <a href="{{ route('extra-bills.index') }}" title="Extra Bills">
+                    <span class="tl-ico"><i class="fa fa-plus-square"></i></span><span class="tl-txt">Extra Bills</span>
+                </a>
+            </li>
+            @endcan
             @can('view-cash-book')
             <li class="tl-item {{ request()->routeIs('cashbook.*') ? 'active' : '' }}">
                 <a href="{{ route('cashbook.index') }}" title="Cash Book">

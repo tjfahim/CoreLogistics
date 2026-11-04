@@ -198,6 +198,8 @@ class PermissionSeeder extends Seeder
             'Export Ledger',
             'View Cash Book',
             'Manage Cash Book',
+            'View Extra Bills',
+            'Manage Extra Bills',
         ],
 
         // ---------- Reports ----------

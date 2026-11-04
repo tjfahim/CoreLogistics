@@ -174,6 +174,7 @@ Route::post('itemsshipments/{itemshipment}/remove-box', [ItemShipmentController:
 Route::get('cargo-items/arrived-bd', [CargoItemController::class, 'arrivedBdItems'])->name('cargo-items.arrived-bd');
 Route::get('cargo-items/{cargoItem}/edit', [CargoItemController::class, 'edit'])->name('cargo-items.edit');
 Route::get('cargo-items/bangladesh-warehouse', [CargoItemController::class, 'bangladeshWarehouseItems'])->name('cargo-items.bangladesh-warehouse');
+Route::post('cargo-items/bulk-delete', [CargoItemController::class, 'bulkDelete'])->name('cargo-items.bulk-delete');
 Route::post('cargo-items/bulk-third-party', [CargoItemController::class, 'bulkThirdParty'])->name('cargo-items.bulk-third-party');
 Route::get('cargo-items/ajax/items', [CargoItemController::class, 'ajaxItems'])->name('cargo-items.ajax-items');
 
@@ -341,6 +342,9 @@ Route::post('shipment-bills/pay', [ShipmentBillController::class, 'store'])->nam
 Route::get('shipment-bills/{voucher}', [ShipmentBillController::class, 'show'])->name('shipment-bills.show');
 Route::delete('shipment-bills/{voucher}', [ShipmentBillController::class, 'destroy'])->name('shipment-bills.destroy');
 
+        Route::get('extra-bills', [\App\Http\Controllers\ExtraBillController::class, 'index'])->name('extra-bills.index')->middleware('can:view-extra-bills');
+        Route::post('extra-bills', [\App\Http\Controllers\ExtraBillController::class, 'store'])->name('extra-bills.store')->middleware('can:manage-extra-bills');
+        Route::delete('extra-bills/{extraBill}', [\App\Http\Controllers\ExtraBillController::class, 'destroy'])->name('extra-bills.destroy')->middleware('can:manage-extra-bills');
         Route::get('cash-book', [\App\Http\Controllers\CashBookController::class, 'index'])->name('cashbook.index')->middleware('can:view-cash-book');
         Route::post('cash-book', [\App\Http\Controllers\CashBookController::class, 'store'])->name('cashbook.store')->middleware('can:manage-cash-book');
         Route::delete('cash-book/{movement}', [\App\Http\Controllers\CashBookController::class, 'destroy'])->name('cashbook.destroy')->middleware('can:manage-cash-book');

@@ -161,6 +161,11 @@
                                 <i class="fa fa-handshake-o"></i> Mark Third-party
                                 (<span id="selectedCount3">0</span>)
                             </button>
+                            @can('delete-warehouse-item')
+                            <button type="button" class="btn btn-danger btn-sm mr-2 mb-1" id="btnBulkDelete" disabled>
+                                <i class="fa fa-trash"></i> Delete Selected (<span id="selectedCount4">0</span>)
+                            </button>
+                            @endcan
                             <button type="button" class="btn btn-outline-secondary btn-sm mr-2 mb-1" id="btnUnmark3p" disabled>
                                 <i class="fa fa-times"></i> Unmark Third-party
                             </button>
@@ -549,6 +554,8 @@ $(document).ready(function () {
         $('#selectedCount').text(n);
         $('#selectedCount2').text(n);
         $('#selectedCount3').text(n);
+        $('#selectedCount4').text(n);
+        $('#btnBulkDelete').prop('disabled', n === 0);
         $bulkPackBtn.prop('disabled', n === 0);
         $bulkPendingBtn.prop('disabled', n === 0);
         $('#btnMark3p, #btnUnmark3p').prop('disabled', n === 0);
@@ -618,6 +625,18 @@ $(document).ready(function () {
             error: function (xhr) { showToast(xhr.status === 403 ? 'You do not have permission.' : 'Bulk update failed.'); }
         });
     }
+    $('#btnBulkDelete').on('click', function () {
+        const ids = $('.row-check:checked').map(function () { return $(this).data('id'); }).get();
+        if (!ids.length) { showToast('No items selected.'); return; }
+        if (!confirm('PERMANENTLY delete ' + ids.length + ' item(s)? This cannot be undone. (Items inside a shipment are skipped.)')) return;
+        $.ajax({
+            url: '{{ route("cargo-items.bulk-delete") }}',
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}', item_ids: ids },
+            success: function (res) { showToast(res.message || 'Deleted.'); clearAllChecks(); loadItems(); },
+            error: function (xhr) { showToast(xhr.status === 403 ? 'You do not have permission.' : 'Delete failed.'); }
+        });
+    });
     $('#btnMark3p').on('click', function () { bulkThirdParty(true); });
     $('#btnUnmark3p').on('click', function () { bulkThirdParty(false); });
 

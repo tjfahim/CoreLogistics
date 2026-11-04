@@ -42,6 +42,7 @@
             @endcan
             <a class="rp-btn" style="color:#0b7f72" href="{{ request()->fullUrlWithQuery(['export' => 1]) }}"><i class="fa fa-file-excel-o"></i> Excel</a> <a class="rp-btn" style="color:#c0392b" href="{{ request()->fullUrlWithQuery(['pdf' => 1]) }}"><i class="fa fa-file-pdf-o"></i> PDF</a>
             <button class="rp-btn" onclick="window.print()"><i class="fa fa-print"></i> Print</button>
+            @can('view-extra-bills')<a href="{{ route('extra-bills.index', ['customer_id' => $customer->id]) }}" class="rp-btn"><i class="fa fa-plus-square"></i> Extra Bill</a>@endcan
             <a href="{{ route('customers.edit', $customer->id) }}" class="rp-btn"><i class="fa fa-edit"></i> Edit</a>
         </div>
     </div>

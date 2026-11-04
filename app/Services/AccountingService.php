@@ -87,6 +87,35 @@ class AccountingService
                 SUM(CASE WHEN ci.is_third_party = 1 THEN 1 ELSE 0 END) as tp_items')
             ->get();
 
+        // ---- extra bills (fixed, or rate x the customer's final kg in that shipment) ----
+        $extraSum = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('customer_extra_bills')) {
+            $wmap = $billed->keyBy(fn ($r) => $r->customer_id . '-' . $r->shipment_id);
+            $extras = DB::table('customer_extra_bills')
+                ->when($customerIds, fn ($q) => $q->whereIn('customer_id', $customerIds))
+                ->when($shipmentIds, fn ($q) => $q->whereIn('items_shipment_id', $shipmentIds))
+                ->get();
+            foreach ($extras as $e) {
+                $k = $e->customer_id . '-' . $e->items_shipment_id;
+                $kg = (float) ($wmap->get($k)->weight ?? 0);
+                $amt = $e->bill_type === 'per_kg' ? round((float) $e->rate_per_kg * $kg, 2) : (float) $e->amount;
+                $extraSum[$k] = round(($extraSum[$k] ?? 0) + $amt, 2);
+            }
+        }
+        $billed = $billed->map(function ($r) use (&$extraSum) {
+            $k = $r->customer_id . '-' . $r->shipment_id;
+            $r->extra = $extraSum[$k] ?? 0;
+            $r->billed = (float) $r->billed + $r->extra;
+            unset($extraSum[$k]);
+            return $r;
+        });
+        // customers who have an extra bill but no item in that shipment
+        foreach ($extraSum as $k => $amt) {
+            [$cid, $sid] = explode('-', $k);
+            $billed->push((object) ['customer_id' => (int) $cid, 'shipment_id' => (int) $sid, 'items' => 0, 'priced_items' => 0,
+                'weight' => 0, 'cbm' => 0, 'billed' => $amt, 'tp_billed' => 0, 'tp_items' => 0, 'extra' => $amt]);
+        }
+
         if ($billed->isEmpty()) {
             return collect();
         }
@@ -121,6 +150,7 @@ class AccountingService
                 'weight'        => (float) $r->weight,
                 'cbm'           => (float) $r->cbm,
                 'billed'        => $b,
+                'extra'         => round((float) ($r->extra ?? 0), 2),
                 'tp_billed'     => round((float) $r->tp_billed, 2),
                 'tp_items'      => (int) $r->tp_items,
                 'paid'          => $p,
@@ -204,7 +234,8 @@ class AccountingService
                     'doc'       => $invoices[$r->shipment_id] ?? ('BILL-' . $r->shipment_id),
                     'desc'      => 'Shipment bill: ' . $r->shipment_name,
                     'detail'    => $r->priced_items . ' priced item(s), ' . number_format($r->weight, 2) . ' kg'
-                                   . ($r->items > $r->priced_items ? ' (' . ($r->items - $r->priced_items) . ' unpriced)' : ''),
+                                   . ($r->items > $r->priced_items ? ' (' . ($r->items - $r->priced_items) . ' unpriced)' : '')
+                                   . ($r->extra > 0 ? ' + extra bill ' . number_format($r->extra, 2) : ''),
                     'method'    => null,
                     'reference' => null,
                     'user'      => null,
