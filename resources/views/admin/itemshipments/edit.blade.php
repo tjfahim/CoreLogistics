@@ -214,6 +214,10 @@
                                 To add new items, press <strong>Pending items</strong> below, tick the items you want and press Update Shipment.
                             </div>
 
+                            <div class="form-inline mb-2">
+                                <input type="text" id="itemSearch" class="form-control form-control-sm mr-2" style="min-width:260px" placeholder="Search tracking no, goods name, CTN...">
+                                <span class="text-muted small" id="shownCount"></span>
+                            </div>
                             <div class="btn-group btn-group-sm mb-2" id="statusFilter">
                                 <button type="button" class="btn btn-dark active" data-filter="">All ({{ $itemshipment->cargoItems->count() + $availableItems->count() }})</button>
                                 <button type="button" class="btn btn-outline-success" data-filter="In this shipment">In this shipment ({{ $itemshipment->cargoItems->count() }})</button>
@@ -222,7 +226,7 @@
                             </div>
 
                             <div class="table-responsive">
-                                <table id="itemsTable" class="table table-bordered table-hover table-sm" width="100%">
+                                <div style="max-height:70vh;overflow:auto"><table id="itemsTable" class="table table-bordered table-hover table-sm" width="100%">
                                     <thead class="thead-dark">
                                         <tr>
                                             <th width="45"><input type="checkbox" id="selectAllItems"></th>
@@ -244,7 +248,7 @@
                                     </thead>
                                     <tbody>
                                         @foreach($itemshipment->cargoItems as $item)
-                                            <tr class="shipment-item-row selected-row" data-item-id="{{ $item->id }}">
+                                            <tr class="shipment-item-row" data-item-id="{{ $item->id }}" data-state="In this shipment">
                                                 <td class="text-center">
                                                     <input type="checkbox" value="{{ $item->id }}" class="item-checkbox" checked>
                                                 </td>
@@ -276,7 +280,7 @@
                                         @endforeach
 
                                         @foreach($availableItems as $item)
-                                            <tr class="shipment-item-row" data-item-id="{{ $item->id }}">
+                                            <tr class="shipment-item-row" data-item-id="{{ $item->id }}" data-state="{{ ucfirst($item->status) }}">
                                                 <td class="text-center">
                                                     <input type="checkbox" value="{{ $item->id }}" class="item-checkbox">
                                                 </td>
@@ -306,7 +310,7 @@
                                             </tr>
                                         @endforeach
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
 
                             @error('selected_items')
@@ -337,174 +341,90 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-
 <script>
-// The layout loads jQuery twice (header + footer); bind to the copy that has the DataTables plugin.
-(function ($) {
-$(document).ready(function () {
-    'use strict';
+(function () {
+    var form = document.getElementById('shipmentForm');
+    if (!form) return;                      // no edit-shipments permission
 
-    // Bail out if the form isn't rendered (no edit-shipments permission)
-    if (!document.getElementById('shipmentForm')) return;
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#itemsTable tbody tr.shipment-item-row'));
+    var badge = document.getElementById('selectedCountBadge');
+    var head = document.getElementById('selectAllItems');
+    var search = document.getElementById('itemSearch');
+    var filter = '';
+    var originalCount = rows.filter(function (r) { return r.dataset.state === 'In this shipment'; }).length;
 
-    // Start from the items really attached to this shipment (not from the DOM: DataTables only keeps one page in the DOM)
-    const selectedIds = new Set(@json($itemshipment->cargoItems->pluck('id')->map(fn ($i) => (string) $i)->values()));
-    const originalCount = selectedIds.size;
+    function cb(r) { return r.querySelector('.item-checkbox'); }
+    function visible(r) { return r.style.display !== 'none'; }
 
-    const table = $('#itemsTable').DataTable({
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, 250, -1], [10, 25, 50, 100, 250, 'All']],
-        order: [[1, 'desc']],
-        columnDefs: [{ orderable: false, targets: 0 }],
-        language: {
-            search: 'Search items:',
-            searchPlaceholder: 'Tracking no, goods name, CTN...',
-            lengthMenu: 'Show _MENU_ items',
-            info: 'Showing _START_ to _END_ of _TOTAL_ items',
-            infoEmpty: 'No items found',
-            infoFiltered: '(filtered from _MAX_ total)'
-        }
-    });
-
-    // status filter (All / In this shipment / Pending / Packed) on the Status column
-    $('#statusFilter button').on('click', function () {
-        $('#statusFilter button').removeClass('active');
-        $(this).addClass('active');
-        const f = $(this).data('filter');
-        table.column(14).search(f ? '^' + f + '$' : '', true, false).draw();
-    });
-
-    function applySelectedState() {
-        $('#itemsTable tbody tr').each(function () {
-            const row = $(this);
-            const checkbox = row.find('.item-checkbox');
-            if (!checkbox.length) return;
-
-            const id = String(checkbox.val());
-            if (selectedIds.has(id)) {
-                checkbox.prop('checked', true);
-                row.addClass('row-selected');
-            } else {
-                checkbox.prop('checked', false);
-                row.removeClass('row-selected');
-            }
+    function refresh() {
+        var n = 0, vis = 0, visChecked = 0;
+        rows.forEach(function (r) {
+            var c = cb(r);
+            r.classList.toggle('row-selected', c.checked);
+            if (c.checked) n++;
+            if (visible(r)) { vis++; if (c.checked) visChecked++; }
         });
-        updateSelectedCount();
-        updateSelectAllCheckbox();
+        badge.textContent = n + ' selected';
+        head.checked = vis > 0 && visChecked === vis;
+        head.indeterminate = visChecked > 0 && visChecked < vis;
+        document.getElementById('shownCount').textContent = vis + ' shown';
     }
 
-    function updateSelectedCount() {
-        $('#selectedCountBadge').text(selectedIds.size + ' selected');
+    function applyFilter() {
+        var q = (search.value || '').toLowerCase().trim();
+        rows.forEach(function (r) {
+            var okState = !filter || r.dataset.state === filter;
+            var okText = !q || r.textContent.toLowerCase().indexOf(q) !== -1;
+            r.style.display = (okState && okText) ? '' : 'none';
+        });
+        refresh();
     }
 
-    function updateSelectAllCheckbox() {
-        const visibleRows = table.rows({ search: 'applied' }).nodes();
-        const $checkboxes = $(visibleRows).find('.item-checkbox');
-
-        if ($checkboxes.length === 0) {
-            $('#selectAllItems').prop('checked', false).prop('indeterminate', false);
-            return;
-        }
-
-        let checkedCount = 0;
-        $checkboxes.each(function () {
-            if (selectedIds.has(String($(this).val()))) checkedCount++;
-        });
-
-        if (checkedCount === 0) {
-            $('#selectAllItems').prop('checked', false).prop('indeterminate', false);
-        } else if (checkedCount === $checkboxes.length) {
-            $('#selectAllItems').prop('checked', true).prop('indeterminate', false);
-        } else {
-            $('#selectAllItems').prop('checked', false).prop('indeterminate', true);
-        }
+    function setVisible(on) {
+        rows.forEach(function (r) { if (visible(r)) cb(r).checked = on; });
+        refresh();
     }
 
-    $('#itemsTable').on('draw.dt', function () {
-        applySelectedState();
-    });
-
-    $('#itemsTable tbody').on('click', 'tr.shipment-item-row', function (e) {
-        if ($(e.target).closest('input, button, a, select, textarea, label').length) return;
-
-        const checkbox = $(this).find('.item-checkbox');
-        if (!checkbox.length) return;
-
-        const id = String(checkbox.val());
-        if (selectedIds.has(id)) {
-            selectedIds.delete(id);
-        } else {
-            selectedIds.add(id);
-        }
-        applySelectedState();
-    });
-
-    $('#itemsTable tbody').on('change', '.item-checkbox', function () {
-        const id = String($(this).val());
-        if ($(this).is(':checked')) {
-            selectedIds.add(id);
-        } else {
-            selectedIds.delete(id);
-        }
-        applySelectedState();
-    });
-
-    $('#selectAllItems').on('change', function () {
-        const checked = $(this).is(':checked');
-        const visibleRows = table.rows({ search: 'applied' }).nodes();
-
-        $(visibleRows).find('.item-checkbox').each(function () {
-            const id = String($(this).val());
-            if (checked) {
-                selectedIds.add(id);
-            } else {
-                selectedIds.delete(id);
-            }
+    document.querySelectorAll('#statusFilter button').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#statusFilter button').forEach(function (x) { x.classList.remove('active'); });
+            btn.classList.add('active');
+            filter = btn.dataset.filter || '';
+            applyFilter();
         });
-        applySelectedState();
     });
+    search.addEventListener('input', applyFilter);
 
-    $('#selectAllBtn').on('click', function () {
-        const visibleRows = table.rows({ search: 'applied' }).nodes();
-        $(visibleRows).find('.item-checkbox').each(function () {
-            selectedIds.add(String($(this).val()));
+    document.getElementById('selectAllBtn').addEventListener('click', function () { setVisible(true); });
+    document.getElementById('deselectAllBtn').addEventListener('click', function () { setVisible(false); });
+    head.addEventListener('change', function () { setVisible(head.checked); });
+
+    rows.forEach(function (r) {
+        r.addEventListener('click', function (e) {
+            if (e.target.closest('input, button, a, select, textarea, label')) return;
+            cb(r).checked = !cb(r).checked;
+            refresh();
         });
-        applySelectedState();
+        cb(r).addEventListener('change', refresh);
     });
 
-    $('#deselectAllBtn').on('click', function () {
-        if (!confirm('Are you sure you want to deselect all items?')) return;
-        selectedIds.clear();
-        applySelectedState();
-    });
-
-    $('#shipmentForm').on('submit', function () {
-        if (selectedIds.size === 0 && originalCount > 0 &&
+    form.addEventListener('submit', function (e) {
+        var ids = rows.filter(function (r) { return cb(r).checked; }).map(function (r) { return cb(r).value; });
+        if (ids.length === 0 && originalCount > 0 &&
             !confirm('No item is selected. ALL ' + originalCount + ' items will be removed from this shipment and go back to Pending. Continue?')) {
-            return false;
+            e.preventDefault(); return;
         }
-        $('#shipmentForm').find('input.dynamic-selected-item').remove();
-
-        $('<input>')
-            .attr({
-                type: 'hidden',
-                name: 'selected_items',
-                value: Array.from(selectedIds).join(',')
-            })
-            .addClass('dynamic-selected-item')
-            .appendTo('#shipmentForm');
-
-        $('#submitBtn')
-            .prop('disabled', true)
-            .html('<i class="fa fa-spinner fa-spin"></i> Updating...');
+        var old = form.querySelector('input.dynamic-selected-item');
+        if (old) old.remove();
+        var h = document.createElement('input');
+        h.type = 'hidden'; h.name = 'selected_items'; h.value = ids.join(','); h.className = 'dynamic-selected-item';
+        form.appendChild(h);
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Updating...';
     });
 
-    applySelectedState();
-});
-})(window.jQuery);
+    refresh();
+})();
 </script>
 
 <style>
