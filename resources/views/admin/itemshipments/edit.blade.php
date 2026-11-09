@@ -211,6 +211,14 @@
                             <div class="alert alert-info small">
                                 <i class="fa fa-info-circle"></i>
                                 <strong>Tip:</strong> Click anywhere on a row to select or deselect the item.
+                                To add new items, press <strong>Pending items</strong> below, tick the items you want and press Update Shipment.
+                            </div>
+
+                            <div class="btn-group btn-group-sm mb-2" id="statusFilter">
+                                <button type="button" class="btn btn-dark active" data-filter="">All ({{ $itemshipment->cargoItems->count() + $availableItems->count() }})</button>
+                                <button type="button" class="btn btn-outline-success" data-filter="In this shipment">In this shipment ({{ $itemshipment->cargoItems->count() }})</button>
+                                <button type="button" class="btn btn-outline-warning" data-filter="Pending">Pending items ({{ $availableItems->where('status', 'pending')->count() }})</button>
+                                <button type="button" class="btn btn-outline-info" data-filter="Packed">Packed items ({{ $availableItems->where('status', 'packed')->count() }})</button>
                             </div>
 
                             <div class="table-responsive">
@@ -231,6 +239,7 @@
                                             <th>Remark</th>
                                             <th>Copy</th>
                                             <th>Warehouse</th>
+                                            <th>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -262,6 +271,7 @@
                                                 <td>{{ $item->remark ?? '-' }}</td>
                                                 <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
                                                 <td>{{ $item->warehouse ?? '-' }}</td>
+                                                <td><span class="badge badge-success">In this shipment</span></td>
                                             </tr>
                                         @endforeach
 
@@ -292,7 +302,7 @@
                                                 <td>{{ $item->shipping_mark ?? '-' }}</td>
                                                 <td>{{ $item->remark ?? '-' }}</td>
                                                 <td>{{ $item->is_copy ? 'Yes' : 'No' }}</td>
-                                                <td>{{ $item->warehouse ?? '-' }}</td>
+                                                <td><span class="badge {{ $item->status === 'pending' ? 'badge-warning' : 'badge-info' }}">{{ ucfirst($item->status) }}</span></td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -358,6 +368,14 @@ $(document).ready(function () {
             infoEmpty: 'No items found',
             infoFiltered: '(filtered from _MAX_ total)'
         }
+    });
+
+    // status filter (All / In this shipment / Pending / Packed) on the Status column
+    $('#statusFilter button').on('click', function () {
+        $('#statusFilter button').removeClass('active');
+        $(this).addClass('active');
+        const f = $(this).data('filter');
+        table.column(14).search(f ? '^' + f + '$' : '', true, false).draw();
     });
 
     function applySelectedState() {
