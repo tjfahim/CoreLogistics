@@ -181,7 +181,10 @@ public function update(Request $request, ItemsShipment $itemshipment)
             ->pluck('cargo_items.id')
             ->toArray();
 
-        // 3. Parse selected_items
+        // 3. Parse selected_items (field missing = do not touch the items)
+        if (!$request->has('selected_items')) {
+            return;
+        }
         $newItemIds = [];
         $raw = (string) $request->input('selected_items', '');
         if ($raw !== '') {

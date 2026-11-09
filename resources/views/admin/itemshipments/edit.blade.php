@@ -342,18 +342,17 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
 
 <script>
+// The layout loads jQuery twice (header + footer); bind to the copy that has the DataTables plugin.
+(function ($) {
 $(document).ready(function () {
     'use strict';
 
     // Bail out if the form isn't rendered (no edit-shipments permission)
     if (!document.getElementById('shipmentForm')) return;
 
-    const selectedIds = new Set();
-
-    $('#itemsTable tbody .item-checkbox:checked').each(function () {
-        const id = String($(this).val());
-        if (id !== '') selectedIds.add(id);
-    });
+    // Start from the items really attached to this shipment (not from the DOM: DataTables only keeps one page in the DOM)
+    const selectedIds = new Set(@json($itemshipment->cargoItems->pluck('id')->map(fn ($i) => (string) $i)->values()));
+    const originalCount = selectedIds.size;
 
     const table = $('#itemsTable').DataTable({
         pageLength: 25,
@@ -483,6 +482,10 @@ $(document).ready(function () {
     });
 
     $('#shipmentForm').on('submit', function () {
+        if (selectedIds.size === 0 && originalCount > 0 &&
+            !confirm('No item is selected. ALL ' + originalCount + ' items will be removed from this shipment and go back to Pending. Continue?')) {
+            return false;
+        }
         $('#shipmentForm').find('input.dynamic-selected-item').remove();
 
         $('<input>')
@@ -501,6 +504,7 @@ $(document).ready(function () {
 
     applySelectedState();
 });
+})(window.jQuery);
 </script>
 
 <style>
